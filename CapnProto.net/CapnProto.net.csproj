@@ -37,17 +37,21 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CapnProtoReader.cs" />
+    <Compile Include="CapnProtoSerializer.cs" />
+    <Compile Include="CapnProtoStreamReader.cs" />
     <Compile Include="FieldAttribute.cs" />
     <Compile Include="IdAttribute.cs" />
+    <Compile Include="ITypeSerializer.cs" />
+    <Compile Include="ListPointer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StructPointer.cs" />
+    <Compile Include="TypeModel.cs" />
+    <Compile Include="UnionAttribute.cs" />
+    <Compile Include="Void.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CapnProto.net.snk" />

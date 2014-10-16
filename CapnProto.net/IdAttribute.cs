@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace CapnProto
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Field | AttributeTargets.Enum, AllowMultiple = false, Inherited = false)]
     [ImmutableObject(true)]
     public class IdAttribute : Attribute
     {
