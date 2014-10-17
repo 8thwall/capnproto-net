@@ -41,12 +41,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CapnProtoReader.cs" />
+    <Compile Include="CodeWriter.cs" />
+    <Compile Include="CSharpCodeWriter.cs">
+      <DependentUpon>CodeWriter.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GroupAttrubute.cs" />
+    <Compile Include="Schema.cs" />
+    <Compile Include="Schema.Definition.cs">
+      <DependentUpon>Schema.cs</DependentUpon>
+    </Compile>
     <Compile Include="TypeSerializer.cs" />
     <Compile Include="CapnProtoStreamReader.cs">
       <DependentUpon>CapnProtoReader.cs</DependentUpon>
     </Compile>
     <Compile Include="FieldAttribute.cs" />
-    <Compile Include="IdAttribute.cs" />
+    <Compile Include="StructAttribute.cs" />
     <Compile Include="ITypeSerializer.cs" />
     <Compile Include="ListPointer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -4,16 +4,18 @@ using System.ComponentModel;
 namespace CapnProto
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-    public class UnionAttribute : Attribute
+    [ImmutableObject(true)]
+    public sealed class UnionAttribute : Attribute
     {
-        public UnionAttribute(int tag)
+        public UnionAttribute(int tag, int start = -1, int end = -1)
         {
             Tag = tag;
-            Offset = Pointer = -1;
+            Start = start;
+            End = end;
         }
         public int Tag { get; private set; }
 
-        public int Offset { get; set; }
-        public int Pointer { get; set; }
+        public int Start  { get; private set; }
+        public int End { get; private set; }
     }
 }

@@ -5,7 +5,10 @@ namespace CapnProto
 {
     public abstract class TypeModel
     {
-        public abstract ITypeSerializer GetSerializer(Type type);
+        public virtual ITypeSerializer GetSerializer(Type type)
+        {
+            throw new global::System.ArgumentOutOfRangeException("type");
+        }
         public ITypeSerializer<T> GetSerializer<T>()
         {
             return (ITypeSerializer<T>)GetSerializer(typeof(T));
