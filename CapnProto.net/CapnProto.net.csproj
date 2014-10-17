@@ -42,7 +42,9 @@
   <ItemGroup>
     <Compile Include="CapnProtoReader.cs" />
     <Compile Include="CapnProtoSerializer.cs" />
-    <Compile Include="CapnProtoStreamReader.cs" />
+    <Compile Include="CapnProtoStreamReader.cs">
+      <DependentUpon>CapnProtoReader.cs</DependentUpon>
+    </Compile>
     <Compile Include="FieldAttribute.cs" />
     <Compile Include="IdAttribute.cs" />
     <Compile Include="ITypeSerializer.cs" />

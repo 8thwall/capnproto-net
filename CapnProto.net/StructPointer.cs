@@ -7,12 +7,14 @@ namespace CapnProto
 {
     public struct StructPointer
     {
-        internal StructPointer(int offset, ushort dataLength, ushort pointerLength)
+        public StructPointer(ulong value)
         {
-            this.offset = offset;
-            this.dataLength = dataLength;
-            this.pointerLength = pointerLength;
+            if ((value & 3) != 0) throw new InvalidOperationException("Expected struct pointer");
+            this.offset = ((int)value) >> 2;
+            this.dataLength = (ushort)((value >> 32) & 0xFFFF);
+            this.pointerLength = (ushort)((value >> 48) & 0xFFFF);
         }
+
         private int offset;
         private ushort dataLength;
         private ushort pointerLength;
@@ -24,10 +26,10 @@ namespace CapnProto
         /// <summary>
         /// Size of the struct's data section, in words.
         /// </summary>
-        public int DataLength { get { return dataLength; } }
+        public uint DataLength { get { return dataLength; } }
         /// <summary>
         /// Size of the struct's pointer section, in words.
         /// </summary>
-        public int PointerLength { get { return pointerLength; } }
+        public uint PointerLength { get { return pointerLength; } }
     }
 }

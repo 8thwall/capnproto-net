@@ -7,10 +7,11 @@ namespace CapnProto
 {
     public struct ListPointer
     {
-        public ListPointer(int offset, int combinedSize)
+        public ListPointer(ulong value)
         {
-            this.combinedSize = combinedSize;
-            this.offset = offset;
+            if ((value & 3) != 1) throw new InvalidOperationException("Expected list pointer");
+            this.offset = ((int)value) >> 2;
+            this.combinedSize = (int)(value >> 32);
         }
         private readonly int offset, combinedSize;
         /// <summary>
@@ -29,8 +30,20 @@ namespace CapnProto
         /// 6 = 8 bytes (pointer)
         /// 7 = composite (see below)
         /// </summary>
-        public int ElementSize { get { return combinedSize & 7; } }
+        public ElementSize ElementSize { get { return (ElementSize)(combinedSize & 7); } }
 
-        public int Size { get { return combinedSize << 3; } }
+        public int Size { get { return combinedSize >> 3; } }
+    }
+
+    public enum ElementSize
+    {
+        ZeroByte = 0,
+        OneBit = 1,
+        OneByte = 2,
+        TwoBytes = 3,
+        FourBytes = 4,
+        EightBytesNonPointer = 5,
+        EightBytesPointer = 6,
+        Composite = 7
     }
 }

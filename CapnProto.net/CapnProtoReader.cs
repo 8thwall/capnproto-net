@@ -1,12 +1,13 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 
 namespace CapnProto
 {
     abstract public partial class CapnProtoReader : IDisposable
     {
-        private byte[] scratch;
-        protected byte[] Scratch { get { return scratch ?? (scratch = new byte[8]); } }
+        protected const int ScratchLength = 64; // must be at least 8
+        protected readonly byte[] Scratch = new byte[ScratchLength];
         public static CapnProtoReader Create(Stream source, object context = null, bool leaveOpen = false)
         {
             return new CapnProtoStreamReader(source, context, leaveOpen);
@@ -25,86 +26,135 @@ namespace CapnProto
         private object context;
         public object Context { get { return context; } }
 
-        private void Read(byte[] buffer, int offset, int count)
+        //private void Read(byte[] buffer, int offset, int count)
+        //{
+        //    int read;
+        //    while(count > 0 && (read = ReadRaw(buffer, offset, count)) > 0)
+        //    {
+        //        count -= read;
+        //        offset += read;
+        //    }
+        //    if (count != 0) throw new EndOfStreamException();
+        //}
+
+
+
+        public abstract void ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int wordCount);
+        public virtual ulong ReadWord(int wordOffset)
         {
-            int read;
-            while(count > 0 && (read = ReadRaw(buffer, offset, count)) > 0)
+            var tmp = Scratch;
+            ReadWords(wordOffset, tmp, 0, 1);
+            return BitConverter.ToUInt64(tmp, 0);
+        }
+
+        protected abstract void OnChangeSegment(int segment, int offset, int length);
+
+        private int segment;
+        public int Segment { get { return segment; } }
+        public void ChangeSegment(int segment)
+        {
+            if (segment != this.segment)
             {
-                count -= read;
-                offset += read;
+                int offset, length;
+                if (segment == 0)
+                {
+                    offset = firstSegment.Offset;
+                    length = firstSegment.Length;
+                }
+                else
+                {
+
+                    if (segment < 0 || segment-- > otherSegments.Length)
+                        throw new ArgumentOutOfRangeException("segment");
+
+                    offset = otherSegments[segment].Offset;
+                    length = otherSegments[segment].Length;
+                }
+                OnChangeSegment(segment, offset, length);
+                this.segment = segment;
             }
-            if (count != 0) throw new EndOfStreamException();
+        }
+        public byte[] ReadBytesFromPointer(int wordOffset, ulong ptr)
+        {
+            var lptr = new ListPointer(ptr);
+            if (lptr.ElementSize != ElementSize.OneByte) throw new InvalidOperationException("Expected pointer to single-byte data");
+
+            int len = lptr.Size;
+            if (len == 0) return NixBytes;
+            return ReadBytes(wordOffset + lptr.Offset, len);
+        }
+        static readonly byte[] NixBytes = new byte[0];
+        public string ReadStringFromPointer(int wordOffset, ulong ptr)
+        {
+            var lptr = new ListPointer(ptr);
+            if (lptr.ElementSize != ElementSize.OneByte) throw new InvalidOperationException("Expected pointer to single-byte data");
+
+            int len = lptr.Size;
+            if (len == 0) throw ExpectedNullTerminatedString();
+
+            if (len <= ScratchLength)
+            {
+                var tmp = Scratch;
+                ReadWords(wordOffset + lptr.Offset, tmp, 0, ToWords(len));
+                if (tmp[len - 1] != 0) throw ExpectedNullTerminatedString();
+
+                return Encoding.UTF8.GetString(tmp, 0, len - 1);
+
+            }
+            return ReadString(wordOffset + lptr.Offset, len);
+        }
+        private static int ToWords(int bytes)
+        {
+            return (bytes + 7) / 8;
+        }
+        protected Exception ExpectedNullTerminatedString()
+        {
+            return new InvalidOperationException("Expected nul-terminated string");
         }
 
-        public virtual StructPointer ReadStructPointer()
+        protected abstract string ReadString(int wordOffset, int count);
+        protected abstract byte[] ReadBytes(int wordOffset, int count);
+
+        private SegmentRange firstSegment;
+        private SegmentRange[] otherSegments;
+        public virtual void ReadPreamble()
         {
-            var raw = ReadUInt64();
-            int offset = (int)raw;
-            ushort dlen = (ushort)((raw >> 32) & 0xFFFF),
-                plen = (ushort)((raw >> 48) & 0xFFFF);
-            if ((offset & 3) != 0) throw new InvalidOperationException("Expected struct pointer");
-            return new StructPointer(offset >> 2, dlen, plen);
+            int offset = 0;
+            var word = ReadWord(offset++);
+            int additionalSegments = (int)word;
+
+            int segmentOffset = 1 + (additionalSegments / 2);
+            if ((additionalSegments % 2) != 0) segmentOffset++;
+            firstSegment = new SegmentRange(ref segmentOffset, (int)(word >> 32));
+            if (additionalSegments != 0)
+            {
+                otherSegments = new SegmentRange[additionalSegments];
+                int index = 0;
+                for (int i = 0; i < additionalSegments / 2; i++)
+                {
+                    word = ReadWord(offset++);
+                    otherSegments[index++] = new SegmentRange(ref segmentOffset, (int)word);
+                    otherSegments[index++] = new SegmentRange(ref segmentOffset, (int)(word >> 32));
+                }
+
+                if ((additionalSegments % 2) != 0)
+                {
+                    word = ReadWord(offset++);
+                    otherSegments[index] = new SegmentRange(ref segmentOffset, (int)word);
+                }
+            }
+            OnChangeSegment(0, firstSegment.Offset, firstSegment.Length);
+        }
+        private struct SegmentRange
+        {
+            public readonly int Offset, Length;
+            public SegmentRange(ref int offset, int length)
+            {
+                this.Offset = offset;
+                this.Length = length;
+                offset += length;
+            }
         }
 
-        public ListPointer ReadListPointer()
-        {
-            var raw = ReadUInt64();
-            int offset = (int)raw,
-                combinedSize = (int)(raw >> 32);
-            if ((offset & 3) != 1) throw new InvalidOperationException("Expected list pointer");
-            return new ListPointer(offset >> 2, combinedSize);
-        }
-        public abstract void SeekWords(int offset);
-
-        public abstract int ReadRaw(byte[] buffer, int offset, int count);
-
-
-        public ulong ReadUInt64()
-        {
-            var buffer = Scratch;
-            ReadRaw(buffer, 0, 8);
-            return isLittleEndian ? BitConverter.ToUInt64(buffer, 0)
-                : (ulong)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24)
-                | (buffer[4] << 32) | (buffer[5] << 40) | (buffer[6] << 48) | (buffer[7] << 56));
-        }
-        public long ReadInt64()
-        {
-            var buffer = Scratch;
-            ReadRaw(buffer, 0, 8);
-            return isLittleEndian ? BitConverter.ToInt64(buffer, 0)
-                : (long)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24)
-                | (buffer[4] << 32)| (buffer[5] << 40) | (buffer[6] << 48) | (buffer[7] << 56));
-        }
-        public uint ReadUInt32()
-        {
-            var buffer = Scratch;
-            ReadRaw(buffer, 0, 4);
-            return isLittleEndian ? BitConverter.ToUInt32(buffer, 0)
-                : (uint)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24));
-        }
-        public int ReadInt32()
-        {
-            var buffer = Scratch;
-            ReadRaw(buffer, 0, 4);
-            return isLittleEndian ? BitConverter.ToInt32(buffer, 0)
-                : (int)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24));
-        }
-
-        public ushort ReadUInt16()
-        {
-            var buffer = Scratch;
-            ReadRaw(buffer, 0, 2);
-            return isLittleEndian ? BitConverter.ToUInt16(buffer, 0)
-                : (ushort)(buffer[0] | (buffer[1] << 8));
-        }
-        public short ReadInt16()
-        {
-            var buffer = Scratch;
-            ReadRaw(buffer, 0, 2);
-            return isLittleEndian ? BitConverter.ToInt16(buffer, 0)
-                : (short)(buffer[0] | (buffer[1] << 8));
-        }
-
-        public abstract void ReadPreamble();
     }
 }

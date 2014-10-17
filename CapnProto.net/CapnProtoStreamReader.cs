@@ -1,44 +1,79 @@
 ﻿
 using System;
 using System.IO;
+using System.Text;
 namespace CapnProto
 {
-    partial class CapnProtoReader
+    internal class CapnProtoStreamReader : CapnProtoReader
     {
-        internal class CapnProtoStreamReader : CapnProtoReader
+        private System.IO.Stream source;
+        private readonly bool leaveOpen;
+
+        public CapnProtoStreamReader(Stream source, object context, bool leaveOpen) : base(context)
         {
-            private System.IO.Stream source;
-            private readonly bool leaveOpen;
-            public CapnProtoStreamReader(Stream source, object context, bool leaveOpen) : base(context)
-            {
-                if (source == null) throw new ArgumentNullException("source");
-                this.leaveOpen = leaveOpen;
-                this.source = source;
-            }
-
-            public override void Dispose()
-            {
-                if (source != null && !leaveOpen) source.Dispose();
-                source = null;
-            }
-
-            public override int ReadRaw(byte[] buffer, int offset, int count)
-            {
-                return source.Read(buffer, offset, count);
-            }
-            public override void SeekWords(int offset)
-            {
-                if(offset != 0) source.Seek(offset * 8, SeekOrigin.Current);
-            }
-
-            public override void ReadPreamble()
-            {
-                int segments = ReadInt32() + 1;
-                if (segments != 1)
-                    throw new NotSupportedException("Multi-segment messages are not yet supported");
-
-                int words = ReadInt32();
-            }
+            if (source == null) throw new ArgumentNullException("source");
+            this.leaveOpen = leaveOpen;
+            this.source = source;
         }
+
+        static CapnProtoStreamReader()
+        {
+            if (!BitConverter.IsLittleEndian) throw new NotSupportedException("Big-endian is not yet supported");
+        }
+
+        public override void Dispose()
+        {
+            if (source != null && !leaveOpen) source.Dispose();
+            source = null;
+        }
+
+
+        protected override void OnChangeSegment(int segment, int offset, int len)
+        {
+            currentSegmentRoot = offset;
+        }
+
+        protected override string ReadString(int wordOffset, int count)
+        {
+            // this is a terrible implementation
+            var bytes = ReadBytes(wordOffset, count);
+            if (bytes[count - 1] != 0) throw ExpectedNullTerminatedString();
+            return Encoding.UTF8.GetString(bytes, 0, count - 1);
+        }
+        protected override byte[] ReadBytes(int wordOffset, int count)
+        {
+            source.Position = checked((currentSegmentRoot + wordOffset) * 8);
+            byte[] arr = new byte[count];
+            CopyBytes(wordOffset, arr, 0, count);
+            return arr;
+        }
+
+        private void CopyBytes(int wordOffset, byte[] buffer, int bufferOffset, int count)
+        {
+            if (count <= 0) throw new ArgumentOutOfRangeException("count");
+            source.Position = checked((currentSegmentRoot + wordOffset) * 8);
+            int read;
+
+            if ((read = source.Read(buffer, bufferOffset, count)) == count) return; // got it all first try; nice
+
+            if (read > 0)
+            {  // got *something*; keep trying
+                count -= read;
+                bufferOffset += read;
+                while (count != 0 && (read = source.Read(buffer, bufferOffset, count)) > 0)
+                {
+                    count -= read;
+                    bufferOffset += read;
+                }
+            }
+            if (count != 0) throw new EndOfStreamException();
+        }
+
+        public override void ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int wordCount)
+        {
+            CopyBytes(wordOffset, buffer, bufferOffset, checked(wordCount * 8));
+        }
+
+        int currentSegmentRoot;
     }
 }
