@@ -1,13 +1,25 @@
 ﻿using System.IO;
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 namespace CapnProto
 {
     public abstract class CodeWriter
     {
         private TextWriter destination;
-        public CodeWriter(TextWriter destination)
+        Dictionary<ulong, Schema.Node> map = new Dictionary<ulong, Schema.Node>();
+        public CodeWriter(TextWriter destination, List<Schema.Node> nodes)
         {
             this.destination = destination;
+            foreach(var node in nodes)
+            {
+                if (node.id != 0) map[node.id] = node;
+            }
+        }
+        protected Schema.Node Lookup(ulong id)
+        {
+            Schema.Node node;
+            return map.TryGetValue(id, out node) ? node : null;
         }
         public virtual CodeWriter Write(string value)
         {
@@ -45,5 +57,23 @@ namespace CapnProto
         public abstract CodeWriter EndMethod();
 
         public abstract CodeWriter WriteCustomReaderMethod(Schema.Node node, string name);
+
+        public abstract CodeWriter WriteField(Schema.Field field);
+
+        public abstract string Format(Schema.Type type);
+
+        public virtual CodeWriter Write(uint value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+        public virtual CodeWriter Write(int value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        public virtual CodeWriter Write(Schema.Type type)
+        {
+            return Write(Format(type));
+        }
     }
 }

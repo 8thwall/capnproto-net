@@ -30,11 +30,11 @@ namespace CapnProto
                     {
                         ulong id = 0;
                         string name = next.Name;
-                        IdAttribute @struct = (IdAttribute)Attribute.GetCustomAttribute(next, typeof(IdAttribute));
-                        if (@struct != null)
+                        IdAttribute idAttrib = (IdAttribute)Attribute.GetCustomAttribute(next, typeof(IdAttribute));
+                        if (idAttrib != null)
                         {
-                            id = @struct.Id;
-                            if (!string.IsNullOrWhiteSpace(@struct.Name)) name = @struct.Name;
+                            id = idAttrib.Id;
+                            if (!string.IsNullOrWhiteSpace(idAttrib.Name)) name = idAttrib.Name;
                         }
                         var node = new Node { id = id, displayName = name };
                         map.Add(next, node);
@@ -58,13 +58,13 @@ namespace CapnProto
 
             private static bool Include(System.Type type)
             {
-                if(type == null) return false;
+                if (type == null) return false;
                 return Attribute.IsDefined(type, typeof(GroupAttribute)) || Attribute.IsDefined(type, typeof(IdAttribute));
             }
             static System.Type GetInnermostElementType(System.Type type)
             {
                 System.Type last = type;
-                while(type != null)
+                while (type != null)
                 {
                     last = type;
                     type = GetElementType(type);
@@ -82,9 +82,9 @@ namespace CapnProto
                 // look for a **single** IList<T>
                 int count = 0;
                 System.Type tmp = null;
-                foreach(var iType in type.GetInterfaces())
+                foreach (var iType in type.GetInterfaces())
                 {
-                    if(iType.IsGenericType && iType.GetGenericTypeDefinition() == typeof(IList<>))
+                    if (iType.IsGenericType && iType.GetGenericTypeDefinition() == typeof(IList<>))
                     {
                         if (++count == 2) break;
                         tmp = iType.GetGenericArguments()[0];
@@ -98,11 +98,11 @@ namespace CapnProto
             }
             private static void Cascade(System.Type next, Queue<System.Type> pending)
             {
-                foreach(var type in next.GetNestedTypes())
+                foreach (var type in next.GetNestedTypes())
                 {
                     if (Include(type)) pending.Enqueue(type);
                 }
-                foreach(var field in next.GetFields())
+                foreach (var field in next.GetFields())
                 {
                     if (Include(field.FieldType)) pending.Enqueue(field.FieldType);
                     else
@@ -125,20 +125,20 @@ namespace CapnProto
 
             private static void ConfigureNode(System.Type type, Node node, Dictionary<System.Type, Node> map)
             {
-                
+
                 List<NestedNode> nestedNodes = new List<NestedNode>();
                 List<Field> fields = new List<Field>();
-                
+
                 node.nestedNodes = nestedNodes;
                 node.@struct = new Node.structGroup
                     {
                         fields = fields,
                         isGroup = Attribute.IsDefined(type, typeof(GroupAttribute))
                     };
-                
-                
+
+
                 var nestedTypes = type.GetNestedTypes();
-                foreach(var nestedType in nestedTypes)
+                foreach (var nestedType in nestedTypes)
                 {
                     Node nested;
                     if (map.TryGetValue(nestedType, out nested))
@@ -149,9 +149,9 @@ namespace CapnProto
                             name = nested.displayName
                         });
                     }
-                    
+
                 }
-                foreach(var field in type.GetFields())
+                foreach (var field in type.GetFields())
                 {
                     var member = CreateField(field);
                     if (member != null) fields.Add(member);
@@ -164,18 +164,98 @@ namespace CapnProto
             }
             static Field CreateField(MemberInfo member)
             {
+                if (member == null) return null;
+                System.Type type;
+                switch (member.MemberType)
+                {
+                    case MemberTypes.Field:
+                        type = ((FieldInfo)member).FieldType; break;
+                    case MemberTypes.Property:
+                        type = ((PropertyInfo)member).PropertyType; break;
+                    default:
+                        return null;
+                }
+
+                var fa = (FieldAttribute)Attribute.GetCustomAttribute(member, typeof(FieldAttribute));
+                var ua = (UnionAttribute)Attribute.GetCustomAttribute(member, typeof(UnionAttribute));
+                if (fa == null && ua == null) return null;
+
+                Field field = new Field();
+                var slot = new Schema.Field.slotGroup();
+                slot.type = GetSchemaType(type);
+                field.slot = slot;
+                if (fa != null)
+                {
+                    if (fa.Start >= 0)
+                    {
+                        slot.offset = checked((uint)fa.Start);
+                    }
+                    var ordinal = new Schema.Field.ordinalGroup();
+                    if (fa.Number >= 0)
+                    {
+                        ordinal.@explicit = checked((ushort)fa.Number);
+                    }
+                    else
+                    {
+                        ordinal.@implicit = Void.Value;
+                    }
+                }
+
+                if (ua != null) field.discriminantValue = checked((ushort)ua.Tag);
+                field.name = member.Name;
+
+                return field;
+            }
+
+            private static Type GetSchemaType(System.Type type)
+            {
+                if (type == null) return null;
+
+                // objects and enums
+                var idAttrib = (IdAttribute)Attribute.GetCustomAttribute(type, typeof(IdAttribute));
+                if (idAttrib != null)
+                {
+                    if(type.IsEnum)
+                        return new Type { @enum = new Type.enumGroup { typeId = idAttrib.Id } };
+                    return new Type { @struct = new Type.structGroup { typeId = idAttrib.Id } };
+                }
+
+                if(type == typeof(byte[])) return new Type { data = Void.Value };
+                switch (System.Type.GetTypeCode(type))
+                {
+                    case TypeCode.Empty: return null;
+                    case TypeCode.Boolean: return new Type { @bool = Void.Value };
+                    case TypeCode.Byte: return new Type { uint8 = Void.Value };
+                    case TypeCode.SByte: return new Type { int8 = Void.Value };
+                    case TypeCode.Int16: return new Type { int16 = Void.Value };
+                    case TypeCode.UInt16: return new Type { uint16 = Void.Value };
+                    case TypeCode.Int32: return new Type { int32 = Void.Value };
+                    case TypeCode.UInt32: return new Type { uint32 = Void.Value };
+                    case TypeCode.Int64: return new Type { int64 = Void.Value };
+                    case TypeCode.UInt64: return new Type { uint64 = Void.Value };
+                    case TypeCode.Char: return new Type { uint16 = Void.Value };
+                    case TypeCode.DBNull: return new Type { @void = Void.Value };
+                    case TypeCode.Single: return new Type { float32 = Void.Value };
+                    case TypeCode.Double: return new Type { float64 = Void.Value };
+                    case TypeCode.String: return new Type { text = Void.Value };
+                }
+
+                // lists (note this includes recursive)
+                var elType = GetSchemaType(GetElementType(type));
+                if (elType != null) return new Type { list = new Type.listGroup { elementType = elType } };
+                
                 return null;
             }
 
 
-            
+
             public void GenerateCustomModel(CodeWriter writer)
             {
                 const string PREFIX = "_capnp_";
                 const string @namespace = "test", serializerType = "myserializer";
                 writer.BeginFile().BeginNamespace(@namespace);
 
-                foreach(var node in this.nodes)
+                foreach (var node in this.nodes)
                 {
                     WriteStruct(writer, node);
                 }
@@ -183,17 +263,17 @@ namespace CapnProto
                 writer.BeginClass(true, serializerType, typeof(TypeModel));
 
                 List<Node> generateSerializers = new List<Node>(this.nodes.Count);
-                
-                foreach(var node in this.nodes)
+
+                foreach (var node in this.nodes)
                 {
-                    if(node.@struct != null)
+                    if (node.@struct != null && !node.@struct.isGroup)
                     {
                         generateSerializers.Add(node);
                     }
                 }
 
                 int i = 0;
-                foreach(var node in generateSerializers)
+                foreach (var node in generateSerializers)
                 {
                     writer.DeclareField(PREFIX + "f_" + i, typeof(ITypeSerializer));
                     i++;
@@ -230,7 +310,7 @@ namespace CapnProto
                 writer.EndClass();
                 writer.EndNamespace().EndFile();
 
-                
+
             }
             static readonly System.Type[] getSerializerSignature = new[] { typeof(System.Type) };
 

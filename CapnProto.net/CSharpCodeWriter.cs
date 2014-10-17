@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace CapnProto
 {
     public class CSharpCodeWriter : CodeWriter
     {
-        public CSharpCodeWriter(TextWriter destination) : base(destination) { }
+        public CSharpCodeWriter(TextWriter destination, List<Schema.Node> nodes) : base(destination, nodes) { }
         private int indentationLevel;
 
         public override CodeWriter WriteLine()
@@ -108,11 +109,20 @@ namespace CapnProto
         {
             if (node.@struct != null)
             {
-                WriteLine().Write("[global::CapnProto.Struct(0x").Write(Convert.ToString(unchecked((long)node.id), 16)).Write(")]");
+                if (node.@struct.isGroup)
+                {
+                    WriteLine().Write("[global::CapnProto.Group]");
+                }
+                else
+                {
+                    WriteLine().Write("[global::CapnProto.Id(0x").Write(Convert.ToString(unchecked((long)node.id), 16)).Write(")]");
+                }
             }
             WriteLine().Write("public partial class ").Write(Escape(node.displayName));
             return Indent();
         }
+
+        
         static readonly char[] period = { '.' };
         public override CodeWriter BeginNamespace(string name)
         {
@@ -241,15 +251,66 @@ namespace CapnProto
         {
             WriteLine().Write("protected ").Write(node.displayName).Write(" ").Write(name).Write("(int wordOffset, global::CapnProto.CapnProtoReader reader, ulong ptr)");
 
-
+            Indent().WriteLine();
             //int maxBody = -1;
             foreach(var field in node.@struct.fields)
             {
-                WriteLine().Write("// ").Write(Escape(field.name));
+                //WriteLine().Write("// ").Write(Escape(field.name));
             }
-            Indent().WriteLine().Write("throw new NotImplementedException();");
+            Write("throw new NotImplementedException();");
 
             return EndMethod();
+        }
+
+        public override string Format(Schema.Type type)
+        {
+            if (type == null) return null;
+            if (type.anyPointer != null) return "object";
+            if (type.@bool != null) return "bool";
+            if (type.data != null) return "byte[]";
+            if (type.float32 != null) return "float";
+            if (type.float64 != null) return "double";
+            if (type.int16 != null) return "short";
+            if (type.int32 != null) return "int";
+            if (type.int64 != null) return "long";
+            if (type.int8 != null) return "sbyte";
+            if (type.text != null) return "string";
+            if (type.uint16 != null) return "ushort";
+            if (type.uint32 != null) return "uint";
+            if (type.uint64 != null) return "ulong";
+            if (type.uint8 != null) return "byte";
+            if (type.@void != null) return "global::CapnProto.Void";
+
+            ulong typeid = 0;
+            if (type.@interface != null)
+                typeid = type.@interface.typeId;
+            else if (type.@struct != null)
+                typeid = type.@struct.typeId;
+            else if (type.@enum != null)
+                typeid = type.@enum.typeId;
+            Schema.Node node;
+            if(typeid != 0 && (node = Lookup(typeid)) != null)
+            {
+                return node.displayName;
+            }
+
+            if (type.list != null)
+            {
+                string el = Format(type.list.elementType);
+                if (!string.IsNullOrWhiteSpace(el))
+                    return "global::System.Collections.Generic<" + Escape(el) + ">";
+            }
+            return null;
+        }
+
+        public override CodeWriter WriteField(Schema.Field field)
+        {
+            var slot = field.slot;
+            WriteLine().Write("[global::CapnProto.Field(").Write(slot.offset).Write(")]");
+            
+            WriteLine().Write("public ").Write(slot.type).Write(" ").Write(Escape(field.name)).Write(" {get; set; }");
+            
+            return this;
         }
     }
 
