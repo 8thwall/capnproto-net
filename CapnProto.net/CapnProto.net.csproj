@@ -41,7 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CapnProtoReader.cs" />
-    <Compile Include="CapnProtoSerializer.cs" />
+    <Compile Include="TypeSerializer.cs" />
     <Compile Include="CapnProtoStreamReader.cs">
       <DependentUpon>CapnProtoReader.cs</DependentUpon>
     </Compile>
