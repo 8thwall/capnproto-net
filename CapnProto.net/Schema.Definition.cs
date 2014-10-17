@@ -7,6 +7,7 @@ namespace CapnProto
     {
         //# schema.capnp
         //@0xa93fc509624c72d9;
+        [module: Id(0xa93fc509624c72d9)]        
         //$import "/capnp/c++.capnp".namespace("capnp::schema");
 
         //struct Node @0xe682ab4cf923a417 {  # 40 bytes, 5 ptrs
