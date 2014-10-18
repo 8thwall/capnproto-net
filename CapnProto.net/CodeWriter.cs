@@ -8,13 +8,28 @@ namespace CapnProto
     {
         private TextWriter destination;
         Dictionary<ulong, Schema.Node> map = new Dictionary<ulong, Schema.Node>();
-        public CodeWriter(TextWriter destination, List<Schema.Node> nodes)
+        public CodeWriter(TextWriter destination, List<Schema.Node> nodes, string @namespace)
         {
             this.destination = destination;
-            foreach(var node in nodes)
+            this.@namespace = @namespace;
+            foreach (var node in nodes)
             {
                 if (node.id != 0) map[node.id] = node;
             }
+        }
+        protected Schema.Node FindParent(Schema.Node node)
+        {
+            if (node == null || node.id == 0) return null;
+            foreach (var pair in map)
+            {
+                var nested = pair.Value.nestedNodes;
+                if (nested != null)
+                {
+                    foreach (var x in nested)
+                        if (x.id == node.id) return pair.Value;
+                }
+            }
+            return null;
         }
         public abstract CodeWriter WriteError(string message);
         public Schema.Node Lookup(ulong id)
@@ -38,6 +53,7 @@ namespace CapnProto
         public abstract CodeWriter BeginNamespace(string name);
         public abstract CodeWriter EndNamespace();
         public abstract CodeWriter BeginClass(Schema.Node node);
+        public abstract CodeWriter WriteLittleEndianCheck(Schema.Node node);
         public abstract CodeWriter BeginClass(bool @public, string name, Type baseType);
         public abstract CodeWriter EndClass();
 
@@ -81,11 +97,14 @@ namespace CapnProto
 
         public virtual CodeWriter DeclareFields(string prefix, int count, Type type)
         {
-            for(int i = 0 ; i < count ; i++)
+            for (int i = 0; i < count; i++)
             {
                 DeclareField(prefix + i, type);
             }
             return this;
         }
+
+        readonly string @namespace;
+        public string Namespace { get { return @namespace; } }
     }
 }

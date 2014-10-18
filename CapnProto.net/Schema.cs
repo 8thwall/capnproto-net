@@ -286,8 +286,8 @@ namespace CapnProto
             public void GenerateCustomModel(CodeWriter writer)
             {
                 
-                const string @namespace = "test", serializerType = "myserializer";
-                writer.BeginFile().BeginNamespace(@namespace);
+                const string serializerType = "myserializer";
+                writer.BeginFile().BeginNamespace(writer.Namespace);
 
                 var nested = new HashSet<ulong>();
                 foreach (var node in this.nodes)
@@ -373,7 +373,7 @@ namespace CapnProto
                 var @struct = node.@struct;
                 if (@struct == null) return;
 
-                writer.BeginClass(node);
+                writer.BeginClass(node).WriteLittleEndianCheck(node);
 
 
                 var children = node.nestedNodes;

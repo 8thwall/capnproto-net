@@ -5,6 +5,11 @@ namespace CapnProto
 {
     public abstract class TypeModel
     {
+        public static void AssertLittleEndian()
+        {
+            if (!BitConverter.IsLittleEndian)
+                throw new NotSupportedException("The model is using generated code optimized for little-endian CPUs; any-endian support will be available when I have written it!");
+        }
         public virtual ITypeSerializer GetSerializer(Type type)
         {
             throw new global::System.ArgumentOutOfRangeException("type");

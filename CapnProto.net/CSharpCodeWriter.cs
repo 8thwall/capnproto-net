@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace CapnProto
 {
     public class CSharpCodeWriter : CodeWriter
     {
-        public CSharpCodeWriter(TextWriter destination, List<Schema.Node> nodes) : base(destination, nodes) { }
+        public CSharpCodeWriter(TextWriter destination, List<Schema.Node> nodes, string @namespace) : base(destination, nodes, @namespace) { }
         private int indentationLevel;
 
         public override CodeWriter WriteLine()
@@ -105,6 +106,7 @@ namespace CapnProto
                     return name;
             }
         }
+
         public override CodeWriter BeginClass(Schema.Node node)
         {
             if (node.@struct != null)
@@ -118,7 +120,7 @@ namespace CapnProto
                     WriteLine().Write("[global::CapnProto.Id(0x").Write(Convert.ToString(unchecked((long)node.id), 16)).Write(")]");
                 }
             }
-            WriteLine().Write("public partial class ").Write(Escape(node.displayName));
+            WriteLine().Write("public partial class ").Write(LocalName(node));
             return Indent();
         }
 
@@ -209,7 +211,7 @@ namespace CapnProto
 
         public override CodeWriter WriteSerializerTest(string field, Schema.Node node, string serializer)
         {
-            return WriteLine().Write("if (type == typeof(").Write(node.displayName).Write(")) return ").Write(field)
+            return WriteLine().Write("if (type == typeof(").Write(FullyQualifiedName(node)).Write(")) return ").Write(field)
                 .Write(" ?? (").Write(field).Write(" = new ").Write(serializer).Write("());");
         }
 
@@ -269,14 +271,14 @@ namespace CapnProto
 
         public override CodeWriter WriteCustomSerializerClass(Schema.Node node, string baseType, string typeName, string methodName)
         {
-            WriteLine().Write("class ").Write(typeName).Write(" : ").Write(baseType).Write(", global::CapnProto.ITypeSerializer<").Write(node.displayName).Write(">");
+            WriteLine().Write("class ").Write(typeName).Write(" : ").Write(baseType).Write(", global::CapnProto.ITypeSerializer<").Write(FullyQualifiedName(node)).Write(">");
             Indent();
             
             WriteLine().Write("object global::CapnProto.ITypeSerializer.Deserialize(global::CapnProto.CapnProtoReader reader)");
             Indent().WriteLine().Write("return Deserialize(reader);");
             EndMethod();
 
-            WriteLine().Write("public ").Write(node.displayName).Write(" Deserialize(global::CapnProto.CapnProtoReader reader)");
+            WriteLine().Write("public ").Write(FullyQualifiedName(node)).Write(" Deserialize(global::CapnProto.CapnProtoReader reader)");
             Indent().WriteLine().Write("reader.ReadPreamble();").WriteLine().Write("return ").Write(methodName).Write("(1, reader, reader.ReadWord(0));");
             EndMethod();
 
@@ -288,10 +290,37 @@ namespace CapnProto
         {
             return Outdent();
         }
+        
+        private string FullyQualifiedName(Schema.Node node)
+        {
+            var parent = FindParent(node);
+            Stack<Schema.Node> roots = null;
+            if (parent != null)
+            {
+                roots = new Stack<Schema.Node>();
+                do
+                {
+                    roots.Push(parent);
+                    parent = FindParent(parent);
+                } while (parent != null);
+            }
+            var sb = new StringBuilder("global::");
+            if (!string.IsNullOrWhiteSpace(Namespace)) sb.Append(Namespace).Append('.');
+            while(roots != null && roots.Count != 0)
+            {
+                parent = roots.Pop();
+                sb.Append(LocalName(parent)).Append('.');
+            }
+            return sb.Append(LocalName(node)).ToString();
+        }
 
+        private string LocalName(Schema.Node node)
+        {
+            return Escape(node.displayName);
+        }
         public override CodeWriter WriteCustomReaderMethod(Schema.Node node, string name)
         {
-            WriteLine().Write("protected ").Write(node.displayName).Write(" ").Write(name).Write("(int wordOffset, global::CapnProto.CapnProtoReader reader, ulong ptr)");
+            WriteLine().Write("protected ").Write(FullyQualifiedName(node)).Write(" ").Write(name).Write("(int wordOffset, global::CapnProto.CapnProtoReader reader, ulong ptr)");
 
             Indent().WriteLine();
             //int maxBody = -1;
@@ -355,7 +384,7 @@ namespace CapnProto
             Schema.Node node;
             if(typeid != 0 && (node = Lookup(typeid)) != null)
             {
-                return node.displayName;
+                return FullyQualifiedName(node);
             }
 
             if (type.list != null)
@@ -380,7 +409,7 @@ namespace CapnProto
         public override void WriteEnum(CodeWriter writer, Schema.Node node)
         {
             if (node == null || node.@enum == null || node.@enum.enumerants == null) return;
-            WriteLine().Write("public enum ").Write(Escape(node.displayName));
+            WriteLine().Write("public enum ").Write(LocalName(node));
             Indent();
             var items = node.@enum.enumerants;
             foreach (var item in items)
@@ -388,6 +417,12 @@ namespace CapnProto
                 WriteLine().Write(Escape(item.name)).Write(" = ").Write(item.codeOrder).Write(",");
             }
             Outdent();
+        }
+
+        public override CodeWriter WriteLittleEndianCheck(Schema.Node node)
+        {
+            WriteLine().Write("static ").Write(LocalName(node)).Write("()");
+            return Indent().WriteLine().Write(typeof(TypeModel)).Write(".AssertLittleEndian();").EndMethod();
         }
     }
 
