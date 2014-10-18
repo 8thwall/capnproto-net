@@ -282,8 +282,7 @@ namespace CapnProto
                 return null;
             }
 
-
-            const string PREFIX = "_capnp_";
+            const string PREFIX = "ѧ_capnp_";
             public void GenerateCustomModel(CodeWriter writer)
             {
                 

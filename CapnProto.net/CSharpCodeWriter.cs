@@ -321,7 +321,7 @@ namespace CapnProto
                         break;
                 }
             }
-            WriteLine().Write("throw new NotImplementedException();");
+            WriteLine().Write("throw new global::System.NotImplementedException();");
 
             return EndMethod();
         }
