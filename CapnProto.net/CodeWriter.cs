@@ -16,7 +16,8 @@ namespace CapnProto
                 if (node.id != 0) map[node.id] = node;
             }
         }
-        protected Schema.Node Lookup(ulong id)
+        public abstract CodeWriter WriteError(string message);
+        public Schema.Node Lookup(ulong id)
         {
             Schema.Node node;
             return map.TryGetValue(id, out node) ? node : null;
@@ -75,5 +76,7 @@ namespace CapnProto
         {
             return Write(Format(type));
         }
+
+        internal abstract void WriteEnum(CodeWriter writer, Schema.Node node);
     }
 }

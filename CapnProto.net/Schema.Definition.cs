@@ -7,7 +7,7 @@ namespace CapnProto
     {
         //# schema.capnp
         //@0xa93fc509624c72d9;
-        [module: Id(0xa93fc509624c72d9)]        
+        //[module: Id(0xa93fc509624c72d9)]        
         //$import "/capnp/c++.capnp".namespace("capnp::schema");
 
         //struct Node @0xe682ab4cf923a417 {  # 40 bytes, 5 ptrs
@@ -48,7 +48,7 @@ namespace CapnProto
             [Union(1)]
             public structGroup @struct { get; set; }
 
-            [Group]
+            [Group, Id(11430331134483579957)]
             public partial class structGroup
             {
                 //      dataWordCount @7 :UInt16;  # bits[112, 128)
@@ -85,7 +85,7 @@ namespace CapnProto
             [Union(2)]
             public enumGroup @enum { get; set; }
 
-            [Group]
+            [Group, Id(13063450714778629528)]
             public partial class enumGroup
             {
                 //      enumerants @14 :List(Enumerant);  # ptr[3]
@@ -98,7 +98,7 @@ namespace CapnProto
             [Union(3)]
             public interfaceGroup @interface { get; set; }
 
-            [Group]
+            [Group, Id(17116997365232503999)]
             public partial class interfaceGroup
             {
                 //      methods @15 :List(Method);  # ptr[3]
@@ -115,7 +115,7 @@ namespace CapnProto
             [Union(4)]
             public constGroup @const { get; set; }
 
-            [Group]
+            [Group, Id(12793219851699983392)]
             public partial class constGroup
             {
                 //      type @16 :Type;  # ptr[3]
@@ -132,7 +132,7 @@ namespace CapnProto
             [Union(5)]
             public annotationGroup annotation { get; set; }
 
-            [Group]
+            [Group, Id(17011813041836786320)]
             public partial class annotationGroup
             {
                 //      type @18 :Type;  # ptr[3]
@@ -218,7 +218,7 @@ namespace CapnProto
             [Union(0, 64, 80)]
             public slotGroup slot { get; set; }
 
-            [Group]
+            [Group, Id(14133145859926553711)]
             public class slotGroup
             {
                 //      offset @4 :UInt32;  # bits[32, 64)
@@ -244,7 +244,7 @@ namespace CapnProto
             [Union(1)]
             public groupGroup group { get; set; }
 
-            [Group]
+            [Group, Id(14626792032033250577)]
             public class groupGroup
             {
                 //      typeId @7 :UInt64;  # bits[128, 192)
@@ -257,7 +257,7 @@ namespace CapnProto
             public ordinalGroup ordinal { get; set; }
 
             //  ordinal :group {
-            [Group]
+            [Group, Id(13515537513213004774)]
             public class ordinalGroup
             {
                 //    union {  # tag bits [80, 96)
@@ -370,7 +370,7 @@ namespace CapnProto
             [Union(14)]
             public listGroup list { get; set; }
 
-            [Group]
+            [Group, Id(9792858745991129751)]
             public class listGroup
             {
                 //      elementType @14 :Type;  # ptr[0]
@@ -382,8 +382,8 @@ namespace CapnProto
             //    enum :group {  # union tag = 15
             [Union(15)]
             public enumGroup @enum { get;set;}
-            
-            [Group]
+
+            [Group, Id(13063450714778629528)]
             public class enumGroup {
                 //      typeId @15 :UInt64;  # bits[64, 128)
                 [Field(15, 64,128)]
@@ -395,7 +395,7 @@ namespace CapnProto
             [Union(16)]
             public structGroup @struct { get; set; }
 
-            [Group]
+            [Group, Id(12410354185295152851)]
             public class structGroup
             {
                 //      typeId @16 :UInt64;  # bits[64, 128)
@@ -408,7 +408,7 @@ namespace CapnProto
             [Union(17)]
             public interfaceGroup @interface { get; set; }
 
-            [Group]
+            [Group, Id(16728431493453586831)]
             public class interfaceGroup
             {
                 //      typeId @17 :UInt64;  # bits[64, 128)

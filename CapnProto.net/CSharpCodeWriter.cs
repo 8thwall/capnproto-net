@@ -113,7 +113,7 @@ namespace CapnProto
                 {
                     WriteLine().Write("[global::CapnProto.Group]");
                 }
-                else
+                if(node.id != 0)
                 {
                     WriteLine().Write("[global::CapnProto.Id(0x").Write(Convert.ToString(unchecked((long)node.id), 16)).Write(")]");
                 }
@@ -219,6 +219,11 @@ namespace CapnProto
             return Outdent();
         }
 
+        public override CodeWriter WriteError(string message)
+        {
+            return WriteLine().Write("#error ").Write(message);
+        }
+
         public override CodeWriter Write(Type type)
         {
             if (type == null || type == typeof(Void)) return Write("void");
@@ -311,6 +316,19 @@ namespace CapnProto
             WriteLine().Write("public ").Write(slot.type).Write(" ").Write(Escape(field.name)).Write(" {get; set; }");
             
             return this;
+        }
+
+        internal override void WriteEnum(CodeWriter writer, Schema.Node node)
+        {
+            if (node == null || node.@enum == null || node.@enum.enumerants == null) return;
+            WriteLine().Write("public enum ").Write(Escape(node.displayName));
+            Indent();
+            var items = node.@enum.enumerants;
+            foreach (var item in items)
+            {
+                WriteLine().Write(Escape(item.name)).Write(" = ").Write(item.codeOrder).Write(",");
+            }
+            Outdent();
         }
     }
 
