@@ -171,7 +171,20 @@ namespace CapnProto
 
         public override CodeWriter DeclareField(string name, Type type)
         {
-            return WriteLine().Write("private ").Write(type).Write(" ").Write(name);
+            return WriteLine().Write("private ").Write(type).Write(" ").Write(Escape(name)).Write(";");
+        }
+        public override CodeWriter DeclareFields(string prefix, int count, Type type)
+        {
+            if (count != 0)
+            {
+                WriteLine().Write("private ").Write(type).Write(" ").Write(prefix).Write(0);
+                for(int i = 1 ; i < count ; i++)
+                {
+                    Write(", ").Write(prefix).Write(i);
+                }
+                Write(";");
+            }
+            return this;
         }
 
         public override CodeWriter BeginOverride(System.Reflection.MethodInfo method)
@@ -226,8 +239,32 @@ namespace CapnProto
 
         public override CodeWriter Write(Type type)
         {
-            if (type == null || type == typeof(Void)) return Write("void");
-            return Write("global::").Write(type.FullName.Replace('+','.'));
+            return Write(Format(type));
+        }
+        private string Format(Type type)
+        {
+            if (type == null || type == typeof(Void)) return "void";
+            if (!type.IsEnum) // reports same typecodes
+            {
+                switch (Type.GetTypeCode(type))
+                {
+                    case TypeCode.Boolean: return "bool";
+                    case TypeCode.Byte: return "byte";
+                    case TypeCode.Char: return "char";
+                    case TypeCode.Double: return "double";
+                    case TypeCode.Int16: return "short";
+                    case TypeCode.Int32: return "int";
+                    case TypeCode.Int64: return "long";
+                    case TypeCode.SByte: return "sbyte";
+                    case TypeCode.Single: return "float";
+                    case TypeCode.String: return "string";
+                    case TypeCode.UInt16: return "ushort";
+                    case TypeCode.UInt32: return "uint";
+                    case TypeCode.UInt64: return "ulong";
+                }
+            }
+            if (type == typeof(object)) return "object"; // cant use TypeCode.Object: most classes etc report that
+            return "global::" + type.FullName.Replace('+', '.');
         }
 
         public override CodeWriter WriteCustomSerializerClass(Schema.Node node, string baseType, string typeName, string methodName)
@@ -260,9 +297,31 @@ namespace CapnProto
             //int maxBody = -1;
             foreach(var field in node.@struct.fields)
             {
-                //WriteLine().Write("// ").Write(Escape(field.name));
+                var slot = field.slot;
+                if (slot == null || slot.type == null) continue;
+                int len = slot.type.GetFieldLength();
+                WriteLine().Write("// ");
+                var ord = field.ordinal;
+                if(ord != null && ord.@implicit == null)
+                {
+                    Write("@").Write(ord.@explicit).Write(" ");
+                }
+                Write(field.name).Write(": ");
+                switch (len)
+                {
+                    case 0:
+                        Write("nothing to do");
+                        break;
+                    case -1:
+                        Write("pointer ").Write(slot.offset);
+                        break;
+                    default:
+                        int start = checked(len * (int)slot.offset);
+                        Write("bit ").Write(start).Write(" (word ").Write(start / 64).Write(" shift ").Write(start % 64).Write(")");
+                        break;
+                }
             }
-            Write("throw new NotImplementedException();");
+            WriteLine().Write("throw new NotImplementedException();");
 
             return EndMethod();
         }
@@ -318,7 +377,7 @@ namespace CapnProto
             return this;
         }
 
-        internal override void WriteEnum(CodeWriter writer, Schema.Node node)
+        public override void WriteEnum(CodeWriter writer, Schema.Node node)
         {
             if (node == null || node.@enum == null || node.@enum.enumerants == null) return;
             WriteLine().Write("public enum ").Write(Escape(node.displayName));

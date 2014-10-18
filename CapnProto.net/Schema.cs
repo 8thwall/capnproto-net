@@ -215,6 +215,7 @@ namespace CapnProto
                     {
                         ordinal.@implicit = Void.Value;
                     }
+                    field.ordinal = ordinal;
                 }
 
                 //if (ua != null) field.discriminantValue = checked((ushort)ua.Tag);
@@ -222,7 +223,6 @@ namespace CapnProto
 
                 return field;
             }
-            const int LEN_POINTER = -1;
             private static Type GetSchemaType(System.Type type, out int len)
             {
                 if (type == null)
@@ -242,7 +242,7 @@ namespace CapnProto
                     }
                     if (type.IsClass || type.IsValueType)
                     {
-                        len = LEN_POINTER;
+                        len = Type.LEN_POINTER;
                         return new Type { @struct = new Type.structGroup { typeId = idAttrib.Id } };
                     }
                 }
@@ -268,14 +268,14 @@ namespace CapnProto
                     case TypeCode.DBNull: len = 0; return new Type { @void = Void.Value };
                     case TypeCode.Single: len = 32; return new Type { float32 = Void.Value };
                     case TypeCode.Double: len = 64; return new Type { float64 = Void.Value };
-                    case TypeCode.String: len = LEN_POINTER; return new Type { text = Void.Value };
+                    case TypeCode.String: len = Type.LEN_POINTER; return new Type { text = Void.Value };
                 }
 
                 // lists (note this includes recursive)
                 var elType = GetSchemaType(GetElementType(type), out len);
                 if (elType != null)
                 {
-                    len = LEN_POINTER;
+                    len = Type.LEN_POINTER;
                     return new Type { list = new Type.listGroup { elementType = elType } };
                 }
                 len = 0;
@@ -283,10 +283,10 @@ namespace CapnProto
             }
 
 
-
+            const string PREFIX = "_capnp_";
             public void GenerateCustomModel(CodeWriter writer)
             {
-                const string PREFIX = "_capnp_";
+                
                 const string @namespace = "test", serializerType = "myserializer";
                 writer.BeginFile().BeginNamespace(@namespace);
 
@@ -320,16 +320,11 @@ namespace CapnProto
                     }
                 }
 
-                int i = 0;
-                foreach (var node in generateSerializers)
-                {
-                    writer.DeclareField(PREFIX + "f_" + i, typeof(ITypeSerializer));
-                    i++;
-                }
-
+                writer.DeclareFields(PREFIX + "f_", generateSerializers.Count, typeof(ITypeSerializer));
+                
                 var method = typeof(TypeModel).GetMethod("GetSerializer", getSerializerSignature);
                 writer.BeginOverride(method);
-                i = 0;
+                int i = 0;
                 foreach (var node in generateSerializers)
                 {
                     writer.WriteSerializerTest(PREFIX + "f_" + i, node, PREFIX + "s_" + i);
@@ -398,9 +393,10 @@ namespace CapnProto
                 foreach(var field in fields)
                 {
                     var slot = field.slot;
-                    int len= GetFieldLength(slot.type);
+                    if (slot == null || slot.type == null) continue;
+                    int len= slot.type.GetFieldLength();
                     if (len == 0) continue;
-                    if (len == LEN_POINTER)
+                    if (len == Type.LEN_POINTER)
                     {
                         int end = (int)slot.offset + 1;
                         if (end > ptrEnd) ptrEnd = end;
@@ -412,24 +408,12 @@ namespace CapnProto
                     }
                 }
                 int bodyWords = (bodyEnd + 63) / 64;
-                writer.WriteLine().Write("// ").Write(bodyWords).Write(" / ").Write(ptrEnd);
+                writer.DeclareFields(PREFIX + "w_", bodyWords, typeof(ulong))
+                      .DeclareFields(PREFIX + "p_", ptrEnd, typeof(object));
                 writer.EndClass();
             }
-
-            private int GetFieldLength(Schema.Type type)
-            {
-                if (type == null ||type.@void != null) return 0;
-
-#warning Redo when the enum discriminator is working
-                if (type.@bool != null) return 1;
-                if (type.int8 != null || type.uint8 != null) return 8;
-                if (type.int16 != null || type.uint16 != null || type.@enum != null) return 16;
-                if (type.int32 != null || type.uint32 != null || type.float32 != null) return 32;
-                if (type.int64 != null || type.uint64 != null || type.float64 != null) return 64;
-                if (type.data != null || type.text != null || type.anyPointer != null || type.list != null || type.@struct != null) return LEN_POINTER;
-                return 0;
-            }
         }
+
 
 
     }

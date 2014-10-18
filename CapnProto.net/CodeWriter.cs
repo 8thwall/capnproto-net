@@ -77,6 +77,15 @@ namespace CapnProto
             return Write(Format(type));
         }
 
-        internal abstract void WriteEnum(CodeWriter writer, Schema.Node node);
+        public abstract void WriteEnum(CodeWriter writer, Schema.Node node);
+
+        public virtual CodeWriter DeclareFields(string prefix, int count, Type type)
+        {
+            for(int i = 0 ; i < count ; i++)
+            {
+                DeclareField(prefix + i, type);
+            }
+            return this;
+        }
     }
 }
