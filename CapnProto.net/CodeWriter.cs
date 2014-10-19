@@ -6,6 +6,9 @@ namespace CapnProto
 {
     public abstract class CodeWriter
     {
+
+        public const string PrivatePrefix = "ѧ_";
+
         private TextWriter destination;
         Dictionary<ulong, Schema.Node> map = new Dictionary<ulong, Schema.Node>();
         public CodeWriter(TextWriter destination, List<Schema.Node> nodes, string @namespace)
@@ -87,7 +90,10 @@ namespace CapnProto
         {
             return Write(value.ToString(CultureInfo.InvariantCulture));
         }
-
+        public virtual CodeWriter Write(ulong value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
         public virtual CodeWriter Write(Schema.Type type)
         {
             return Write(Format(type));
@@ -106,5 +112,9 @@ namespace CapnProto
 
         readonly string @namespace;
         public string Namespace { get { return @namespace; } }
+
+        public abstract CodeWriter WriteFieldAccessor(Schema.Field field);
+
+        public abstract CodeWriter DeclareFields(int bodyWords, int pointers);
     }
 }

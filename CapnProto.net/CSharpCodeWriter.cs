@@ -115,16 +115,16 @@ namespace CapnProto
                 {
                     WriteLine().Write("[global::CapnProto.Group]");
                 }
-                if(node.id != 0)
+                if (node.id != 0)
                 {
-                    WriteLine().Write("[global::CapnProto.Id(0x").Write(Convert.ToString(unchecked((long)node.id), 16)).Write(")]");
+                    WriteLine().Write("[global::CapnProto.Id(").Write(node.id).Write(")]");
                 }
             }
             WriteLine().Write("public partial class ").Write(LocalName(node));
             return Indent();
         }
 
-        
+
         static readonly char[] period = { '.' };
         public override CodeWriter BeginNamespace(string name)
         {
@@ -144,7 +144,7 @@ namespace CapnProto
             WriteLine();
             if (@public) Write("public ");
             Write("class ").Write(Escape(name));
-            if(baseType != null)
+            if (baseType != null)
             {
                 Write(" : ").Write(baseType);
             }
@@ -163,8 +163,7 @@ namespace CapnProto
         private CodeWriter Outdent()
         {
             indentationLevel--;
-            WriteLine().Write("}").WriteLine();
-            return this;
+            return WriteLine().Write("}");
         }
         public override CodeWriter EndClass()
         {
@@ -180,7 +179,7 @@ namespace CapnProto
             if (count != 0)
             {
                 WriteLine().Write("private ").Write(type).Write(" ").Write(prefix).Write(0);
-                for(int i = 1 ; i < count ; i++)
+                for (int i = 1; i < count; i++)
                 {
                     Write(", ").Write(prefix).Write(i);
                 }
@@ -192,13 +191,13 @@ namespace CapnProto
         public override CodeWriter BeginOverride(System.Reflection.MethodInfo method)
         {
             WriteLine();
-            if(method.IsPublic) Write("public override ");
+            if (method.IsPublic) Write("public override ");
             else if (method.IsFamilyOrAssembly) Write("protected internal override ");
             else if (method.IsFamily) Write("protected override ");
             else if (method.IsAssembly) Write("internal override ");
             Write(method.ReturnType).Write(" ").Write(method.Name).Write("(");
             var args = method.GetParameters();
-            for (int i = 0; i < args.Length; i++ )
+            for (int i = 0; i < args.Length; i++)
             {
                 if (i != 0) Write(", ");
                 Write(args[0].ParameterType).Write(" ").Write(Escape(args[0].Name));
@@ -221,7 +220,7 @@ namespace CapnProto
             if (method.ReturnType != null && method.ReturnType != typeof(void)) Write("return ");
             Write("base.").Write(method.Name).Write("(");
             var args = method.GetParameters();
-            for(int i = 0 ; i < args.Length ; i++)
+            for (int i = 0; i < args.Length; i++)
             {
                 if (i != 0) Write(", ");
                 Write(Escape(args[0].Name));
@@ -273,7 +272,7 @@ namespace CapnProto
         {
             WriteLine().Write("class ").Write(typeName).Write(" : ").Write(baseType).Write(", global::CapnProto.ITypeSerializer<").Write(FullyQualifiedName(node)).Write(">");
             Indent();
-            
+
             WriteLine().Write("object global::CapnProto.ITypeSerializer.Deserialize(global::CapnProto.CapnProtoReader reader)");
             Indent().WriteLine().Write("return Deserialize(reader);");
             EndMethod();
@@ -290,7 +289,7 @@ namespace CapnProto
         {
             return Outdent();
         }
-        
+
         private string FullyQualifiedName(Schema.Node node)
         {
             var parent = FindParent(node);
@@ -306,7 +305,7 @@ namespace CapnProto
             }
             var sb = new StringBuilder("global::");
             if (!string.IsNullOrWhiteSpace(Namespace)) sb.Append(Namespace).Append('.');
-            while(roots != null && roots.Count != 0)
+            while (roots != null && roots.Count != 0)
             {
                 parent = roots.Pop();
                 sb.Append(LocalName(parent)).Append('.');
@@ -324,14 +323,14 @@ namespace CapnProto
 
             Indent().WriteLine();
             //int maxBody = -1;
-            foreach(var field in node.@struct.fields)
+            foreach (var field in node.@struct.fields)
             {
                 var slot = field.slot;
                 if (slot == null || slot.type == null) continue;
                 int len = slot.type.GetFieldLength();
                 WriteLine().Write("// ");
                 var ord = field.ordinal;
-                if(ord != null && ord.@implicit == null)
+                if (ord != null && ord.@implicit == null)
                 {
                     Write("@").Write(ord.@explicit).Write(" ");
                 }
@@ -382,7 +381,7 @@ namespace CapnProto
             else if (type.@enum != null)
                 typeid = type.@enum.typeId;
             Schema.Node node;
-            if(typeid != 0 && (node = Lookup(typeid)) != null)
+            if (typeid != 0 && (node = Lookup(typeid)) != null)
             {
                 return FullyQualifiedName(node);
             }
@@ -391,7 +390,7 @@ namespace CapnProto
             {
                 string el = Format(type.list.elementType);
                 if (!string.IsNullOrWhiteSpace(el))
-                    return "global::System.Collections.Generic<" + Escape(el) + ">";
+                    return "global::System.Collections.Generic.List<" + el + ">";
             }
             return null;
         }
@@ -400,9 +399,9 @@ namespace CapnProto
         {
             var slot = field.slot;
             WriteLine().Write("[global::CapnProto.Field(").Write(slot.offset).Write(")]");
-            
+
             WriteLine().Write("public ").Write(slot.type).Write(" ").Write(Escape(field.name)).Write(" {get; set; }");
-            
+
             return this;
         }
 
@@ -424,6 +423,69 @@ namespace CapnProto
             WriteLine().Write("static ").Write(LocalName(node)).Write("()");
             return Indent().WriteLine().Write(typeof(TypeModel)).Write(".AssertLittleEndian();").EndMethod();
         }
-    }
+        private void BeginProperty(Schema.Type type, string name)
+        {
+            WriteLine().Write("public ").Write(Format(type)).Write(" ").Write(Escape(name));
+            Indent();
+        }
+        public override CodeWriter WriteFieldAccessor(Schema.Field field)
+        {
+            BeginProperty(field.slot.type, field.name);
+            WriteLine().Write("get");
+            Indent();
 
+            var slot = field.slot;
+            var type = slot.type;
+
+            var len = type.GetFieldLength();
+            if (len == 0)
+            {
+                WriteLine().Write("return ").Write(typeof(Void)).Write(".Value;");
+            }
+            else if (len == Schema.Type.LEN_POINTER)
+            {
+                WriteLine().Write("return (").Write(Format(type)).Write(")" + PointerPrefix).Write(slot.offset).Write(";");
+            }
+            else
+            {
+                int byteInData = checked((int)slot.offset * len), byteInWord = byteInData % 64;
+
+                string fieldName = DataPrefix + (byteInData / 64);
+#warning move this to a switch when available
+                if (type.@bool != null)
+                {
+                    ulong mask = ((ulong)1) << byteInWord;
+                    WriteLine().Write("return (").Write(fieldName).Write(" & ").Write(mask).Write(") != 0;");
+                } else if ((type.int8 ?? type.int16 ?? type.int32 ?? type.int64
+                    ?? type.uint8 ?? type.uint16 ?? type.uint32 ?? type.uint64) != null )
+                {
+                    WriteLine().Write("return unchecked((").Write(type).Write(")");
+                    if(byteInWord == 0) Write(fieldName);
+                    else Write("(").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")");
+                    Write(");");
+                }
+                else
+                {
+                    WriteLine().Write("throw new global::System.NotImplementedException();");
+                }
+            }
+            Outdent();
+            return Outdent();
+        }
+
+        public override CodeWriter DeclareFields(int bodyWords, int pointers)
+        {
+            return WriteLine().Write("// ").Write("body words: ").Write(bodyWords)
+                      .Write("; pointers: ").Write(pointers)
+                      .DeclareFields(DataPrefix, bodyWords, typeof(ulong))
+                      .DeclareFields(PointerPrefix, pointers, typeof(object));
+        }
+
+        const string PointerPrefix = PrivatePrefix + "p_",
+            DataPrefix = PrivatePrefix + "w_";
+        public override CodeWriter Write(ulong value)
+        {
+            return Write("0x").Write(Convert.ToString(unchecked((long)value), 16));
+        }
+    }
 }

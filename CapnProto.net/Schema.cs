@@ -282,7 +282,6 @@ namespace CapnProto
                 return null;
             }
 
-            const string PREFIX = "ѧ_capnp_";
             public void GenerateCustomModel(CodeWriter writer)
             {
                 
@@ -319,24 +318,24 @@ namespace CapnProto
                     }
                 }
 
-                writer.DeclareFields(PREFIX + "f_", generateSerializers.Count, typeof(ITypeSerializer));
+                writer.DeclareFields(CodeWriter.PrivatePrefix + "f_", generateSerializers.Count, typeof(ITypeSerializer));
                 
                 var method = typeof(TypeModel).GetMethod("GetSerializer", getSerializerSignature);
                 writer.BeginOverride(method);
                 int i = 0;
                 foreach (var node in generateSerializers)
                 {
-                    writer.WriteSerializerTest(PREFIX + "f_" + i, node, PREFIX + "s_" + i);
+                    writer.WriteSerializerTest(CodeWriter.PrivatePrefix + "f_" + i, node, CodeWriter.PrivatePrefix + "s_" + i);
                     i++;
                 }
                 writer.CallBase(method);
                 writer.EndOverride();
 
-                string baseTypeName = PREFIX + "b_" + serializerType;
+                string baseTypeName = CodeWriter.PrivatePrefix + "b_" + serializerType;
                 i = 0;
                 foreach (var node in generateSerializers)
                 {
-                    writer.WriteCustomSerializerClass(node, baseTypeName, PREFIX + "s_" + i, PREFIX + "r_" + i);
+                    writer.WriteCustomSerializerClass(node, baseTypeName, CodeWriter.PrivatePrefix + "s_" + i, CodeWriter.PrivatePrefix + "r_" + i);
                     i++;
                 }
 
@@ -344,7 +343,7 @@ namespace CapnProto
                 i = 0;
                 foreach (var node in generateSerializers)
                 {
-                    writer.WriteCustomReaderMethod(node, PREFIX + "r_" + i);
+                    writer.WriteCustomReaderMethod(node, CodeWriter.PrivatePrefix + "r_" + i);
                     i++;
                 }
                 writer.EndClass();
@@ -394,21 +393,23 @@ namespace CapnProto
                     var slot = field.slot;
                     if (slot == null || slot.type == null) continue;
                     int len= slot.type.GetFieldLength();
-                    if (len == 0) continue;
-                    if (len == Type.LEN_POINTER)
+
+                    if (len == 0) {}
+                    else if (len == Type.LEN_POINTER)
                     {
-                        int end = (int)slot.offset + 1;
+                        int end = checked((int)slot.offset + 1);
                         if (end > ptrEnd) ptrEnd = end;
                     }
                     else
                     {
-                        int end = len * checked((int)(slot.offset + 1));
+                        int end = checked(len * (int)(slot.offset + 1));
                         if (end > bodyEnd) bodyEnd = end;
                     }
+                    writer.WriteFieldAccessor(field);
                 }
                 int bodyWords = (bodyEnd + 63) / 64;
-                writer.DeclareFields(PREFIX + "w_", bodyWords, typeof(ulong))
-                      .DeclareFields(PREFIX + "p_", ptrEnd, typeof(object));
+                writer.DeclareFields(bodyWords, ptrEnd);
+
                 writer.EndClass();
             }
         }
