@@ -120,9 +120,66 @@ namespace CapnProto
                     WriteLine().Write("[global::CapnProto.Id(").Write(node.id).Write(")]");
                 }
             }
-            WriteLine().Write("public partial class ").Write(LocalName(node));
-            return Indent();
+            WriteLine().Write("public partial class ").Write(LocalName(node)).Write(" : ").Write(typeof(IBlittable));
+            Indent()
+                .WriteLine().Write("static partial void OnCreate(ref ").Write(FullyQualifiedName(node)).Write(" obj);")
+                .WriteLine().Write("internal static ").Write(FullyQualifiedName(node)).Write(" " + Ctor + "()");
+            Indent()
+                .WriteLine().Write(FullyQualifiedName(node)).Write(" tmp = null;")
+                .WriteLine().Write("OnCreate(ref tmp);")
+                .WriteLine().Write("// if you are providing custom construction, please also provide a private")
+                .WriteLine().Write("// parameterless constructor (it can just throw an exception if you like)")
+                .WriteLine().Write("return tmp ?? new ").Write(FullyQualifiedName(node)).Write("();");
+
+            Outdent();
+            WriteBlit(node);
+            return this;
         }
+
+        private void WriteBlit(Schema.Node node)
+        {
+            WriteLine().Write("unsafe void ").Write(typeof(IBlittable)).Write(".Deserialize(int segment, int origin, global::CapnProto.CapnProtoReader reader, ulong pointer)");
+            Indent();
+            int bodyEnd = 0, ptrEnd = 0;
+            foreach (var field in node.@struct.fields)
+            {
+                var slot = field.slot;
+                if (slot == null || slot.type == null) continue;
+                int len = slot.type.GetFieldLength();
+
+                if (len == 0) { }
+                else if (len == Schema.Type.LEN_POINTER)
+                {
+                    int end = checked((int)slot.offset + 1);
+                    if (end > ptrEnd) ptrEnd = end;
+                }
+                else
+                {
+                    int end = checked(len * (int)(slot.offset + 1));
+                    if (end > bodyEnd) bodyEnd = end;
+                }
+            }
+            int bodyWords = (bodyEnd + 63) / 64;
+            int alloc = Math.Min(bodyWords, ptrEnd);
+            if (alloc != 0)
+            {
+                WriteLine().Write("ulong* raw = stackalloc ulong[").Write(alloc).Write("];");
+                if (bodyWords != 0)
+                {
+                    WriteLine().Write("reader.ReadData(segment, origin, pointer, raw, ").Write(bodyWords).Write(");");
+                    for (int i = 0; i < bodyWords; i++)
+                    {
+                        WriteLine().Write(DataPrefix).Write(i).Write(" = raw[").Write(i).Write("];");
+                    }
+                }
+                if (ptrEnd != 0)
+                {
+                    WriteLine().Write("reader.ReadPointers(segment, origin, pointer, raw, ").Write(ptrEnd).Write(");");
+                }
+            }
+            Outdent();
+        }
+        const string Ctor = PrivatePrefix + "ctor";
 
 
         static readonly char[] period = { '.' };
@@ -278,7 +335,7 @@ namespace CapnProto
             EndMethod();
 
             WriteLine().Write("public ").Write(FullyQualifiedName(node)).Write(" Deserialize(global::CapnProto.CapnProtoReader reader)");
-            Indent().WriteLine().Write("reader.ReadPreamble();").WriteLine().Write("return ").Write(methodName).Write("(1, reader, reader.ReadWord(0));");
+            Indent().WriteLine().Write("reader.ReadPreamble();").WriteLine().Write("return ").Write(methodName).Write("(0, 1, reader, reader.ReadWord(0, 0));");
             EndMethod();
 
             return EndClass();
@@ -319,37 +376,39 @@ namespace CapnProto
         }
         public override CodeWriter WriteCustomReaderMethod(Schema.Node node, string name)
         {
-            WriteLine().Write("protected ").Write(FullyQualifiedName(node)).Write(" ").Write(name).Write("(int wordOffset, global::CapnProto.CapnProtoReader reader, ulong ptr)");
+            WriteLine().Write("protected ").Write(FullyQualifiedName(node)).Write(" ").Write(name).Write("(int segment, int origin, global::CapnProto.CapnProtoReader reader, ulong pointer)");
+            Indent();
 
-            Indent().WriteLine();
-            //int maxBody = -1;
-            foreach (var field in node.@struct.fields)
-            {
-                var slot = field.slot;
-                if (slot == null || slot.type == null) continue;
-                int len = slot.type.GetFieldLength();
-                WriteLine().Write("// ");
-                var ord = field.ordinal;
-                if (ord != null && ord.@implicit == null)
-                {
-                    Write("@").Write(ord.@explicit).Write(" ");
-                }
-                Write(field.name).Write(": ");
-                switch (len)
-                {
-                    case 0:
-                        Write("nothing to do");
-                        break;
-                    case -1:
-                        Write("pointer ").Write(slot.offset);
-                        break;
-                    default:
-                        int start = checked(len * (int)slot.offset);
-                        Write("bit ").Write(start).Write(" (word ").Write(start / 64).Write(" shift ").Write(start % 64).Write(")");
-                        break;
-                }
-            }
+            
             WriteLine().Write("throw new global::System.NotImplementedException();");
+
+            //foreach (var field in node.@struct.fields)
+            //{
+            //    var slot = field.slot;
+            //    if (slot == null || slot.type == null) continue;
+            //    int len = slot.type.GetFieldLength();
+            //    WriteLine().Write("// ");
+            //    var ord = field.ordinal;
+            //    if (ord != null && ord.@implicit == null)
+            //    {
+            //        Write("@").Write(ord.@explicit).Write(" ");
+            //    }
+            //    Write(field.name).Write(": ");
+            //    switch (len)
+            //    {
+            //        case 0:
+            //            Write("nothing to do");
+            //            break;
+            //        case -1:
+            //            Write("pointer ").Write(slot.offset);
+            //            break;
+            //        default:
+            //            int start = checked(len * (int)slot.offset);
+            //            Write("bit ").Write(start).Write(" (word ").Write(start / 64).Write(" shift ").Write(start % 64).Write(")");
+            //            break;
+            //    }
+            //}
+            //WriteLine().Write("throw new global::System.NotImplementedException();");
 
             return EndMethod();
         }
@@ -425,7 +484,9 @@ namespace CapnProto
         }
         private void BeginProperty(Schema.Type type, string name)
         {
-            WriteLine().Write("public ").Write(Format(type)).Write(" ").Write(Escape(name));
+            WriteLine().Write("public ");
+            if ((type.float32 ?? type.float64) != null) Write("unsafe ");
+            Write(Format(type)).Write(" ").Write(Escape(name));
             Indent();
         }
         public override CodeWriter WriteFieldAccessor(Schema.Field field)
@@ -456,13 +517,45 @@ namespace CapnProto
                 {
                     ulong mask = ((ulong)1) << byteInWord;
                     WriteLine().Write("return (").Write(fieldName).Write(" & ").Write(mask).Write(") != 0;");
-                } else if ((type.int8 ?? type.int16 ?? type.int32 ?? type.int64
-                    ?? type.uint8 ?? type.uint16 ?? type.uint32 ?? type.uint64) != null )
+                }
+                else if ((type.int8 ?? type.int16 ?? type.int32 ?? type.int64
+                  ?? type.uint8 ?? type.uint16 ?? type.uint32 ?? type.uint64) != null)
                 {
                     WriteLine().Write("return unchecked((").Write(type).Write(")");
-                    if(byteInWord == 0) Write(fieldName);
+                    if (byteInWord == 0) Write(fieldName);
                     else Write("(").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")");
                     Write(");");
+                }
+                else if (type.@enum != null && len == 16)
+                {
+                    var e = Lookup(type.@enum.typeId);
+                    if (e == null || e.@enum == null || e.@enum.enumerants == null)
+                    {
+                        WriteLine().Write("#error enum not found: ").Write(type.@enum.typeId);
+                    }
+                    else
+                    {
+                        // all enums are Int16; so 4 
+                        ulong mask = ((ulong)0xFFFF) << byteInWord;
+
+                        WriteLine().Write("switch(").Write(fieldName).Write(" & ").Write(mask).Write(")");
+                        Indent();
+                        foreach (var enumerant in e.@enum.enumerants)
+                        {
+                            WriteLine().Write("case ").Write((ulong)enumerant.codeOrder << byteInWord).Write(": return ").Write(FullyQualifiedName(e)).Write(".").Write(Escape(enumerant.name)).Write(";");
+                        }
+                        WriteLine().Write("default: throw new global::System.InvalidOperationException(\"unexpected enum value: \" + unchecked((ushort)(")
+                            .Write(fieldName).Write(" >> ").Write(byteInWord).Write(")));");
+                        Outdent();
+                    }
+                }
+                else if ((type.float32 ?? type.float64) != null)
+                {
+                    WriteLine().Write(typeof(ulong)).Write(" tmp = ").Write(fieldName);
+                    if (byteInWord != 0) Write(" >> ").Write(byteInWord);
+                    Write(";").WriteLine().Write("return *((").Write(type).Write("*)(&tmp));");
+
+
                 }
                 else
                 {

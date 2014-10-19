@@ -388,6 +388,7 @@ namespace CapnProto
 
                 var fields = @struct.fields;
                 int bodyEnd = 0, ptrEnd = 0;
+
                 foreach(var field in fields)
                 {
                     var slot = field.slot;

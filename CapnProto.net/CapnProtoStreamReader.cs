@@ -33,22 +33,22 @@ namespace CapnProto
             currentSegmentRoot = offset;
         }
 
-        protected override string ReadString(int wordOffset, int count)
+        protected override string ReadString(int segment, int wordOffset, int count)
         {
             // this is a terrible implementation
-            var bytes = ReadBytes(wordOffset, count);
+            var bytes = ReadBytes(segment, wordOffset, count);
             if (bytes[count - 1] != 0) throw ExpectedNullTerminatedString();
             return Encoding.UTF8.GetString(bytes, 0, count - 1);
         }
-        protected override byte[] ReadBytes(int wordOffset, int count)
+        protected override byte[] ReadBytes(int segment, int wordOffset, int count)
         {
             source.Position = checked((currentSegmentRoot + wordOffset) * 8);
             byte[] arr = new byte[count];
-            CopyBytes(wordOffset, arr, 0, count);
+            CopyBytes(segment, wordOffset, arr, 0, count);
             return arr;
         }
 
-        private void CopyBytes(int wordOffset, byte[] buffer, int bufferOffset, int count)
+        private void CopyBytes(int segment, int wordOffset, byte[] buffer, int bufferOffset, int count)
         {
             if (count <= 0) throw new ArgumentOutOfRangeException("count");
             source.Position = checked((currentSegmentRoot + wordOffset) * 8);
@@ -69,9 +69,9 @@ namespace CapnProto
             if (count != 0) throw new EndOfStreamException();
         }
 
-        public override void ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int wordCount)
+        public override void ReadWords(int segment, int wordOffset, byte[] buffer, int bufferOffset, int wordCount)
         {
-            CopyBytes(wordOffset, buffer, bufferOffset, checked(wordCount * 8));
+            CopyBytes(segment, wordOffset, buffer, bufferOffset, checked(wordCount * 8));
         }
 
         int currentSegmentRoot;
