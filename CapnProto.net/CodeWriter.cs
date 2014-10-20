@@ -124,10 +124,12 @@ namespace CapnProto
         public string Namespace { get { return @namespace; } }
         public string Serializer { get { return serializer; } }
 
-        public abstract CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field);
+        public abstract CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field, Stack<Schema.Type> union);
 
         public abstract CodeWriter DeclareFields(int bodyWords, int pointers);
 
-        public abstract CodeWriter WriteGroup(Schema.Node node);
+        public abstract CodeWriter WriteGroup(Schema.Node node, Stack<Schema.Type> union);
+
+        public abstract CodeWriter WriteDiscriminant(Schema.Node node, Stack<Schema.Type> union);
     }
 }

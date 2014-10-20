@@ -146,6 +146,7 @@ namespace CapnProto
                             fields = fields,
                             isGroup = Attribute.IsDefined(type, typeof(GroupAttribute))
                         };
+
                 }
 
                 var nestedTypes = type.GetNestedTypes();
@@ -162,18 +163,25 @@ namespace CapnProto
                     }
 
                 }
+                ushort discCount = 0;
+                uint discOffset = 0;
                 foreach (var field in type.GetFields())
                 {
-                    var member = CreateField(field);
+                    var member = CreateField(field, ref discCount, ref discOffset);
                     if (member != null) fields.Add(member);
                 }
                 foreach (var prop in type.GetProperties())
                 {
-                    var member = CreateField(prop);
+                    var member = CreateField(prop, ref discCount, ref discOffset);
                     if (member != null) fields.Add(member);
                 }
+                if (discCount != 0 && node.@struct != null)
+                {
+                    node.@struct.discriminantCount = discCount;
+                    node.@struct.discriminantOffset = discOffset;
+                }
             }
-            static Field CreateField(MemberInfo member)
+            static Field CreateField(MemberInfo member, ref ushort discCount, ref uint discOffset)
             {
                 if (member == null) return null;
                 System.Type type;
@@ -186,7 +194,6 @@ namespace CapnProto
                     default:
                         return null;
                 }
-
                 var fa = (FieldAttribute)Attribute.GetCustomAttribute(member, typeof(FieldAttribute));
                 var ua = (UnionAttribute)Attribute.GetCustomAttribute(member, typeof(UnionAttribute));
                 if (fa == null && ua == null) return null;
@@ -218,7 +225,19 @@ namespace CapnProto
                     field.ordinal = ordinal;
                 }
 
-                //if (ua != null) field.discriminantValue = checked((ushort)ua.Tag);
+                if (ua != null)
+                {
+                    discCount++;
+                    if(ua.Tag == 0)
+                    {
+                        discOffset = checked((ushort)ua.Start);
+                    }
+                    field.discriminantValue = checked((ushort)ua.Tag);
+                }
+                else
+                {
+                    field.discriminantValue = ushort.MaxValue;
+                }
                 field.name = member.Name;
 
                 return field;
@@ -302,9 +321,10 @@ namespace CapnProto
                 }
                 foreach (var node in this.nodes)
                 {
+                    Stack<Schema.Type> union = new Stack<Type>();
                     if (node.id != 0 && !nested.Contains(node.id))
                     {
-                        WriteNode(writer, node);
+                        WriteNode(writer, node, union);
                     }
                 }
 
@@ -356,10 +376,10 @@ namespace CapnProto
 
             }
 
-            private void WriteNode(CodeWriter writer, Node node)
+            private void WriteNode(CodeWriter writer, Node node, Stack<Schema.Type> union)
             {
                 if (node == null) return;
-                if(node.@struct !=null) WriteStruct(writer, node);
+                if(node.@struct !=null) WriteStruct(writer, node, union);
                 if (node.@enum != null) WriteEnum(writer, node);
             }
 
@@ -369,9 +389,13 @@ namespace CapnProto
             }
             static readonly System.Type[] getSerializerSignature = new[] { typeof(System.Type) };
 
-            private void ComputeSpace(CodeWriter writer, Node node, ref int bodyWords, ref int pointerWords)
+            internal static void ComputeSpace(CodeWriter writer, Node node, ref int bodyWords, ref int pointerWords)
             {
                 int bodyEnd = 0;
+                if(node.@struct.discriminantCount != 0)
+                {
+                    bodyEnd = (int)(node.@struct.discriminantOffset + 16);
+                }
                 foreach (var field in node.@struct.@fields)
                 {
                     var slot = field.slot;
@@ -399,12 +423,12 @@ namespace CapnProto
                 if (localBodyWords > bodyWords) bodyWords = localBodyWords;
             }
 
-            private void WriteStruct(CodeWriter writer, Node node)
+            private void WriteStruct(CodeWriter writer, Node node, Stack<Schema.Type> union)
             {
                 var @struct = node.@struct;
                 if (@struct == null) return;
 
-                if (@struct.isGroup) writer.WriteGroup(node);
+                if (@struct.isGroup) writer.WriteGroup(node, union);
                 else
                 {
                     writer.BeginClass(node).WriteLittleEndianCheck(node);
@@ -414,7 +438,10 @@ namespace CapnProto
                         foreach (var child in children)
                         {
                             Node found = writer.Lookup(child.id);
-                            if (found != null) WriteNode(writer, found);
+                            if (found != null)
+                            {
+                                WriteNode(writer, found, union);
+                            }
                             else writer.WriteError("not found: " + child.id + " / " + child.name);
                         }
                     }
@@ -425,7 +452,11 @@ namespace CapnProto
                     ComputeSpace(writer, node, ref bodyWords, ref pointerWords);
                     foreach (var field in fields)
                     {
-                        writer.WriteFieldAccessor(node, field);
+                        writer.WriteFieldAccessor(node, field, union);
+                    }
+                    if(@struct.discriminantCount != 0)
+                    {
+                        writer.WriteDiscriminant(node, union);
                     }
                     
                     writer.DeclareFields(bodyWords, pointerWords);

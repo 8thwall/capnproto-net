@@ -144,7 +144,8 @@ namespace CapnProto
         {
             WriteLine().Write("unsafe void ").Write(typeof(IBlittable)).Write(".Deserialize(int segment, int origin, global::CapnProto.CapnProtoReader reader, ulong pointer)");
             Indent();
-            int bodyEnd = 0, ptrEnd = 0;
+            int bodyWords = 0, pointerWords = 0;
+            Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
             var ptrFields = new SortedList<int,List<Schema.Field>>();
             foreach (var field in node.@struct.fields)
             {
@@ -152,27 +153,17 @@ namespace CapnProto
                 if (slot == null || slot.type == null) continue;
                 int len = slot.type.GetFieldLength();
 
-                if (len == 0) { }
-                else if (len == Schema.Type.LEN_POINTER)
+                if (len == Schema.Type.LEN_POINTER)
                 {
-                    int start = checked((int)slot.offset), end = checked(start + 1);
-                    if (end > ptrEnd) ptrEnd = end;
-
                     List<Schema.Field> fields;
-                    if (!ptrFields.TryGetValue(start, out fields))
+                    if (!ptrFields.TryGetValue((int)slot.offset, out fields))
                     {
-                        ptrFields.Add(start, fields = new List<Schema.Field>());
+                        ptrFields.Add((int)slot.offset, fields = new List<Schema.Field>());
                     }
                     fields.Add(field);
                 }
-                else
-                {
-                    int end = checked(len * (int)(slot.offset + 1));
-                    if (end > bodyEnd) bodyEnd = end;
-                }
             }
-            int bodyWords = (bodyEnd + 63) / 64;
-            int alloc = Math.Max(bodyWords, ptrEnd);
+            int alloc = Math.Max(bodyWords, pointerWords);
             if (alloc != 0)
             {
                 WriteLine().Write("ulong* raw = stackalloc ulong[").Write(alloc).Write("];");
@@ -184,9 +175,9 @@ namespace CapnProto
                         WriteLine().Write(DataPrefix).Write(i).Write(" = raw[").Write(i).Write("];");
                     }
                 }
-                if (ptrEnd != 0)
+                if (pointerWords != 0)
                 {
-                    WriteLine().Write("origin = reader.ReadPointers(segment, origin, pointer, raw, ").Write(ptrEnd).Write(");");
+                    WriteLine().Write("origin = reader.ReadPointers(segment, origin, pointer, raw, ").Write(pointerWords).Write(");");
                     foreach(var pair in ptrFields)
                     {
                         foreach (var field in pair.Value)
@@ -556,8 +547,12 @@ namespace CapnProto
             Write(Format(type)).Write(" ").Write(Escape(name));
             Indent();
         }
-        public override CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field)
+        public override CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field, Stack<Schema.Type> union)
         {
+            if (field.discriminantValue != ushort.MaxValue)
+            {
+                WriteLine().Write("// union: ").Write(field.discriminantValue);
+            }
             if(field.slot.type == null)
             {
                 return WriteLine().Write("#warning no type for: " + field.name);
@@ -662,7 +657,7 @@ namespace CapnProto
             return Write("0x").Write(Convert.ToString(unchecked((long)value), 16));
         }
 
-        public override CodeWriter WriteGroup(Schema.Node node)
+        public override CodeWriter WriteGroup(Schema.Node node, Stack<Schema.Type> union)
         {
             var parent = node;
             while (parent != null && parent.@struct != null && parent.@struct.isGroup)
@@ -682,8 +677,36 @@ namespace CapnProto
             Outdent();
             foreach(var field in node.@struct.fields)
             {
-                WriteFieldAccessor(node, field);
+                WriteFieldAccessor(node, field, union);
             }
+            return Outdent();
+        }
+
+        public override CodeWriter WriteDiscriminant(Schema.Node node, Stack<Schema.Type> union)
+        {
+            var @struct = node.@struct;
+            WriteLine().Write("public ");
+            if (union.Count != 0) Write("new ");
+            Write("enum Unions");
+            Indent();
+            foreach(var field in @struct.fields)
+            {
+                if (field.discriminantValue != ushort.MaxValue)
+                    WriteLine().Write(Escape(field.name)).Write(" = ").Write(field.discriminantValue).Write(",");
+            }
+            Outdent();
+
+            WriteLine().Write("public ").Write(FullyQualifiedName(node)).Write(".Unions Union");
+            Indent();
+            WriteLine().Write("get");
+            Indent();
+            int wordIndex = (int)@struct.discriminantOffset / 64, byteInWord = (int)@struct.discriminantOffset % 64;
+            WriteLine().Write("return (").Write(FullyQualifiedName(node)).Write(".Unions)((").Write(@struct.isGroup ? "this.parent" : "this").Write(".")
+                .Write(DataPrefix).Write(wordIndex);
+            if (byteInWord != 0) Write(" >> ").Write(byteInWord);
+            Write(") & 0xFFFF);");
+
+            Outdent();
             return Outdent();
         }
     }
