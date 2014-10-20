@@ -7,16 +7,20 @@ namespace CapnProto
 {
     public class CSharpCodeWriter : CodeWriter
     {
-        public CSharpCodeWriter(TextWriter destination, List<Schema.Node> nodes, string @namespace) : base(destination, nodes, @namespace) { }
+        public CSharpCodeWriter(TextWriter destination, List<Schema.Node> nodes,
+            string @namespace, string serializer) : base(destination, nodes, @namespace, serializer) { }
         private int indentationLevel;
 
-        public override CodeWriter WriteLine()
+        public override CodeWriter WriteLine(bool indent = true)
         {
             base.WriteLine();
-            int tmp = indentationLevel;
-            while (tmp-- > 0)
+            if (indent)
             {
-                Write("    ");
+                int tmp = indentationLevel;
+                while (tmp-- > 0)
+                {
+                    Write("    ");
+                }
             }
             return this;
         }
@@ -141,6 +145,7 @@ namespace CapnProto
             WriteLine().Write("unsafe void ").Write(typeof(IBlittable)).Write(".Deserialize(int segment, int origin, global::CapnProto.CapnProtoReader reader, ulong pointer)");
             Indent();
             int bodyEnd = 0, ptrEnd = 0;
+            var ptrFields = new SortedList<int,List<Schema.Field>>();
             foreach (var field in node.@struct.fields)
             {
                 var slot = field.slot;
@@ -150,8 +155,15 @@ namespace CapnProto
                 if (len == 0) { }
                 else if (len == Schema.Type.LEN_POINTER)
                 {
-                    int end = checked((int)slot.offset + 1);
+                    int start = checked((int)slot.offset), end = checked(start + 1);
                     if (end > ptrEnd) ptrEnd = end;
+
+                    List<Schema.Field> fields;
+                    if (!ptrFields.TryGetValue(start, out fields))
+                    {
+                        ptrFields.Add(start, fields = new List<Schema.Field>());
+                    }
+                    fields.Add(field);
                 }
                 else
                 {
@@ -160,7 +172,7 @@ namespace CapnProto
                 }
             }
             int bodyWords = (bodyEnd + 63) / 64;
-            int alloc = Math.Min(bodyWords, ptrEnd);
+            int alloc = Math.Max(bodyWords, ptrEnd);
             if (alloc != 0)
             {
                 WriteLine().Write("ulong* raw = stackalloc ulong[").Write(alloc).Write("];");
@@ -174,7 +186,39 @@ namespace CapnProto
                 }
                 if (ptrEnd != 0)
                 {
-                    WriteLine().Write("reader.ReadPointers(segment, origin, pointer, raw, ").Write(ptrEnd).Write(");");
+                    WriteLine().Write("origin = reader.ReadPointers(segment, origin, pointer, raw, ").Write(ptrEnd).Write(");");
+                    foreach(var pair in ptrFields)
+                    {
+                        foreach (var field in pair.Value)
+                        {
+                            WriteLine().Write("if (raw[").Write(pair.Key).Write("] != 0) " + PointerPrefix).Write(pair.Key)
+                                .Write(" = ");
+                            if (field.slot.type.text != null)
+                            {
+                                Write("reader.ReadStringFromPointer(segment, origin");
+                                if(field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                                Write(", raw[").Write(field.slot.offset).Write("]);");
+                            }
+                            else if (field.slot.type.data != null)
+                            {
+                                Write("reader.ReadBytesFromPointer(segment, origin");
+                                if(field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                                Write(", raw[").Write(field.slot.offset).Write("]);");
+                            }
+                            else if(field.slot.type.@struct != null)
+                            {
+                                Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
+                                    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
+                                    .Write(node.CustomSerializerName()).Write("(segment, origin");
+                                if(field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                                Write(", reader, raw[").Write(field.slot.offset).Write("]);");
+                            }
+                            else
+                            {
+                                Write("null;").WriteLine().Write("#warning not implemented");
+                            }
+                        }
+                    }
                 }
             }
             Outdent();
@@ -196,10 +240,11 @@ namespace CapnProto
 
         }
 
-        public override CodeWriter BeginClass(bool @public, string name, Type baseType)
+        public override CodeWriter BeginClass(bool @public, bool @internal, string name, Type baseType)
         {
             WriteLine();
             if (@public) Write("public ");
+            else if (@internal) Write("internal ");
             Write("class ").Write(Escape(name));
             if (baseType != null)
             {
@@ -244,6 +289,20 @@ namespace CapnProto
             }
             return this;
         }
+        public override CodeWriter DeclareFields(List<string> names, Type type)
+        {
+            if (names.Count != 0)
+            {
+                WriteLine().Write("private ").Write(type).Write(" ").Write(names[0]);
+                for (int i = 1; i < names.Count; i++)
+                {
+                    Write(", ").Write(names[i]);
+                }
+                Write(";");
+            }
+            return this;
+        }
+
 
         public override CodeWriter BeginOverride(System.Reflection.MethodInfo method)
         {
@@ -325,9 +384,10 @@ namespace CapnProto
             return "global::" + type.FullName.Replace('+', '.');
         }
 
-        public override CodeWriter WriteCustomSerializerClass(Schema.Node node, string baseType, string typeName, string methodName)
+        public override CodeWriter WriteCustomSerializerClass(Schema.Node node, string typeName, string methodName)
         {
-            WriteLine().Write("class ").Write(typeName).Write(" : ").Write(baseType).Write(", global::CapnProto.ITypeSerializer<").Write(FullyQualifiedName(node)).Write(">");
+            WriteLine().Write("class ").Write(typeName).Write(" : global::").Write(Namespace).Write(".").Write(Escape(Serializer))
+                .Write(".").Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(", global::CapnProto.ITypeSerializer<").Write(FullyQualifiedName(node)).Write(">");
             Indent();
 
             WriteLine().Write("object global::CapnProto.ITypeSerializer.Deserialize(global::CapnProto.CapnProtoReader reader)");
@@ -374,13 +434,16 @@ namespace CapnProto
         {
             return Escape(node.displayName);
         }
-        public override CodeWriter WriteCustomReaderMethod(Schema.Node node, string name)
+        public override CodeWriter WriteCustomReaderMethod(Schema.Node node)
         {
-            WriteLine().Write("protected ").Write(FullyQualifiedName(node)).Write(" ").Write(name).Write("(int segment, int origin, global::CapnProto.CapnProtoReader reader, ulong pointer)");
+            var fqn = FullyQualifiedName(node);
+            WriteLine().Write("internal static ").Write(fqn).Write(" ").Write(node.CustomSerializerName()).Write("(int segment, int origin, global::CapnProto.CapnProtoReader reader, ulong pointer)");
             Indent();
-
-            
-            WriteLine().Write("throw new global::System.NotImplementedException();");
+            WriteLine().Write("var obj = ").Write(fqn).Write("." + Ctor + "();");
+            WriteLine(false).Write("#pragma warning disable 0618");
+            WriteLine().Write(typeof(TypeSerializer)).Write(".Deserialize<").Write(fqn).Write(">(ref obj, segment, origin, reader, pointer);");
+            WriteLine(false).Write("#pragma warning restore 0618");
+            WriteLine().Write("return obj;");
 
             //foreach (var field in node.@struct.fields)
             //{

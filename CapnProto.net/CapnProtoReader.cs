@@ -164,20 +164,22 @@ namespace CapnProto
             var offset = unchecked (((int)pointer) >> 2); // note: int because signed
             var count = (int)((pointer >> 32) & 0xFFFF);
 
-            ReadBytes(segment, origin + offset, count, max, raw);
+            ReadWords(segment, origin + offset, count, max, raw);
         }
 
-        public unsafe void ReadPointers(int segment, int origin, ulong pointer, ulong* raw, int max)
+        public unsafe int ReadPointers(int segment, int origin, ulong pointer, ulong* raw, int max)
         {
             if ((pointer & 3) != 0) throw new InvalidOperationException("Expected struct pointer");
             var offset = unchecked(((int)pointer) >> 2); // note: int because signed
             var dataCount = (int)((pointer >> 32) & 0xFFFF);
             var count = (int)((pointer >> 48) & 0xFFFF);
 
-            ReadBytes(segment, origin + offset + dataCount, count, max, raw);
+            int pointerBase = origin + offset + dataCount;
+            ReadWords(segment, pointerBase, count, max, raw);
+            return pointerBase;
         }
 
-        protected virtual unsafe void ReadBytes(int segment, int origin, int available, int expected, ulong* raw)
+        protected virtual unsafe void ReadWords(int segment, int origin, int available, int expected, ulong* raw)
         {
             int wordsToRead = Math.Max(available, expected);
 
@@ -195,6 +197,9 @@ namespace CapnProto
                 ReadWords(segment, origin + offset, buffer, 0, wordsToRead);
                 Marshal.Copy(buffer, 0, new IntPtr(raw + offset), wordsToRead * 8);
             }
+            // zero out any words that didn't receive data
+            for (int i = available; i < expected; i++)
+                raw[i] = 0;
         }
     }
 }

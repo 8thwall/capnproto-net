@@ -11,10 +11,11 @@ namespace CapnProto
 
         private TextWriter destination;
         Dictionary<ulong, Schema.Node> map = new Dictionary<ulong, Schema.Node>();
-        public CodeWriter(TextWriter destination, List<Schema.Node> nodes, string @namespace)
+        public CodeWriter(TextWriter destination, List<Schema.Node> nodes, string @namespace, string serializer)
         {
             this.destination = destination;
             this.@namespace = @namespace;
+            this.serializer = serializer;
             foreach (var node in nodes)
             {
                 if (node.id != 0) map[node.id] = node;
@@ -45,7 +46,7 @@ namespace CapnProto
             destination.Write(value);
             return this;
         }
-        public virtual CodeWriter WriteLine()
+        public virtual CodeWriter WriteLine(bool indent = true)
         {
             destination.WriteLine();
             return this;
@@ -57,7 +58,7 @@ namespace CapnProto
         public abstract CodeWriter EndNamespace();
         public abstract CodeWriter BeginClass(Schema.Node node);
         public abstract CodeWriter WriteLittleEndianCheck(Schema.Node node);
-        public abstract CodeWriter BeginClass(bool @public, string name, Type baseType);
+        public abstract CodeWriter BeginClass(bool @public, bool @internal, string name, Type baseType);
         public abstract CodeWriter EndClass();
 
         public abstract CodeWriter DeclareField(string name, Type type);
@@ -72,11 +73,11 @@ namespace CapnProto
 
         public abstract CodeWriter Write(Type type);
 
-        public abstract CodeWriter WriteCustomSerializerClass(Schema.Node node, string baseType, string typeName, string methodName);
+        public abstract CodeWriter WriteCustomSerializerClass(Schema.Node node, string typeName, string methodName);
 
         public abstract CodeWriter EndMethod();
 
-        public abstract CodeWriter WriteCustomReaderMethod(Schema.Node node, string name);
+        public abstract CodeWriter WriteCustomReaderMethod(Schema.Node node);
 
         public abstract CodeWriter WriteField(Schema.Field field);
 
@@ -110,8 +111,18 @@ namespace CapnProto
             return this;
         }
 
-        readonly string @namespace;
+        public virtual CodeWriter DeclareFields(List<string> names, Type type)
+        {
+            foreach(var name in names)
+            {
+                DeclareField(name, type);
+            }
+            return this;
+        }
+
+        readonly string @namespace, serializer;
         public string Namespace { get { return @namespace; } }
+        public string Serializer { get { return serializer; } }
 
         public abstract CodeWriter WriteFieldAccessor(Schema.Field field);
 

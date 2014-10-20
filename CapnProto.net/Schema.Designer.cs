@@ -30,6 +30,14 @@ namespace CapnProto
             {
                 return id == 0 ? displayName : (id + ": " + displayName);
             }
+            internal string CustomSerializerName()
+            {
+                return CodeWriter.PrivatePrefix + "r_" + UniqueName();
+            }
+            internal string UniqueName()
+            {
+                return Convert.ToString(unchecked((long)id), 16);
+            }
         }
     }
 }
