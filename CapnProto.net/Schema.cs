@@ -251,6 +251,10 @@ namespace CapnProto
                 {
                     len = 0;
                     return new Type { data = Void.Value };
+                } else if (type == typeof(Void))
+                {
+                    len = 0;
+                    return new Type { @void = Void.Value };
                 }
                 switch (System.Type.GetTypeCode(type))
                 {
@@ -308,26 +312,15 @@ namespace CapnProto
 
                 List<Node> generateSerializers = new List<Node>(this.nodes.Count);
                 List<string> fieldNames = new List<string>();
-                //var usedAsFields = new HashSet<ulong>();
-                //foreach(var node in this.nodes)
-                //{
-                //    if(node.@struct == null || node.@struct.fields == null) continue;
-                //    foreach(var field in node.@struct.fields)
-                //    {
-                //        if(field.slot != null && field.slot.type != null && field.slot.type.@struct != null)
-                //            usedAsFields.Add(field.slot.type.@struct.typeId);
-                //    }
-                //}
-
                 var uniques = new HashSet<ulong>();
                 foreach (var node in this.nodes)
                 {
-                    if (node.@struct != null && uniques.Add(node.id))
+                    if(!uniques.Add(node.id))
                     {
-                        //if(node.@struct.isGroup)
-                        //{
-                        //    if (!usedAsFields.Contains(node.id)) continue;
-                        //}
+                        throw new InvalidOperationException("Duplicate id: " + node.id + " / " + node.UniqueName() + " on " + node.displayName);
+                    }
+                    if (node.@struct != null && !node.@struct.isGroup)
+                    {
                         generateSerializers.Add(node);
                         fieldNames.Add(CodeWriter.PrivatePrefix + "f_" + node.UniqueName());
                     }
@@ -376,51 +369,69 @@ namespace CapnProto
             }
             static readonly System.Type[] getSerializerSignature = new[] { typeof(System.Type) };
 
-            private void WriteStruct(CodeWriter writer, Node node)
+            private void ComputeSpace(CodeWriter writer, Node node, ref int bodyWords, ref int pointerWords)
             {
-                var @struct = node.@struct;
-                if (@struct == null) return;
-
-                writer.BeginClass(node).WriteLittleEndianCheck(node);
-
-
-                var children = node.nestedNodes;
-                if (children != null)
-                {
-                    foreach (var child in children)
-                    {
-                        Node found = writer.Lookup(child.id);
-                        if (found != null) WriteNode(writer, found);
-                        else writer.WriteError("not found: " + child.id + " / " + child.name);
-                    }
-                }
-
-                var fields = @struct.fields;
-                int bodyEnd = 0, ptrEnd = 0;
-
-                foreach(var field in fields)
+                int bodyEnd = 0;
+                foreach (var field in node.@struct.@fields)
                 {
                     var slot = field.slot;
                     if (slot == null || slot.type == null) continue;
-                    int len= slot.type.GetFieldLength();
+                    int len = slot.type.GetFieldLength();
 
-                    if (len == 0) {}
+                    var relatedType = slot.type.@struct == null ? null : writer.Lookup(slot.type.@struct.typeId);
+                    if (relatedType != null && relatedType.@struct != null && relatedType.@struct.isGroup)
+                    {
+                        ComputeSpace(writer, relatedType, ref bodyWords, ref pointerWords);
+                    }
+                    else if (len == 0) { }
                     else if (len == Type.LEN_POINTER)
                     {
                         int end = checked((int)slot.offset + 1);
-                        if (end > ptrEnd) ptrEnd = end;
+                        if (end > pointerWords) pointerWords = end;
                     }
                     else
                     {
                         int end = checked(len * (int)(slot.offset + 1));
                         if (end > bodyEnd) bodyEnd = end;
                     }
-                    writer.WriteFieldAccessor(field);
                 }
-                int bodyWords = (bodyEnd + 63) / 64;
-                writer.DeclareFields(bodyWords, ptrEnd);
+                var localBodyWords = (bodyEnd + 63) / 64;
+                if (localBodyWords > bodyWords) bodyWords = localBodyWords;
+            }
 
-                writer.EndClass();
+            private void WriteStruct(CodeWriter writer, Node node)
+            {
+                var @struct = node.@struct;
+                if (@struct == null) return;
+
+                if (@struct.isGroup) writer.WriteGroup(node);
+                else
+                {
+                    writer.BeginClass(node).WriteLittleEndianCheck(node);
+                    var children = node.nestedNodes;
+                    if (children != null)
+                    {
+                        foreach (var child in children)
+                        {
+                            Node found = writer.Lookup(child.id);
+                            if (found != null) WriteNode(writer, found);
+                            else writer.WriteError("not found: " + child.id + " / " + child.name);
+                        }
+                    }
+
+                    var fields = @struct.fields;
+
+                    int bodyWords = 0, pointerWords = 0;
+                    ComputeSpace(writer, node, ref bodyWords, ref pointerWords);
+                    foreach (var field in fields)
+                    {
+                        writer.WriteFieldAccessor(node, field);
+                    }
+                    
+                    writer.DeclareFields(bodyWords, pointerWords);
+
+                    writer.EndClass();
+                }
             }
         }
 

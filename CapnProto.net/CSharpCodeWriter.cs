@@ -115,10 +115,10 @@ namespace CapnProto
         {
             if (node.@struct != null)
             {
-                if (node.@struct.isGroup)
-                {
-                    WriteLine().Write("[global::CapnProto.Group]");
-                }
+                //if (node.@struct.isGroup)
+                //{
+                //    WriteLine().Write("[global::CapnProto.Group]");
+                //}
                 if (node.id != 0)
                 {
                     WriteLine().Write("[global::CapnProto.Id(").Write(node.id).Write(")]");
@@ -213,9 +213,13 @@ namespace CapnProto
                                 if(field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
                                 Write(", reader, raw[").Write(field.slot.offset).Write("]);");
                             }
+                            else if (field.slot.type.list != null)
+                            {
+                                Write("null;").WriteLine().Write("#warning lists not yet implemented");
+                            }
                             else
                             {
-                                Write("null;").WriteLine().Write("#warning not implemented");
+                                Write("null;").WriteLine().Write("#warning unexpected type");
                             }
                         }
                     }
@@ -360,7 +364,7 @@ namespace CapnProto
         }
         private string Format(Type type)
         {
-            if (type == null || type == typeof(Void)) return "void";
+            if (type == null || type == typeof(void)) return "void";
             if (!type.IsEnum) // reports same typecodes
             {
                 switch (Type.GetTypeCode(type))
@@ -552,8 +556,12 @@ namespace CapnProto
             Write(Format(type)).Write(" ").Write(Escape(name));
             Indent();
         }
-        public override CodeWriter WriteFieldAccessor(Schema.Field field)
+        public override CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field)
         {
+            if(field.slot.type == null)
+            {
+                return WriteLine().Write("#warning no type for: " + field.name);
+            }
             BeginProperty(field.slot.type, field.name);
             WriteLine().Write("get");
             Indent();
@@ -562,13 +570,23 @@ namespace CapnProto
             var type = slot.type;
 
             var len = type.GetFieldLength();
+
+            string fieldOwner = parent.@struct.isGroup ? "this.parent" : "this";
             if (len == 0)
             {
                 WriteLine().Write("return ").Write(typeof(Void)).Write(".Value;");
             }
             else if (len == Schema.Type.LEN_POINTER)
             {
-                WriteLine().Write("return (").Write(Format(type)).Write(")" + PointerPrefix).Write(slot.offset).Write(";");
+                var e = type.@struct == null ? null : Lookup(type.@struct.typeId);
+                if (e != null && e.@struct != null && e.@struct.isGroup)
+                {
+                    WriteLine().Write("return new ").Write(FullyQualifiedName(e)).Write("(").Write(fieldOwner).Write(");");
+                }
+                else
+                {
+                    WriteLine().Write("return (").Write(Format(type)).Write(")").Write(fieldOwner).Write("." + PointerPrefix).Write(slot.offset).Write(";");
+                }
             }
             else
             {
@@ -579,14 +597,14 @@ namespace CapnProto
                 if (type.@bool != null)
                 {
                     ulong mask = ((ulong)1) << byteInWord;
-                    WriteLine().Write("return (").Write(fieldName).Write(" & ").Write(mask).Write(") != 0;");
+                    WriteLine().Write("return (").Write(fieldOwner).Write(".").Write(fieldName).Write(" & ").Write(mask).Write(") != 0;");
                 }
                 else if ((type.int8 ?? type.int16 ?? type.int32 ?? type.int64
                   ?? type.uint8 ?? type.uint16 ?? type.uint32 ?? type.uint64) != null)
                 {
                     WriteLine().Write("return unchecked((").Write(type).Write(")");
-                    if (byteInWord == 0) Write(fieldName);
-                    else Write("(").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")");
+                    if (byteInWord == 0) Write(fieldOwner).Write(".").Write(fieldName);
+                    else Write("(").Write(fieldOwner).Write(".").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")");
                     Write(");");
                 }
                 else if (type.@enum != null && len == 16)
@@ -601,20 +619,20 @@ namespace CapnProto
                         // all enums are Int16; so 4 
                         ulong mask = ((ulong)0xFFFF) << byteInWord;
 
-                        WriteLine().Write("switch(").Write(fieldName).Write(" & ").Write(mask).Write(")");
+                        WriteLine().Write("switch(").Write(fieldOwner).Write(".").Write(fieldName).Write(" & ").Write(mask).Write(")");
                         Indent();
                         foreach (var enumerant in e.@enum.enumerants)
                         {
                             WriteLine().Write("case ").Write((ulong)enumerant.codeOrder << byteInWord).Write(": return ").Write(FullyQualifiedName(e)).Write(".").Write(Escape(enumerant.name)).Write(";");
                         }
                         WriteLine().Write("default: throw new global::System.InvalidOperationException(\"unexpected enum value: \" + unchecked((ushort)(")
-                            .Write(fieldName).Write(" >> ").Write(byteInWord).Write(")));");
+                            .Write(fieldOwner).Write(".").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")));");
                         Outdent();
                     }
                 }
                 else if ((type.float32 ?? type.float64) != null)
                 {
-                    WriteLine().Write(typeof(ulong)).Write(" tmp = ").Write(fieldName);
+                    WriteLine().Write(typeof(ulong)).Write(" tmp = ").Write(fieldOwner).Write(".").Write(fieldName);
                     if (byteInWord != 0) Write(" >> ").Write(byteInWord);
                     Write(";").WriteLine().Write("return *((").Write(type).Write("*)(&tmp));");
 
@@ -642,6 +660,31 @@ namespace CapnProto
         public override CodeWriter Write(ulong value)
         {
             return Write("0x").Write(Convert.ToString(unchecked((long)value), 16));
+        }
+
+        public override CodeWriter WriteGroup(Schema.Node node)
+        {
+            var parent = node;
+            while (parent != null && parent.@struct != null && parent.@struct.isGroup)
+            {
+                parent = FindParent(parent);
+            }            
+            if(parent == null) {
+                return WriteLine().Write("#error parent not found for: ").Write(node.displayName);
+            }
+            WriteLine().Write("[global::CapnProto.Group, global::CapnProto.Id(").Write(node.id).Write(")]");
+            WriteLine().Write("public struct ").Write(LocalName(node));
+            Indent();
+            WriteLine().Write("private readonly ").Write(FullyQualifiedName(parent)).Write(" parent;");
+            WriteLine().Write("internal ").Write(LocalName(node)).Write("(").Write(FullyQualifiedName(parent)).Write(" parent)");
+            Indent();
+            WriteLine().Write("this.parent = parent;");
+            Outdent();
+            foreach(var field in node.@struct.fields)
+            {
+                WriteFieldAccessor(node, field);
+            }
+            return Outdent();
         }
     }
 }

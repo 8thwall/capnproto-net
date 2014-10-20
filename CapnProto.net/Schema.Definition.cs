@@ -383,7 +383,7 @@ namespace CapnProto
             [Union(15)]
             public enumGroup @enum { get;set;}
 
-            [Group, Id(13063450714778629528)]
+            [Group, Id(13063450714778629527)]
             public class enumGroup {
                 //      typeId @15 :UInt64;  # bits[64, 128)
                 [Field(15, 64,128)]
@@ -574,6 +574,7 @@ namespace CapnProto
                 public global::System.Collections.Generic.List<Import> imports { get; set; }
 
                 //    struct Import @0xae504193122357e5 {  # 8 bytes, 1 ptrs
+                [Id(0xae504193122357e5)]
                 public partial class Import
                 {
                     //      id @0 :UInt64;  # bits[0, 64)
