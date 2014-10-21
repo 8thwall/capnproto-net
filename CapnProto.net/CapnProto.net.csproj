@@ -68,6 +68,7 @@
     <Compile Include="StructPointer.cs" />
     <Compile Include="TypeModel.cs" />
     <Compile Include="UnionAttribute.cs" />
+    <Compile Include="UnionStub.cs" />
     <Compile Include="Void.cs" />
   </ItemGroup>
   <ItemGroup>

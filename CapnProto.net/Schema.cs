@@ -321,10 +321,10 @@ namespace CapnProto
                 }
                 foreach (var node in this.nodes)
                 {
-                    Stack<Schema.Type> union = new Stack<Type>();
+                    var union = new Stack<UnionStub>();
                     if (node.id != 0 && !nested.Contains(node.id))
                     {
-                        WriteNode(writer, node, union);
+                        writer.WriteNode(node, union);
                     }
                 }
 
@@ -376,17 +376,7 @@ namespace CapnProto
 
             }
 
-            private void WriteNode(CodeWriter writer, Node node, Stack<Schema.Type> union)
-            {
-                if (node == null) return;
-                if(node.@struct !=null) WriteStruct(writer, node, union);
-                if (node.@enum != null) WriteEnum(writer, node);
-            }
-
-            private void WriteEnum(CodeWriter writer, Node node)
-            {
-                writer.WriteEnum(writer, node);
-            }
+            
             static readonly System.Type[] getSerializerSignature = new[] { typeof(System.Type) };
 
             internal static void ComputeSpace(CodeWriter writer, Node node, ref int bodyWords, ref int pointerWords)
@@ -423,47 +413,8 @@ namespace CapnProto
                 if (localBodyWords > bodyWords) bodyWords = localBodyWords;
             }
 
-            private void WriteStruct(CodeWriter writer, Node node, Stack<Schema.Type> union)
-            {
-                var @struct = node.@struct;
-                if (@struct == null) return;
+            
 
-                if (@struct.isGroup) writer.WriteGroup(node, union);
-                else
-                {
-                    writer.BeginClass(node).WriteLittleEndianCheck(node);
-                    var children = node.nestedNodes;
-                    if (children != null)
-                    {
-                        foreach (var child in children)
-                        {
-                            Node found = writer.Lookup(child.id);
-                            if (found != null)
-                            {
-                                WriteNode(writer, found, union);
-                            }
-                            else writer.WriteError("not found: " + child.id + " / " + child.name);
-                        }
-                    }
-
-                    var fields = @struct.fields;
-
-                    int bodyWords = 0, pointerWords = 0;
-                    ComputeSpace(writer, node, ref bodyWords, ref pointerWords);
-                    foreach (var field in fields)
-                    {
-                        writer.WriteFieldAccessor(node, field, union);
-                    }
-                    if(@struct.discriminantCount != 0)
-                    {
-                        writer.WriteDiscriminant(node, union);
-                    }
-                    
-                    writer.DeclareFields(bodyWords, pointerWords);
-
-                    writer.EndClass();
-                }
-            }
         }
 
 

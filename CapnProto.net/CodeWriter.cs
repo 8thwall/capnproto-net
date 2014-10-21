@@ -81,7 +81,7 @@ namespace CapnProto
 
         public abstract CodeWriter WriteField(Schema.Field field);
 
-        public abstract string Format(Schema.Type type);
+        public abstract string Format(Schema.Type type, bool nullable = false);
 
         public virtual CodeWriter Write(uint value)
         {
@@ -100,7 +100,7 @@ namespace CapnProto
             return Write(Format(type));
         }
 
-        public abstract void WriteEnum(CodeWriter writer, Schema.Node node);
+        public abstract void WriteEnum(Schema.Node node);
 
         public virtual CodeWriter DeclareFields(string prefix, int count, Type type)
         {
@@ -113,7 +113,7 @@ namespace CapnProto
 
         public virtual CodeWriter DeclareFields(List<string> names, Type type)
         {
-            foreach(var name in names)
+            foreach (var name in names)
             {
                 DeclareField(name, type);
             }
@@ -124,12 +124,99 @@ namespace CapnProto
         public string Namespace { get { return @namespace; } }
         public string Serializer { get { return serializer; } }
 
-        public abstract CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field, Stack<Schema.Type> union);
+        public abstract CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field, Stack<UnionStub> union);
 
         public abstract CodeWriter DeclareFields(int bodyWords, int pointers);
 
-        public abstract CodeWriter WriteGroup(Schema.Node node, Stack<Schema.Type> union);
+        public abstract CodeWriter WriteGroup(Schema.Node node, Stack<UnionStub> union);
 
-        public abstract CodeWriter WriteDiscriminant(Schema.Node node, Stack<Schema.Type> union);
+        public abstract CodeWriter WriteDiscriminant(Schema.Node node, Stack<UnionStub> union);
+
+        public virtual CodeWriter WriteNestedTypes(Schema.Node node, Stack<UnionStub> union)
+        {
+            var children = node.nestedNodes;
+            if (children != null)
+            {
+                foreach (var child in children)
+                {
+                    var found = Lookup(child.id);
+                    if (found != null)
+                    {
+                        WriteNode(found, union);
+                    }
+                    else WriteError("not found: " + child.id + " / " + child.name);
+                }
+            }
+            return this;
+        }
+        public virtual CodeWriter WriteNode(Schema.Node node, Stack<UnionStub> union)
+        {
+            if (node != null)
+            {
+                if (node.@struct != null) WriteStruct(node, union);
+                if (node.@enum != null) WriteEnum(node);
+            }
+            return this;
+     
+        }
+        public void WriteStruct(Schema.Node node, Stack<UnionStub> union)
+        {
+            var @struct = node.@struct;
+            if (@struct == null || @struct.isGroup) return;
+
+            if (@struct.isGroup)
+            {
+                // WriteGroup(node, union);
+            }
+            else
+            {
+                // the nested type does not inherit the unions from the caller
+                if (union.Count != 0)
+                {
+                    union = new Stack<UnionStub>();
+                }
+                BeginClass(node).WriteLittleEndianCheck(node);
+
+                var fields = @struct.fields;
+
+                int bodyWords = 0, pointerWords = 0;
+                Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
+                foreach (var field in fields)
+                {
+                    if (field.discriminantValue != ushort.MaxValue)
+                    {
+                        // write with union-based restructions
+                        union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
+                        WriteFieldAccessor(node, field, union);
+
+                        if(field.slot != null && field.slot.type != null && field.slot.type.@struct != null)
+                        {
+                            var found = Lookup(field.slot.type.@struct.typeId);
+                            if(found != null && found.@struct != null && found.@struct.isGroup)
+                            {
+                                WriteGroup(found, union);
+                            }
+                        }
+                        union.Pop();
+                    }
+                    else
+                    {
+                        // just write the damned field
+                        WriteFieldAccessor(node, field, union);
+                    }
+                }
+                if (@struct.discriminantCount != 0)
+                {
+                    WriteDiscriminant(node, union);
+                }
+
+                DeclareFields(bodyWords, pointerWords);
+
+                WriteNestedTypes(node, union);
+                EndClass();
+            }
+
+
+        }
     }
 }

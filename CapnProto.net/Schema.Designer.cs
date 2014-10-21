@@ -39,5 +39,8 @@ namespace CapnProto
                 return Convert.ToString(unchecked((long)id), 16);
             }
         }
+
+
+        
     }
 }
