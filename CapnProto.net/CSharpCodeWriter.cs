@@ -155,7 +155,7 @@ namespace CapnProto
             Indent();
             int bodyWords = 0, pointerWords = 0;
             Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
-            var ptrFields = new SortedList<int, List<Tuple<Schema.Field, Stack<UnionStub>>>>();
+            var ptrFields = new SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>>();
 
             var union = new Stack<UnionStub>();
             CascadePointers(this, node, ptrFields, union);
@@ -179,7 +179,7 @@ namespace CapnProto
             Outdent();
         }
 
-        private static void CascadePointers(CodeWriter writer, Schema.Node node, SortedList<int, List<Tuple<Schema.Field, Stack<UnionStub>>>> ptrFields, Stack<UnionStub> union)
+        private static void CascadePointers(CodeWriter writer, Schema.Node node, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, Stack<UnionStub> union)
         {
             foreach (var field in node.@struct.fields)
             {
@@ -191,12 +191,12 @@ namespace CapnProto
                 {
                     bool isFiltered = field.discriminantValue != ushort.MaxValue;
                     if (isFiltered) union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
-                    List<Tuple<Schema.Field, Stack<UnionStub>>> fields;
+                    List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>> fields;
                     if (!ptrFields.TryGetValue((int)slot.offset, out fields))
                     {
-                        ptrFields.Add((int)slot.offset, fields = new List<Tuple<Schema.Field, Stack<UnionStub>>>());
+                        ptrFields.Add((int)slot.offset, fields = new List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>());
                     }
-                    fields.Add(Tuple.Create(field, Clone(union)));
+                    fields.Add(Tuple.Create(node, field, Clone(union)));
 
                     if (slot.type.@struct != null)
                     {
@@ -211,7 +211,7 @@ namespace CapnProto
             }
         }
 
-        private void WriteBlit(Schema.Node node, int pointerWords, SortedList<int, List<Tuple<Schema.Field, Stack<UnionStub>>>> ptrFields)
+        private void WriteBlit(Schema.Node node, int pointerWords, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields)
         {
             WriteLine().Write("origin = reader.ReadPointers(segment, origin, pointer, raw, ").Write(pointerWords).Write(");");
             foreach (var pair in ptrFields)
@@ -220,9 +220,23 @@ namespace CapnProto
                 Indent();
                 foreach (var tuple in pair.Value)
                 {
-                    var field = tuple.Item1;
-                    var union = tuple.Item2;
-                    WriteLine();
+                    var declaring = tuple.Item1;
+                    var field = tuple.Item2;
+                    var union = tuple.Item3;
+                    if(field.slot == null || field.slot.type == null) continue;
+                    Schema.Node found = null;
+                    if(field.slot.type.@struct != null)
+                    {
+                        found = Lookup(field.slot.type.@struct.typeId);
+                        if (found == null || found.@struct == null)
+                        {
+                            WriteLine().Write("#warning not found: ").Write(field.slot.type.@struct.typeId);
+                            continue;
+                        }
+
+                        if (found.@struct.isGroup) continue; // group data is included separately at the correct locations
+                    }
+                    WriteLine().Write("// ").Write(declaring.displayName).Write(".").Write(field.name).WriteLine();
                     if (union.Count != 0)
                     {
                         Write("if (");
@@ -242,17 +256,21 @@ namespace CapnProto
                         if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
                         Write(", raw[").Write(field.slot.offset).Write("]);");
                     }
-                    else if (field.slot.type.@struct != null)
+                    else if (field.slot.type.@struct != null && found != null)
                     {
                         Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
                             .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
-                            .Write(node.CustomSerializerName()).Write("(segment, origin");
+                            .Write(found.CustomSerializerName()).Write("(segment, origin");
                         if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
                         Write(", reader, raw[").Write(field.slot.offset).Write("]);");
                     }
                     else if (field.slot.type.list != null)
                     {
                         Write("null;").WriteLine().Write("#warning lists not yet implemented");
+                    }
+                    else if (field.slot.type.anyPointer != null)
+                    {
+                        Write("null;").WriteLine().Write("#warning any-pointer not yet implemented");
                     }
                     else
                     {
@@ -544,6 +562,11 @@ namespace CapnProto
             Schema.Node node;
             if (typeid != 0 && (node = Lookup(typeid)) != null)
             {
+                if(nullable)
+                {
+                    if (node.@enum != null) return FullyQualifiedName(node) + "?";
+                    if (node.@struct != null && node.@struct.isGroup) return FullyQualifiedName(node) + "?";
+                }
                 return FullyQualifiedName(node);
             }
 
@@ -617,12 +640,13 @@ namespace CapnProto
             {
                 WriteLine().Write("[global::CapnProto.FieldAttribute(").Write(field.ordinal.@explicit).Write(")]");
             }
-            BeginProperty(field.slot.type, field.name, union.Count != 0);
+            var slot = field.slot;
+            var type = slot.type;
+            BeginProperty(field.slot.type, field.name, union.Count != 0 && type.@struct == null);
             WriteLine().Write("get");
             Indent();
 
-            var slot = field.slot;
-            var type = slot.type;
+            
 
             var len = type.GetFieldLength();
 
@@ -639,7 +663,18 @@ namespace CapnProto
                 var e = type.@struct == null ? null : Lookup(type.@struct.typeId);
                 if (e != null && e.@struct != null && e.@struct.isGroup)
                 {
+                    //if(union.Count != 0)
+                    //{
+                    //    WriteLine().Write("if (");
+                    //    WriteUnionTest(fieldOwner, union).Write(")");
+                    //    Indent();
+                    //}
                     WriteLine().Write("return new ").Write(FullyQualifiedName(e)).Write("(").Write(fieldOwner).Write(");");
+                    //if(union.Count != 0)
+                    //{
+                    //    Outdent();
+                    //    WriteLine().Write("return null;");
+                    //}
                 }
                 else
                 {

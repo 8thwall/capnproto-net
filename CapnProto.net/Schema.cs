@@ -274,6 +274,10 @@ namespace CapnProto
                 {
                     len = 0;
                     return new Type { @void = Void.Value };
+                } else if (type == typeof(object) || type == typeof(System.Collections.IList))
+                {
+                    len = Type.LEN_POINTER;
+                    return new Type { anyPointer = Void.Value };
                 }
                 switch (System.Type.GetTypeCode(type))
                 {
