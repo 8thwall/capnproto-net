@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -156,7 +157,7 @@ namespace CapnProto
             int bodyWords = 0, pointerWords = 0;
             Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
             var ptrFields = new SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>>();
-
+            List<Schema.Field> lists = new List<Schema.Field>();
             var union = new Stack<UnionStub>();
             CascadePointers(this, node, ptrFields, union);
             int alloc = Math.Max(bodyWords, pointerWords);
@@ -173,10 +174,19 @@ namespace CapnProto
                 }
                 if (pointerWords != 0)
                 {
-                    WriteBlit(node, pointerWords, ptrFields);
+                    WriteBlitPointers(node, pointerWords, ptrFields, lists);
                 }
             }
             Outdent();
+            int listIndex = 0;
+            foreach (var listField in lists)
+            {
+                WriteLine().Write("static object ").Write(ListMethodName(listIndex++)).Write("(int segment, int origin, ")
+                .Write(typeof(CapnProto.CapnProtoReader)).Write(" reader, ulong pointer)");
+                Indent();
+                WriteLine().Write("return null;");
+                Outdent();
+            }
         }
 
         private static void CascadePointers(CodeWriter writer, Schema.Node node, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, Stack<UnionStub> union)
@@ -211,7 +221,7 @@ namespace CapnProto
             }
         }
 
-        private void WriteBlit(Schema.Node node, int pointerWords, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields)
+        private void WriteBlitPointers(Schema.Node node, int pointerWords, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, List<Schema.Field> lists)
         {
             WriteLine().Write("origin = reader.ReadPointers(segment, origin, pointer, raw, ").Write(pointerWords).Write(");");
             foreach (var pair in ptrFields)
@@ -266,7 +276,13 @@ namespace CapnProto
                     }
                     else if (field.slot.type.list != null)
                     {
-                        Write("null;").WriteLine().Write("#warning lists not yet implemented");
+                        //Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
+                        //    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
+                            Write(ListMethodName(lists.Count))
+                            .Write("(segment, origin");
+                        lists.Add(field);
+                        if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                        Write(", reader, raw[").Write(field.slot.offset).Write("]);");
                     }
                     else if (field.slot.type.anyPointer != null)
                     {
@@ -279,6 +295,10 @@ namespace CapnProto
                 }
                 Outdent();
             }
+        }
+        private static string ListMethodName(int index)
+        {
+            return CodeWriter.PrivatePrefix + "l_" + index.ToString(CultureInfo.InvariantCulture);
         }
         const string Ctor = PrivatePrefix + "ctor";
 

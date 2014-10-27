@@ -39,6 +39,13 @@ namespace CapnProto
                 return Convert.ToString(unchecked((long)id), 16);
             }
         }
+        partial class Type
+        {
+            partial class listGroup
+            {
+
+            }
+        }
 
 
         

@@ -371,7 +371,7 @@ namespace CapnProto
             public listGroup list { get; set; }
 
             [Group, Id(9792858745991129751)]
-            public class listGroup
+            public partial class listGroup
             {
                 //      elementType @14 :Type;  # ptr[0]
                 [Field(14, pointer: 0)]
