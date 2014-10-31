@@ -90,16 +90,31 @@ namespace CapnProto
 
         public virtual unsafe List<T> ReadStructList<T>(DeserializationContext context, int segment, int origin, ulong pointer) where T : IBlittable
         {
-            int count = AssertListHeader(pointer, ref origin, ElementSize.EightBytesPointer);
-            ulong* raw = stackalloc ulong[count];
-            ReadWords(segment, origin, count, count, raw);
-            var list = new List<T>(count);
-            var model = context.Model;
-            for (int i = 0; i < count; i++)
+            ElementSize size;
+            int count = ParseListHeader(pointer, ref origin, out size);
+
+            switch (size)
             {
-                list.Add(model.Deserialize<T>(segment, origin + i, context, raw[i]));
+                case ElementSize.EightBytesPointer:
+                    ulong* raw = stackalloc ulong[count];
+                    ReadWords(segment, origin, count, count, raw);
+                    var list = new List<T>(count);
+                    var model = context.Model;
+                    for (int i = 0; i < count; i++)
+                    {
+                        list.Add(model.Deserialize<T>(segment, origin + i, context, raw[i]));
+                    }
+                    return list;
+                case ElementSize.Composite:
+                    ulong tag = context.Reader.ReadWord(segment, origin);
+                    // The tag has the same layout as a struct pointer, except that the pointer offset (B)
+                    // instead indicates the number of elements in the list.
+                    // Meanwhile, section (D) of the list pointer – which normally would store this element count
+                    // – instead stores the total number of words in the list (not counting the tag word).
+                    goto default;
+                default:
+                    throw new NotImplementedException("List size not implemented: " + size);
             }
-            return list;
         }
         public virtual unsafe List<long> ReadInt64List(int segment, int origin, ulong pointer)
         {
@@ -223,7 +238,15 @@ namespace CapnProto
             }
         }
 
-
+        //lsb                      struct pointer                       msb
+        //+-+-----------------------------+---------------+---------------+
+        //|A|             B               |       C       |       D       |
+        //+-+-----------------------------+---------------+---------------+
+        //A(2 bits) = 0, to indicate that this is a struct pointer.
+        //B(30 bits) = Offset, in words, from the end of the pointer to the
+        //    start of the struct's data section.  Signed.
+        //C(16 bits) = Size of the struct's data section, in words.
+        //D(16 bits) = Size of the struct's pointer section, in words.
         public unsafe void ReadData(int segment, int origin, ulong pointer, ulong* raw, int max)
         {
             if ((pointer & 3) != 0) throw new InvalidOperationException("Expected struct pointer");

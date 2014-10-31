@@ -157,7 +157,7 @@ namespace CapnProto
             int bodyWords = 0, pointerWords = 0;
             Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
             var ptrFields = new SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>>();
-            List<Schema.Field> lists = new List<Schema.Field>();
+            //List<Schema.Field> lists = new List<Schema.Field>();
             var union = new Stack<UnionStub>();
             CascadePointers(this, node, ptrFields, union);
             int alloc = Math.Max(bodyWords, pointerWords);
@@ -174,48 +174,54 @@ namespace CapnProto
                 }
                 if (pointerWords != 0)
                 {
-                    WriteBlitPointers(node, pointerWords, ptrFields, lists);
+                    WriteBlitPointers(node, pointerWords, ptrFields); //, lists);
                 }
             }
             Outdent();
-            int listIndex = 0;
-            foreach (var listField in lists)
-            {
-                WriteLine().Write("static object ").Write(ListMethodName(listIndex++)).Write("(int segment, int origin, ")
-                    .Write(typeof(CapnProto.DeserializationContext)).Write(" ctx, ulong pointer)");
-                Indent();
-                WriteListImpl(listField, false);
-                Outdent();
-            }
+            //int listIndex = 0;
+            //foreach (var listField in lists)
+            //{
+            //    WriteLine().Write("static object ").Write(ListMethodName(listIndex++)).Write("(int segment, int origin, ")
+            //        .Write(typeof(CapnProto.DeserializationContext)).Write(" ctx, ulong pointer)");
+            //    Indent();
+            //    WriteListImpl(listField, false);
+            //    Outdent();
+            //}
         }
 
-        bool WriteListImpl(Schema.Field field, bool inlineOnly)
+        void WriteListImpl(Schema.Field field)
         {
             var elType = field.slot.type.list.elementType;
+            int index = (int)field.slot.offset;
 #warning switch to switch
             if (elType.text != null)
             {
-                WriteLine().Write(inlineOnly ? "" : "return ").Write("ctx.Reader.ReadStringList(segment, origin, pointer);");
+                Write("ctx.Reader.ReadStringList(segment, origin, raw[").Write(index).Write("]);");
             }
             else if (elType.@struct != null)
             {
                 var found = Lookup(elType.@struct.typeId);
-                if (found == null) WriteLine().Write(inlineOnly ? "" : "return ").Write("null; #error type not found: ").Write(elType.@struct.typeId);
-                else if (found.@struct == null || found.@struct.isGroup) WriteLine().Write(inlineOnly ? "" : "return ").Write("null; #error invalid type for list: ").Write(found.displayName);
+                if (found == null)
+                {
+                    Write("null; #error type not found: ").Write(elType.@struct.typeId);
+                }
+                else if (found.@struct == null || found.@struct.isGroup)
+                {
+                    Write("null; #error invalid type for list: ").Write(found.displayName);
+                }
                 else
                 {
-                    WriteLine().Write(inlineOnly ? "" : "return ").Write("ctx.Reader.ReadStructList<").Write(FullyQualifiedName(found)).Write(">(ctx, segment, origin, pointer);");
+                    Write("ctx.Reader.ReadStructList<").Write(FullyQualifiedName(found)).Write(">(ctx, segment, origin, raw[").Write(index).Write("]);");
                 }
             }
             else if (elType.int64 != null)
             {
-                WriteLine().Write(inlineOnly ? "" : "return ").Write("ctx.Reader.ReadInt64List(segment, origin, pointer);");
+                Write("ctx.Reader.ReadInt64List(segment, origin, raw[").Write(index).Write("]);");
             }
             else
             {
-                WriteLine().Write(inlineOnly ? "" : "return ").Write("null; #warning not yet supported");
+                Write("null; #warning not yet supported");
             }
-            return true;
         }
 
         private static void CascadePointers(CodeWriter writer, Schema.Node node, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, Stack<UnionStub> union)
@@ -250,7 +256,7 @@ namespace CapnProto
             }
         }
 
-        private void WriteBlitPointers(Schema.Node node, int pointerWords, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, List<Schema.Field> lists)
+        private void WriteBlitPointers(Schema.Node node, int pointerWords, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields) //, List<Schema.Field> lists)
         {
             WriteLine().Write("origin = ctx.Reader.ReadPointers(segment, origin, pointer, raw, ").Write(pointerWords).Write(");");
             foreach (var pair in ptrFields)
@@ -305,24 +311,25 @@ namespace CapnProto
                     }
                     else if (field.slot.type.list != null)
                     {
-                        if (!WriteListImpl(field, true))
-                        {
-                            //Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
-                            //    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
-                            Write(ListMethodName(lists.Count))
-                            .Write("(segment, origin");
-                            lists.Add(field);
-                            if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
-                            Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
-                        }
+                        WriteListImpl(field);
+                        //if (!WriteListImpl(field, true))
+                        //{
+                        //    //Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
+                        //    //    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
+                        //    Write(ListMethodName(lists.Count))
+                        //    .Write("(segment, origin");
+                        //    lists.Add(field);
+                        //    if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                        //    Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
+                        //}
                     }
                     else if (field.slot.type.anyPointer != null)
                     {
-                        Write("null;").WriteLine().Write("#warning any-pointer not yet implemented");
+                        Write("null; #warning any-pointer not yet implemented");
                     }
                     else
                     {
-                        Write("null;").WriteLine().Write("#warning unexpected type");
+                        Write("null; #warning unexpected type");
                     }
                 }
                 Outdent();

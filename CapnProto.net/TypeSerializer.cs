@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace CapnProto
 {
@@ -8,6 +9,7 @@ namespace CapnProto
     {
         [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("This method is not intended to be used directly", false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Deserialize<T>(ref T obj, int segment, int origin, DeserializationContext ctx, ulong pointer) where T : IBlittable
         {
             // doing this via a generic method allows structs to efficiently use explicitly implemented interfaces;

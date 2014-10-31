@@ -35,7 +35,7 @@ namespace CapnProto
         private ITypeSerializer CreateSerializer(Type type)
         {
             if (type == null) throw new ArgumentNullException("type");
-            throw new NotImplementedException();
+            throw new NotImplementedException("codegen goes here!");
         }
         public override ITypeSerializer GetSerializer(Type type)
         {
