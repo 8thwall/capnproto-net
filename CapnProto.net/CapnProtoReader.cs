@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -17,11 +18,11 @@ namespace CapnProto
         protected CapnProtoReader(object context)
         {
             this.context = context;
-            
+
         }
 
         private static readonly bool isLittleEndian = BitConverter.IsLittleEndian;
-        
+
         public virtual void Dispose() { context = null; }
 
         private object context;
@@ -46,6 +47,71 @@ namespace CapnProto
             var tmp = Scratch;
             ReadWords(segment, wordOffset, tmp, 0, 1);
             return BitConverter.ToUInt64(tmp, 0);
+        }
+
+        public int ParseListHeader(ulong pointer, ref int origin, out ElementSize size)
+        {
+            //lsb                       list pointer                        msb
+            //+-+-----------------------------+--+----------------------------+
+            //|A|             B               |C |             D              |
+            //+-+-----------------------------+--+----------------------------+
+
+            uint first = unchecked((uint)pointer), second = unchecked((uint)(pointer >> 32));
+
+            // A (2 bits) = 1, to indicate that this is a list pointer.
+            if ((first & 3) != 1) throw new InvalidOperationException("List header expected");
+            // B (30 bits) = Offset, in words, from the end of the pointer to the start of the first element of the list.  Signed.
+            origin += (int)(first >> 2);
+            // C (3 bits) = Size of each element:
+            size = (ElementSize)(int)(second & 7);
+            // D (29 bits) = Number of elements in the list, except when C is 7
+            return (int)(second >> 3);
+        }
+        private int AssertListHeader(ulong pointer, ref int origin, ElementSize expectedSize)
+        {
+            ElementSize actualSize;
+            int count = ParseListHeader(pointer, ref origin, out actualSize);
+            if (expectedSize != actualSize) throw new InvalidOperationException("Invalid list pointer size; expected " + expectedSize.ToString() + ", found " + actualSize.ToString());
+            return count;
+        }
+
+        public virtual unsafe List<string> ReadStringList(int segment, int origin, ulong pointer)
+        {
+            int count = AssertListHeader(pointer, ref origin, ElementSize.EightBytesPointer);
+            ulong* raw = stackalloc ulong[count];
+            ReadWords(segment, origin, count, count, raw);
+            var list = new List<string>(count);
+            for (int i = 0; i < count; i++)
+            {
+                list.Add(ReadStringFromPointer(segment, origin + i, raw[i]));
+            }
+            return list;
+        }
+
+        public virtual unsafe List<T> ReadStructList<T>(DeserializationContext context, int segment, int origin, ulong pointer) where T : IBlittable
+        {
+            int count = AssertListHeader(pointer, ref origin, ElementSize.EightBytesPointer);
+            ulong* raw = stackalloc ulong[count];
+            ReadWords(segment, origin, count, count, raw);
+            var list = new List<T>(count);
+            var model = context.Model;
+            for (int i = 0; i < count; i++)
+            {
+                list.Add(model.Deserialize<T>(segment, origin + i, context, raw[i]));
+            }
+            return list;
+        }
+        public virtual unsafe List<long> ReadInt64List(int segment, int origin, ulong pointer)
+        {
+            int count = AssertListHeader(pointer, ref origin, ElementSize.EightBytesNonPointer);
+            ulong* raw = stackalloc ulong[count];
+            ReadWords(segment, origin, count, count, raw);
+            var list = new List<long>(count);
+            for (int i = 0; i < count; i++)
+            {
+                list.Add(unchecked((long)raw[i]));
+            }
+            return list;
         }
 
         protected abstract void OnChangeSegment(int segment, int offset, int length);
@@ -161,7 +227,7 @@ namespace CapnProto
         public unsafe void ReadData(int segment, int origin, ulong pointer, ulong* raw, int max)
         {
             if ((pointer & 3) != 0) throw new InvalidOperationException("Expected struct pointer");
-            var offset = unchecked (((int)pointer) >> 2); // note: int because signed
+            var offset = unchecked(((int)pointer) >> 2); // note: int because signed
             var count = (int)((pointer >> 32) & 0xFFFF);
 
             ReadWords(segment, origin + offset, count, max, raw);
@@ -185,14 +251,14 @@ namespace CapnProto
 
             var buffer = Scratch;
             int offset = 0;
-            while(wordsToRead >= ScratchLengthWords)
+            while (wordsToRead >= ScratchLengthWords)
             {
                 ReadWords(segment, origin + offset, buffer, 0, ScratchLengthWords);
                 Marshal.Copy(buffer, 0, new IntPtr(raw + offset), ScratchLengthBytes);
                 offset += ScratchLengthWords;
                 wordsToRead -= ScratchLengthWords;
             }
-            if(wordsToRead > 0)
+            if (wordsToRead > 0)
             {
                 ReadWords(segment, origin + offset, buffer, 0, wordsToRead);
                 Marshal.Copy(buffer, 0, new IntPtr(raw + offset), wordsToRead * 8);

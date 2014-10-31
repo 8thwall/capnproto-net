@@ -152,7 +152,7 @@ namespace CapnProto
         }
         private void WriteBlit(Schema.Node node)
         {
-            WriteLine().Write("unsafe void ").Write(typeof(IBlittable)).Write(".Deserialize(int segment, int origin, global::CapnProto.CapnProtoReader reader, ulong pointer)");
+            WriteLine().Write("unsafe void ").Write(typeof(IBlittable)).Write(".Deserialize(int segment, int origin, ").Write(typeof(DeserializationContext)).Write(" ctx, ulong pointer)");
             Indent();
             int bodyWords = 0, pointerWords = 0;
             Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
@@ -166,7 +166,7 @@ namespace CapnProto
                 WriteLine().Write("ulong* raw = stackalloc ulong[").Write(alloc).Write("];");
                 if (bodyWords != 0)
                 {
-                    WriteLine().Write("reader.ReadData(segment, origin, pointer, raw, ").Write(bodyWords).Write(");");
+                    WriteLine().Write("ctx.Reader.ReadData(segment, origin, pointer, raw, ").Write(bodyWords).Write(");");
                     for (int i = 0; i < bodyWords; i++)
                     {
                         WriteLine().Write(DataPrefix).Write(i).Write(" = raw[").Write(i).Write("];");
@@ -182,11 +182,40 @@ namespace CapnProto
             foreach (var listField in lists)
             {
                 WriteLine().Write("static object ").Write(ListMethodName(listIndex++)).Write("(int segment, int origin, ")
-                .Write(typeof(CapnProto.CapnProtoReader)).Write(" reader, ulong pointer)");
+                    .Write(typeof(CapnProto.DeserializationContext)).Write(" ctx, ulong pointer)");
                 Indent();
-                WriteLine().Write("return null;");
+                WriteListImpl(listField, false);
                 Outdent();
             }
+        }
+
+        bool WriteListImpl(Schema.Field field, bool inlineOnly)
+        {
+            var elType = field.slot.type.list.elementType;
+#warning switch to switch
+            if (elType.text != null)
+            {
+                WriteLine().Write(inlineOnly ? "" : "return ").Write("ctx.Reader.ReadStringList(segment, origin, pointer);");
+            }
+            else if (elType.@struct != null)
+            {
+                var found = Lookup(elType.@struct.typeId);
+                if (found == null) WriteLine().Write(inlineOnly ? "" : "return ").Write("null; #error type not found: ").Write(elType.@struct.typeId);
+                else if (found.@struct == null || found.@struct.isGroup) WriteLine().Write(inlineOnly ? "" : "return ").Write("null; #error invalid type for list: ").Write(found.displayName);
+                else
+                {
+                    WriteLine().Write(inlineOnly ? "" : "return ").Write("ctx.Reader.ReadStructList<").Write(FullyQualifiedName(found)).Write(">(ctx, segment, origin, pointer);");
+                }
+            }
+            else if (elType.int64 != null)
+            {
+                WriteLine().Write(inlineOnly ? "" : "return ").Write("ctx.Reader.ReadInt64List(segment, origin, pointer);");
+            }
+            else
+            {
+                WriteLine().Write(inlineOnly ? "" : "return ").Write("null; #warning not yet supported");
+            }
+            return true;
         }
 
         private static void CascadePointers(CodeWriter writer, Schema.Node node, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, Stack<UnionStub> union)
@@ -223,7 +252,7 @@ namespace CapnProto
 
         private void WriteBlitPointers(Schema.Node node, int pointerWords, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, List<Schema.Field> lists)
         {
-            WriteLine().Write("origin = reader.ReadPointers(segment, origin, pointer, raw, ").Write(pointerWords).Write(");");
+            WriteLine().Write("origin = ctx.Reader.ReadPointers(segment, origin, pointer, raw, ").Write(pointerWords).Write(");");
             foreach (var pair in ptrFields)
             {
                 WriteLine().Write("if (raw[").Write(pair.Key).Write("] != 0)");
@@ -256,13 +285,13 @@ namespace CapnProto
                     Write("this." + PointerPrefix).Write(pair.Key).Write(" = ");
                     if (field.slot.type.text != null)
                     {
-                        Write("reader.ReadStringFromPointer(segment, origin");
+                        Write("ctx.Reader.ReadStringFromPointer(segment, origin");
                         if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
                         Write(", raw[").Write(field.slot.offset).Write("]);");
                     }
                     else if (field.slot.type.data != null)
                     {
-                        Write("reader.ReadBytesFromPointer(segment, origin");
+                        Write("ctx.Reader.ReadBytesFromPointer(segment, origin");
                         if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
                         Write(", raw[").Write(field.slot.offset).Write("]);");
                     }
@@ -272,17 +301,20 @@ namespace CapnProto
                             .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
                             .Write(found.CustomSerializerName()).Write("(segment, origin");
                         if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
-                        Write(", reader, raw[").Write(field.slot.offset).Write("]);");
+                        Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
                     }
                     else if (field.slot.type.list != null)
                     {
-                        //Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
-                        //    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
+                        if (!WriteListImpl(field, true))
+                        {
+                            //Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
+                            //    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
                             Write(ListMethodName(lists.Count))
                             .Write("(segment, origin");
-                        lists.Add(field);
-                        if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
-                        Write(", reader, raw[").Write(field.slot.offset).Write("]);");
+                            lists.Add(field);
+                            if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                            Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
+                        }
                     }
                     else if (field.slot.type.anyPointer != null)
                     {
@@ -404,7 +436,7 @@ namespace CapnProto
         public override CodeWriter WriteSerializerTest(string field, Schema.Node node, string serializer)
         {
             return WriteLine().Write("if (type == typeof(").Write(FullyQualifiedName(node)).Write(")) return ").Write(field)
-                .Write(" ?? (").Write(field).Write(" = new ").Write(serializer).Write("());");
+                .Write(" ?? (").Write(field).Write(" = new ").Write(serializer).Write("(this));");
         }
 
         public override CodeWriter CallBase(System.Reflection.MethodInfo method)
@@ -457,7 +489,7 @@ namespace CapnProto
                     case TypeCode.UInt64: return "ulong";
                 }
             }
-            if (type == typeof(object)) return "object"; // cant use TypeCode.Object: most classes etc report that
+            if (type == typeof(object)) return "object"; // cant use TypeCode.Object: most classes etc report thats
             return "global::" + type.FullName.Replace('+', '.');
         }
 
@@ -467,12 +499,20 @@ namespace CapnProto
                 .Write(".").Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(", global::CapnProto.ITypeSerializer<").Write(FullyQualifiedName(node)).Write(">");
             Indent();
 
-            WriteLine().Write("object global::CapnProto.ITypeSerializer.Deserialize(global::CapnProto.CapnProtoReader reader)");
-            Indent().WriteLine().Write("return Deserialize(reader);");
+            WriteLine().Write("private readonly ").Write(typeof(TypeModel)).Write(" model;");
+            WriteLine().Write("internal ").Write(typeName).Write("(").Write(typeof(TypeModel)).Write(" model)");
+            Indent();
+            WriteLine().Write("this.model = model;");
+            Outdent();
+
+            WriteLine().Write(typeof(TypeModel)).Write(" ").Write(typeof(ITypeSerializer)).Write(".Model { get { return this.model; } }");
+
+            WriteLine().Write("object ").Write(typeof(ITypeSerializer)).Write(".Deserialize(int segment, int origin, ").Write(typeof(DeserializationContext)).Write(" ctx, ulong pointer)");
+            Indent().WriteLine().Write("return ").Write(methodName).Write("(segment, origin, ctx, pointer);");
             EndMethod();
 
-            WriteLine().Write("public ").Write(FullyQualifiedName(node)).Write(" Deserialize(global::CapnProto.CapnProtoReader reader)");
-            Indent().WriteLine().Write("reader.ReadPreamble();").WriteLine().Write("return ").Write(methodName).Write("(0, 1, reader, reader.ReadWord(0, 0));");
+            WriteLine().Write("public ").Write(FullyQualifiedName(node)).Write(" Deserialize(int segment, int origin, ").Write(typeof(DeserializationContext)).Write(" ctx, ulong pointer)");
+            Indent().WriteLine().Write("return ").Write(methodName).Write("(segment, origin, ctx, pointer);");
             EndMethod();
 
             return EndClass();
@@ -514,11 +554,11 @@ namespace CapnProto
         public override CodeWriter WriteCustomReaderMethod(Schema.Node node)
         {
             var fqn = FullyQualifiedName(node);
-            WriteLine().Write("internal static ").Write(fqn).Write(" ").Write(node.CustomSerializerName()).Write("(int segment, int origin, global::CapnProto.CapnProtoReader reader, ulong pointer)");
+            WriteLine().Write("internal static ").Write(fqn).Write(" ").Write(node.CustomSerializerName()).Write("(int segment, int origin, ").Write(typeof(DeserializationContext)).Write(" ctx, ulong pointer)");
             Indent();
             WriteLine().Write("var obj = ").Write(fqn).Write("." + Ctor + "();");
             WriteLine(false).Write("#pragma warning disable 0618");
-            WriteLine().Write(typeof(TypeSerializer)).Write(".Deserialize<").Write(fqn).Write(">(ref obj, segment, origin, reader, pointer);");
+            WriteLine().Write(typeof(TypeSerializer)).Write(".Deserialize<").Write(fqn).Write(">(ref obj, segment, origin, ctx, pointer);");
             WriteLine(false).Write("#pragma warning restore 0618");
             WriteLine().Write("return obj;");
 

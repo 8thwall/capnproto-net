@@ -18,6 +18,11 @@ namespace CapnProto
         {
             return (ITypeSerializer<T>)GetSerializer(typeof(T));
         }
+
+        protected internal T Deserialize<T>(int segment, int origin, DeserializationContext ctx, ulong pointer)
+        {
+            return GetSerializer<T>().Deserialize(segment, origin, ctx, pointer);
+        }
     }
 
     public sealed class RuntimeTypeModel : TypeModel

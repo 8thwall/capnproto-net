@@ -8,12 +8,12 @@ namespace CapnProto
     {
         [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("This method is not intended to be used directly", false)]
-        public static void Deserialize<T>(ref T obj, int segment, int origin, CapnProtoReader reader, ulong pointer) where T : IBlittable
+        public static void Deserialize<T>(ref T obj, int segment, int origin, DeserializationContext ctx, ulong pointer) where T : IBlittable
         {
             // doing this via a generic method allows structs to efficiently use explicitly implemented interfaces;
             // without generics, casting to the interface forces boxing; with generics, it is a "constrained" call -
             // much preferred
-            obj.Deserialize(segment, origin, reader, pointer);
+            obj.Deserialize(segment, origin, ctx, pointer);
         }
         public static object Deserialize(this ITypeSerializer serializer, Stream source)
         {
@@ -21,7 +21,12 @@ namespace CapnProto
             if (source == null) throw new ArgumentNullException("source");
             using(var reader = CapnProtoReader.Create(source, null))
             {
-                return serializer.Deserialize(reader);
+                reader.ReadPreamble();
+                var ctx = new DeserializationContext(serializer.Model, reader, null);
+
+                // The first word of the first segment of the message is always a pointer pointing to the message’s root struct.
+                var ptr = ctx.Reader.ReadWord(0, 0);
+                return serializer.Deserialize(0, 1, ctx, ptr);
             }
         }
         public static T Deserialize<T>(this ITypeSerializer<T> serializer, Stream source)
@@ -30,7 +35,12 @@ namespace CapnProto
             if (source == null) throw new ArgumentNullException("source");
             using (var reader = CapnProtoReader.Create(source, null))
             {
-                return serializer.Deserialize(reader);
+                reader.ReadPreamble();
+                var ctx = new DeserializationContext(serializer.Model, reader, null);
+
+                // The first word of the first segment of the message is always a pointer pointing to the message’s root struct.
+                var ptr = ctx.Reader.ReadWord(0, 0);
+                return serializer.Deserialize(0, 1, ctx, ptr);
             }
         }
     }
