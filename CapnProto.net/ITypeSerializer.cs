@@ -17,6 +17,19 @@ namespace CapnProto
             this.reader = reader;
             this.state = state;
         }
+
+        int depth = 0;
+        const int MAX_DEPTH = 50;
+        public int Depth { get { return depth; } }
+        public void StepIn()
+        {
+            if (++depth > MAX_DEPTH)
+                throw new InvalidOperationException(string.Format("Maximum object depth {0} exceeded", MAX_DEPTH));
+        }
+        public void StepOut()
+        {
+            depth--;
+        }
     }
     public interface ITypeSerializer
     {

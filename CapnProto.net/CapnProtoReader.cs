@@ -107,6 +107,8 @@ namespace CapnProto
                 pointer = ParseFarPointer(pointer, out segment, out origin);
             }
             int count = ParseListHeader(pointer, ref origin, out size);
+            System.Diagnostics.Debug.WriteLine(string.Format("{0}: Deserializing {1} list of {2} from {3}/{4}",
+                context.Depth, size, typeof(T).Name, segment, origin));
             switch (size)
             {
                 case ElementSize.EightBytesPointer:
@@ -117,6 +119,7 @@ namespace CapnProto
                         var model = context.Model;
                         for (int i = 0; i < count; i++)
                         {
+                            System.Diagnostics.Debug.WriteLine("{0}: element {1} of {2} at {3}/{4}", context.Depth, i, count, segment, origin);
                             list.Add(model.Deserialize<T>(segment, origin + i, context, raw[i]));
                         }
                         return list;
@@ -141,10 +144,7 @@ namespace CapnProto
                         var model = context.Model;
                         for (int i = 0; i < numberOfElements; i++)
                         {
-                            if(list.Count == 11 && typeof(T).Name == "Node")
-                            {
-                                System.Diagnostics.Debugger.Break();
-                            }
+                            System.Diagnostics.Debug.WriteLine("{0}: element {1} of {2} at {3}/{4}", context.Depth, i, numberOfElements, segment, origin);
                             T newElement = model.Deserialize<T>(segment, origin, context, elementPointer);
                             list.Add(newElement);
                             origin += elementSize;
@@ -165,11 +165,13 @@ namespace CapnProto
         // D (32 bits) = ID of the target segment.  (Segments are numbered sequentially starting from zero.)
         private ulong ParseFarPointer(ulong pointer, out int segment, out int origin)
         {
+
             if ((pointer & 3) != 2) throw new InvalidOperationException("Expected far pointer");
             bool doubleLandingPad = (pointer & 4) != 0;
             if (doubleLandingPad) throw new NotImplementedException("double landing pad: not implemented");
             segment = unchecked((int)(pointer >> 32));
             origin = unchecked((int)(((uint)pointer) >> 3));
+            System.Diagnostics.Debug.WriteLine("far-pointer resolved to landing-pad at {0}/{1}", segment, origin);
 
             // the value at segment/pointer is a pointer to the actual object
             var tmp = ReadWord(segment, origin++);
@@ -314,7 +316,7 @@ namespace CapnProto
             if ((pointer & 3) != 0) throw new InvalidOperationException("Expected struct pointer");
             var offset = unchecked(((int)pointer) >> 2); // note: int because signed
             var count = (int)((pointer >> 32) & 0xFFFF);
-
+            System.Diagnostics.Debug.WriteLine(string.Format("reading data payload from {0}/{1}: {2} words", segment, origin + offset, Math.Max(count, max)));
             ReadWords(segment, origin + offset, count, max, raw);
         }
 
@@ -326,6 +328,7 @@ namespace CapnProto
             var count = (int)((pointer >> 48) & 0xFFFF);
 
             int pointerBase = origin + offset + dataCount;
+            System.Diagnostics.Debug.WriteLine(string.Format("reading pointers from {0}/{1}: {2} words", segment, pointerBase, Math.Max(count, max)));
             ReadWords(segment, pointerBase, count, max, raw);
             return pointerBase;
         }
