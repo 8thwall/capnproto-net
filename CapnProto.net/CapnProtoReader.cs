@@ -91,30 +91,71 @@ namespace CapnProto
         public virtual unsafe List<T> ReadStructList<T>(DeserializationContext context, int segment, int origin, ulong pointer) where T : IBlittable
         {
             ElementSize size;
+            if((pointer & 3) == 2)
+            {
+                ParseFarPointer(pointer, out segment, out origin);
+                pointer = context.Reader.ReadWord(segment, origin++);
+            }
             int count = ParseListHeader(pointer, ref origin, out size);
-
             switch (size)
             {
                 case ElementSize.EightBytesPointer:
-                    ulong* raw = stackalloc ulong[count];
-                    ReadWords(segment, origin, count, count, raw);
-                    var list = new List<T>(count);
-                    var model = context.Model;
-                    for (int i = 0; i < count; i++)
                     {
-                        list.Add(model.Deserialize<T>(segment, origin + i, context, raw[i]));
+                        ulong* raw = stackalloc ulong[count];
+                        ReadWords(segment, origin, count, count, raw);
+                        var list = new List<T>(count);
+                        var model = context.Model;
+                        for (int i = 0; i < count; i++)
+                        {
+                            list.Add(model.Deserialize<T>(segment, origin + i, context, raw[i]));
+                        }
+                        return list;
                     }
-                    return list;
                 case ElementSize.Composite:
-                    ulong tag = context.Reader.ReadWord(segment, origin);
-                    // The tag has the same layout as a struct pointer, except that the pointer offset (B)
-                    // instead indicates the number of elements in the list.
-                    // Meanwhile, section (D) of the list pointer – which normally would store this element count
-                    // – instead stores the total number of words in the list (not counting the tag word).
-                    goto default;
+                    {
+                        ulong tag = context.Reader.ReadWord(segment, origin++);
+                        // The tag has the same layout as a struct pointer, except that the pointer offset (B)
+                        // instead indicates the number of elements in the list.
+                        // Meanwhile, section (D) of the list pointer – which normally would store this element count
+                        // – instead stores the total number of words in the list (not counting the tag word).
+                        if ((tag & 3) != 0) throw new InvalidOperationException("Struct-based list-tag expected");
+                        uint first = (uint)tag, second = (uint)(tag >> 32);
+                        int numberOfElements = unchecked((int)(first >> 2));
+                        int dataWords = unchecked((int)(second & 0xFFFF)),
+                            ptrWords = unchecked((int)((second >> 16) & 0xFFFF));
+                        int elementSize = dataWords + ptrWords;
+                        var list = new List<T>(numberOfElements);
+                        ulong elementPointer = tag & 0xFFFFFFFF00000003;
+                        // just want the data/ptr headers and type;
+                        // offset will always be zero relative to origin
+                        var model = context.Model;
+                        for (int i = 0; i < numberOfElements; i++)
+                        {
+                            T newElement = model.Deserialize<T>(segment, origin, context, elementPointer);
+                            list.Add(newElement);
+                            origin += elementSize;
+                        }
+                        return list;
+                    }
                 default:
                     throw new NotImplementedException("List size not implemented: " + size);
             }
+        }
+        // lsb                        far pointer                        msb
+        // +-+-+---------------------------+-------------------------------+
+        // |A|B|            C              |               D               |
+        // +-+-+---------------------------+-------------------------------+
+        // A (2 bits) = 2, to indicate that this is a far pointer.
+        // B (1 bit) = 0 if the landing pad is one word, 1 if it is two words.
+        // C (29 bits) = Offset, in words, from the start of the target segment to the location of the far-pointer landing-pad within that segment.  Unsigned.
+        // D (32 bits) = ID of the target segment.  (Segments are numbered sequentially starting from zero.)
+        private void ParseFarPointer(ulong pointer, out int segment, out int origin)
+        {
+            if ((pointer & 3) != 2) throw new InvalidOperationException("Expected far pointer");
+            bool doubleLandingPad = (pointer & 4) != 0;
+            if (doubleLandingPad) throw new NotImplementedException("double landing pad: not implemented");
+            segment = unchecked((int)(pointer >> 32));
+            origin = unchecked((int)(((uint)pointer) >> 3));
         }
         public virtual unsafe List<long> ReadInt64List(int segment, int origin, ulong pointer)
         {
@@ -289,6 +330,21 @@ namespace CapnProto
             // zero out any words that didn't receive data
             for (int i = available; i < expected; i++)
                 raw[i] = 0;
+        }
+
+        public int[] GetSegments()
+        {
+            int count = 1 + (otherSegments == null ? 0 : otherSegments.Length);
+            int[] lengths = new int[count];
+            lengths[0] = firstSegment.Length;
+            if(otherSegments != null)
+            {
+                for(int i = 0 ; i < otherSegments.Length ; i++)
+                {
+                    lengths[i + 1] = otherSegments[i].Length;
+                }
+            }
+            return lengths;
         }
     }
 }

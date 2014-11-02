@@ -196,7 +196,7 @@ namespace CapnProto
 #warning switch to switch
             if (elType.text != null)
             {
-                Write("ctx.Reader.ReadStringList(segment, origin, raw[").Write(index).Write("]);");
+                Write("ctx.Reader.ReadStringList(segment, origin + ").Write(index + 1).Write(", raw[").Write(index).Write("]);");
             }
             else if (elType.@struct != null)
             {
@@ -211,7 +211,7 @@ namespace CapnProto
                 }
                 else
                 {
-                    Write("ctx.Reader.ReadStructList<").Write(FullyQualifiedName(found)).Write(">(ctx, segment, origin, raw[").Write(index).Write("]);");
+                    Write("ctx.Reader.ReadStructList<").Write(FullyQualifiedName(found)).Write(">(ctx, segment, origin + ").Write(index + 1).Write(", raw[").Write(index).Write("]);");
                 }
             }
             else if (elType.int64 != null)
@@ -220,7 +220,7 @@ namespace CapnProto
             }
             else
             {
-                Write("null; #warning not yet supported");
+                Write("null;").WriteLine().Write("#warning not yet supported");
             }
         }
 
@@ -291,22 +291,19 @@ namespace CapnProto
                     Write("this." + PointerPrefix).Write(pair.Key).Write(" = ");
                     if (field.slot.type.text != null)
                     {
-                        Write("ctx.Reader.ReadStringFromPointer(segment, origin");
-                        if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                        Write("ctx.Reader.ReadStringFromPointer(segment, origin + ").Write(field.slot.offset + 1);
                         Write(", raw[").Write(field.slot.offset).Write("]);");
                     }
                     else if (field.slot.type.data != null)
                     {
-                        Write("ctx.Reader.ReadBytesFromPointer(segment, origin");
-                        if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                        Write("ctx.Reader.ReadBytesFromPointer(segment, origin + ").Write(field.slot.offset + 1);
                         Write(", raw[").Write(field.slot.offset).Write("]);");
                     }
                     else if (field.slot.type.@struct != null && found != null)
                     {
                         Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
                             .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
-                            .Write(found.CustomSerializerName()).Write("(segment, origin");
-                        if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                            .Write(found.CustomSerializerName()).Write("(segment, origin + ").Write(field.slot.offset + 1);
                         Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
                     }
                     else if (field.slot.type.list != null)
@@ -325,11 +322,11 @@ namespace CapnProto
                     }
                     else if (field.slot.type.anyPointer != null)
                     {
-                        Write("null; #warning any-pointer not yet implemented");
+                        Write("null;").WriteLine().Write("#warning any-pointer not yet implemented");
                     }
                     else
                     {
-                        Write("null; #warning unexpected type");
+                        Write("null;").WriteLine().Write("#warning unexpected type");
                     }
                 }
                 Outdent();
