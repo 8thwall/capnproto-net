@@ -205,7 +205,7 @@ namespace CapnProto
             public ushort codeOrder { get; set; }
 
             //  annotations @2 :List(Annotation);  # ptr[1]
-            [Field(2, pointer: 2)]
+            [Field(2, pointer: 1)]
             public global::System.Collections.Generic.List<Annotation> annotations { get; set; }
 
             //  discriminantValue @3 :UInt16 = 65535;  # bits[16, 32)

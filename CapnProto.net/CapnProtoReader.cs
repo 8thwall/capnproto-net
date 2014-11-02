@@ -59,7 +59,18 @@ namespace CapnProto
             uint first = unchecked((uint)pointer), second = unchecked((uint)(pointer >> 32));
 
             // A (2 bits) = 1, to indicate that this is a list pointer.
-            if ((first & 3) != 1) throw new InvalidOperationException("List header expected");
+            if ((first & 3) != 1)
+            {
+                string actual;
+                switch(first & 3)
+                {
+                    case 0: actual = "struct"; break;
+                    case 1: actual = "list"; break;
+                    case 2: actual = "far"; break;
+                    default: actual = "other"; break;
+                }
+                throw new InvalidOperationException("List header expected; got " + actual);
+            }
             // B (30 bits) = Offset, in words, from the end of the pointer to the start of the first element of the list.  Signed.
             origin += (int)(first >> 2);
             // C (3 bits) = Size of each element:
@@ -93,8 +104,7 @@ namespace CapnProto
             ElementSize size;
             if((pointer & 3) == 2)
             {
-                ParseFarPointer(pointer, out segment, out origin);
-                pointer = context.Reader.ReadWord(segment, origin++);
+                pointer = ParseFarPointer(pointer, out segment, out origin);
             }
             int count = ParseListHeader(pointer, ref origin, out size);
             switch (size)
@@ -131,6 +141,10 @@ namespace CapnProto
                         var model = context.Model;
                         for (int i = 0; i < numberOfElements; i++)
                         {
+                            if(list.Count == 11 && typeof(T).Name == "Node")
+                            {
+                                System.Diagnostics.Debugger.Break();
+                            }
                             T newElement = model.Deserialize<T>(segment, origin, context, elementPointer);
                             list.Add(newElement);
                             origin += elementSize;
@@ -149,13 +163,20 @@ namespace CapnProto
         // B (1 bit) = 0 if the landing pad is one word, 1 if it is two words.
         // C (29 bits) = Offset, in words, from the start of the target segment to the location of the far-pointer landing-pad within that segment.  Unsigned.
         // D (32 bits) = ID of the target segment.  (Segments are numbered sequentially starting from zero.)
-        private void ParseFarPointer(ulong pointer, out int segment, out int origin)
+        private ulong ParseFarPointer(ulong pointer, out int segment, out int origin)
         {
             if ((pointer & 3) != 2) throw new InvalidOperationException("Expected far pointer");
             bool doubleLandingPad = (pointer & 4) != 0;
             if (doubleLandingPad) throw new NotImplementedException("double landing pad: not implemented");
             segment = unchecked((int)(pointer >> 32));
             origin = unchecked((int)(((uint)pointer) >> 3));
+
+            // the value at segment/pointer is a pointer to the actual object
+            var tmp = ReadWord(segment, origin++);
+            if ((tmp & 3) != 0) throw new InvalidOperationException("expected struct pointer on the landing-pad");
+            int offset = unchecked((int)(((uint)tmp) >> 2));
+            origin += offset;
+            return ReadWord(segment, origin++);
         }
         public virtual unsafe List<long> ReadInt64List(int segment, int origin, ulong pointer)
         {
