@@ -87,6 +87,14 @@ namespace CapnProto
         {
             return Write(value.ToString(CultureInfo.InvariantCulture));
         }
+        public virtual CodeWriter Write(uint? value)
+        {
+            return Write(value.Value);
+        }
+        public virtual CodeWriter Write(ulong? value)
+        {
+            return Write(value.Value);
+        }
         public virtual CodeWriter Write(int value)
         {
             return Write(value.ToString(CultureInfo.InvariantCulture));

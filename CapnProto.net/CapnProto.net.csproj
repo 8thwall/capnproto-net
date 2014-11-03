@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="CapnProtoReader.cs" />
     <Compile Include="CodeWriter.cs" />
+    <Compile Include="CodeWriter.cs1\InvalidUnionDiscriminatorException.cs" />
     <Compile Include="CSharpCodeWriter.cs">
       <DependentUpon>CodeWriter.cs</DependentUpon>
     </Compile>
@@ -61,6 +62,8 @@
     <Compile Include="Schema.Designer.cs">
       <DependentUpon>Schema.cs</DependentUpon>
     </Compile>
+    <Compile Include="Schema\Schema.cs" />
+    <Compile Include="Schema\Schema.designer.cs" />
     <Compile Include="TypeSerializer.cs" />
     <Compile Include="CapnProtoStreamReader.cs">
       <DependentUpon>CapnProtoReader.cs</DependentUpon>

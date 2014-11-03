@@ -706,11 +706,10 @@ namespace CapnProto
             }
             var slot = field.slot;
             var type = slot.type;
-            BeginProperty(field.slot.type, field.name, union.Count != 0 && type.@struct == null);
+            bool extraNullable = union.Count != 0 && type.@struct == null;
+            BeginProperty(field.slot.type, field.name, extraNullable);
             WriteLine().Write("get");
             Indent();
-
-            
 
             var len = type.GetFieldLength();
 
@@ -816,6 +815,120 @@ namespace CapnProto
                 }
             }
             Outdent();
+
+            if (len == 0)
+            {
+                // nothing to do
+            }
+            else if (len == Schema.Type.LEN_POINTER)
+            {
+                var e = type.@struct == null ? null : Lookup(type.@struct.typeId);
+                if (e != null && e.@struct != null && e.@struct.isGroup)
+                {
+                    // nothing to do
+                }
+                else
+                {
+                    WriteLine().Write("set");
+                    Indent();
+                    if (union.Count != 0)
+                    {
+                        WriteLine().Write("if(!(");
+                        WriteUnionTest(fieldOwner, union).Write(")) throw new ").Write(typeof(InvalidUnionDiscriminatorException)).Write("();");
+                    }
+                    WriteLine().Write(fieldOwner).Write("." + PointerPrefix).Write(slot.offset).Write(" = value;");
+                    Outdent();
+                }
+            }
+            else
+            {
+                int byteInData = checked((int)slot.offset * len), byteInWord = byteInData % 64;
+
+                string fieldNameIncludingOwner = fieldOwner + "." + DataPrefix + (byteInData / 64);
+                WriteLine().Write("set");
+                Indent();
+
+                if (union.Count != 0)
+                {
+                    WriteLine().Write("if(!(");
+                    WriteUnionTest(fieldOwner, union).Write(")) throw new ").Write(typeof(InvalidUnionDiscriminatorException)).Write("();");
+                }
+#warning move this to a switch when available
+
+                if (type.@bool != null)
+                {
+                    ulong mask = ((ulong)1) << byteInWord;
+                    WriteLine().Write("if(value");
+                    if (extraNullable) Write(".Value");
+                    Write(")");
+                    Indent();
+                    WriteLine().Write(fieldNameIncludingOwner).Write(" |= ").Write(mask).Write(";");
+                    Outdent();
+                    WriteLine().Write("else");
+                    Indent();
+                    WriteLine().Write(fieldNameIncludingOwner).Write(" &= ").Write(~mask).Write(";");
+                    Outdent();
+                }
+                else if (type.uint64 != null)
+                {
+                    WriteLine().Write(fieldNameIncludingOwner).Write(" = value").Write(extraNullable ? ".Value;" : ";");
+                }
+                else if (type.int64 != null)
+                {
+                    WriteLine().Write(fieldNameIncludingOwner).Write(" = unchecked((ulong)value").Write(extraNullable ? ".Value);" : ");");
+                }
+                else if ((type.int8 ?? type.int16 ?? type.int32
+                  ?? type.uint8 ?? type.uint16 ?? type.uint32) != null)
+                {
+                    ulong mask = 0;
+                    if ((type.int8 ?? type.uint8) != null) mask = 0xFF;
+                    else if ((type.int16 ?? type.uint16) != null) mask = 0xFFFF;
+                    else if ((type.int32 ?? type.uint32) != null) mask = 0xFFFFFFFF;
+                    mask = ~(mask << byteInWord);
+
+                    WriteLine().Write(fieldNameIncludingOwner).Write(" = (").Write(fieldNameIncludingOwner).Write(" & ").Write(mask)
+                        .Write(") | unchecked(((ulong)(value");
+                    if (extraNullable) Write(".Value");
+                    Write(")");
+                    if (byteInWord != 0) Write(" << ").Write(byteInWord);
+                    Write("));");
+                }
+
+                //                else if (type.@enum != null && len == 16)
+                //                {
+                //                    var e = Lookup(type.@enum.typeId);
+                //                    if (e == null || e.@enum == null || e.@enum.enumerants == null)
+                //                    {
+                //                        WriteLine().Write("#error enum not found: ").Write(type.@enum.typeId);
+                //                    }
+                //                    else
+                //                    {
+                //                        // all enums are Int16; so 4 
+                //                        ulong mask = ((ulong)0xFFFF) << byteInWord;
+                //
+                //                        WriteLine().Write("switch(").Write(fieldOwner).Write(".").Write(fieldName).Write(" & ").Write(mask).Write(")");
+                //                        Indent();
+                //                        foreach (var enumerant in e.@enum.enumerants)
+                //                        {
+                //                            WriteLine().Write("case ").Write((ulong)enumerant.codeOrder << byteInWord).Write(": return ").Write(FullyQualifiedName(e)).Write(".").Write(Escape(enumerant.name)).Write(";");
+                //                        }
+                //                        WriteLine().Write("default: throw new global::System.InvalidOperationException(\"unexpected enum value: \" + unchecked((ushort)(")
+                //                            .Write(fieldOwner).Write(".").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")));");
+                //                        Outdent();
+                //                    }
+                //                }
+                //                else if ((type.float32 ?? type.float64) != null)
+                //                {
+                //                    WriteLine().Write(typeof(ulong)).Write(" tmp = ").Write(fieldOwner).Write(".").Write(fieldName);
+                //                    if (byteInWord != 0) Write(" >> ").Write(byteInWord);
+                //                    Write(";").WriteLine().Write("return *((").Write(type).Write("*)(&tmp));");
+                //                }
+                else
+                {
+                    WriteLine().Write("throw new global::System.NotImplementedException();");
+                }
+                Outdent();
+            }
             return Outdent();
         }
 
@@ -885,7 +998,14 @@ namespace CapnProto
                 .Write(DataPrefix).Write(wordIndex);
             if (byteInWord != 0) Write(" >> ").Write(byteInWord);
             Write(") & 0xFFFF);");
-
+            Outdent();
+            WriteLine().Write("set");
+            Indent();
+            ulong mask = ~((ulong)0xFFFF << byteInWord);
+            WriteLine().Write(@struct.isGroup ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" = (")
+                .Write(@struct.isGroup ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" & ").Write(mask).Write(") | ");
+            if (byteInWord == 0) Write("(ulong)value;");
+            else Write("((ulong)value << ").Write(byteInWord).Write(");");
             Outdent();
             return Outdent();
         }

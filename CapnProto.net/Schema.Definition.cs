@@ -222,11 +222,11 @@ namespace CapnProto
             public class slotGroup
             {
                 //      offset @4 :UInt32;  # bits[32, 64)
-                [Field(4,32,64)]
+                [Field(4, 32, 64)]
                 public uint offset { get; set; }
                 //      type @5 :Type;  # ptr[2]
                 [Field(5, pointer: 2)]
-                public Type type {get;set;}
+                public Type type { get; set; }
                 //      defaultValue @6 :Value;  # ptr[3]
                 [Field(6, pointer: 3)]
                 public Value defaultValue { get; set; }
@@ -234,12 +234,12 @@ namespace CapnProto
                 //      hadExplicitDefault @10 :Bool;  # bits[128, 129)
                 [Field(10, 128, 129)]
                 public bool hadExplicitDefault { get; set; }
-                
+
                 //    }
             }
-            
 
-           
+
+
             //    group :group {  # union tag = 1
             [Union(1)]
             public groupGroup group { get; set; }
@@ -271,7 +271,7 @@ namespace CapnProto
 
                 //  }
             }
-            
+
 
 
 
@@ -295,7 +295,7 @@ namespace CapnProto
             //  annotations @2 :List(Annotation);  # ptr[1]
             [Field(2, pointer: 1)]
             public global::System.Collections.Generic.List<Annotation> annotations = new global::System.Collections.Generic.List<Annotation>();
-            
+
             //}
         }
         //struct Method @0x9500cce23b334d80 {  # 24 bytes, 2 ptrs
@@ -304,16 +304,16 @@ namespace CapnProto
         {
             //  name @0 :Text;  # ptr[0]
             [Field(0, pointer: 0)]
-            public string name {get;set;}
+            public string name { get; set; }
             //  codeOrder @1 :UInt16;  # bits[0, 16)
             [Field(1, 0, 16)]
             public ushort codeOrder { get; set; }
             //  paramStructType @2 :UInt64;  # bits[64, 128)
-            [Field(2, 64,128)]
+            [Field(2, 64, 128)]
             public ulong paramStructType { get; set; }
             //  resultStructType @3 :UInt64;  # bits[128, 192)
-            [Field(3, 128,192)]
-            public ulong resultStructType {get;set;}
+            [Field(3, 128, 192)]
+            public ulong resultStructType { get; set; }
             //  annotations @4 :List(Annotation);  # ptr[1]
             //}
         }
@@ -378,16 +378,17 @@ namespace CapnProto
                 public Type elementType { get; set; }
                 //    }
             }
-            
+
             //    enum :group {  # union tag = 15
             [Union(15)]
-            public enumGroup @enum { get;set;}
+            public enumGroup @enum { get; set; }
 
             [Group, Id(13063450714778629527)]
-            public class enumGroup {
+            public class enumGroup
+            {
                 //      typeId @15 :UInt64;  # bits[64, 128)
-                [Field(15, 64,128)]
-                public ulong typeId {get;set;}
+                [Field(15, 64, 128)]
+                public ulong typeId { get; set; }
                 //    }
             }
 
@@ -412,7 +413,7 @@ namespace CapnProto
             public class interfaceGroup
             {
                 //      typeId @17 :UInt64;  # bits[64, 128)
-                [Field(17, 64,128)]
+                [Field(17, 64, 128)]
                 public ulong typeId { get; set; }
                 //    }
             }
@@ -420,7 +421,7 @@ namespace CapnProto
             //    anyPointer @18 :Void;  # bits[0, 0), union tag = 18
             [Field(18, 0, 0), Union(18)]
             public Void anyPointer { get; set; }
-            
+
             //  }
             //}
         }
@@ -431,14 +432,14 @@ namespace CapnProto
             //  union {  # tag bits [0, 16)
             //    void @0 :Void;  # bits[0, 0), union tag = 0
             [Union(0, 0, 16)]
-            public Void @void {get;set;}
-            
+            public Void @void { get; set; }
+
             //    bool @1 :Bool;  # bits[16, 17), union tag = 1
             [Field(1, 16, 17), Union(1)]
             public bool @bool { get; set; }
 
             //    int8 @2 :Int8;  # bits[16, 24), union tag = 2
-            [Field(2, 16,24), Union(2)]
+            [Field(2, 16, 24), Union(2)]
             public sbyte int8 { get; set; }
             //    int16 @3 :Int16;  # bits[16, 32), union tag = 3
             [Field(3, 16, 32), Union(3)]
@@ -453,11 +454,11 @@ namespace CapnProto
             public long int64 { get; set; }
 
             //    uint8 @6 :UInt8;  # bits[16, 24), union tag = 6
-            [Field(5, 16,24), Union(6)]
+            [Field(5, 16, 24), Union(6)]
             public byte uint8 { get; set; }
 
             //    uint16 @7 :UInt16;  # bits[16, 32), union tag = 7
-            [Field(7, 16,32), Union(7)]
+            [Field(7, 16, 32), Union(7)]
             public ushort uint16 { get; set; }
 
             //    uint32 @8 :UInt32;  # bits[32, 64), union tag = 8
@@ -479,7 +480,7 @@ namespace CapnProto
             //    text @12 :Text;  # ptr[0], union tag = 12
             [Field(12, pointer: 0), Union(12)]
             public string Text { get; set; }
-            
+
             //    data @13 :Data;  # ptr[0], union tag = 13
             [Field(13, pointer: 0), Union(13)]
             public byte[] data { get; set; }

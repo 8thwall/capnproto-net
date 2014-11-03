@@ -131,8 +131,8 @@ namespace CapnProto
                 node.nestedNodes = nestedNodes;
                 if (type.IsEnum)
                 {
-                    var eg = node.@enum = new Node.enumGroup { enumerants = new List<Enumerant>()};
-                    foreach(var field in type.GetFields())
+                    var eg = node.@enum = new Node.enumGroup { enumerants = new List<Enumerant>() };
+                    foreach (var field in type.GetFields())
                     {
                         var fa = (FieldAttribute)Attribute.GetCustomAttribute(field, typeof(FieldAttribute));
                         if (fa == null) continue;
@@ -142,10 +142,10 @@ namespace CapnProto
                 else
                 {
                     node.@struct = new Node.structGroup
-                        {
-                            fields = fields,
-                            isGroup = Attribute.IsDefined(type, typeof(GroupAttribute))
-                        };
+                    {
+                        fields = fields,
+                        isGroup = Attribute.IsDefined(type, typeof(GroupAttribute))
+                    };
 
                 }
 
@@ -228,7 +228,7 @@ namespace CapnProto
                 if (ua != null)
                 {
                     discCount++;
-                    if(ua.Tag == 0)
+                    if (ua.Tag == 0)
                     {
                         discOffset = checked((ushort)ua.Start);
                     }
@@ -270,11 +270,13 @@ namespace CapnProto
                 {
                     len = 0;
                     return new Type { data = Void.Value };
-                } else if (type == typeof(Void))
+                }
+                else if (type == typeof(Void))
                 {
                     len = 0;
                     return new Type { @void = Void.Value };
-                } else if (type == typeof(object) || type == typeof(System.Collections.IList))
+                }
+                else if (type == typeof(object) || type == typeof(System.Collections.IList))
                 {
                     len = Type.LEN_POINTER;
                     return new Type { anyPointer = Void.Value };
@@ -339,7 +341,7 @@ namespace CapnProto
                 var uniques = new HashSet<ulong>();
                 foreach (var node in this.nodes)
                 {
-                    if(!uniques.Add(node.id))
+                    if (!uniques.Add(node.id))
                     {
                         throw new InvalidOperationException("Duplicate id: " + node.id + " / " + node.UniqueName() + " on " + node.displayName);
                     }
@@ -349,19 +351,19 @@ namespace CapnProto
                         fieldNames.Add(CodeWriter.PrivatePrefix + "f_" + node.UniqueName());
                     }
                 }
-                
+
                 writer.DeclareFields(fieldNames, typeof(ITypeSerializer));
-                
+
                 var method = typeof(TypeModel).GetMethod("GetSerializer", getSerializerSignature);
                 writer.BeginOverride(method);
-                
+
                 foreach (var node in generateSerializers)
                 {
                     writer.WriteSerializerTest(CodeWriter.PrivatePrefix + "f_" + node.UniqueName(), node, CodeWriter.PrivatePrefix + "s_" + node.UniqueName());
                 }
                 writer.CallBase(method);
                 writer.EndOverride();
-                
+
                 foreach (var node in generateSerializers)
                 {
                     writer.WriteCustomSerializerClass(node, CodeWriter.PrivatePrefix + "s_" + node.UniqueName(), node.CustomSerializerName());
@@ -380,13 +382,13 @@ namespace CapnProto
 
             }
 
-            
+
             static readonly System.Type[] getSerializerSignature = new[] { typeof(System.Type) };
 
             internal static void ComputeSpace(CodeWriter writer, Node node, ref int bodyWords, ref int pointerWords)
             {
                 int bodyEnd = 0;
-                if(node.@struct.discriminantCount != 0)
+                if (node.@struct.discriminantCount != 0)
                 {
                     bodyEnd = (int)(node.@struct.discriminantOffset + 16);
                 }
@@ -417,7 +419,7 @@ namespace CapnProto
                 if (localBodyWords > bodyWords) bodyWords = localBodyWords;
             }
 
-            
+
 
         }
 
