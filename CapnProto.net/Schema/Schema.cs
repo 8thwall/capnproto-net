@@ -1,10 +1,9 @@
 ﻿//using System;
 //using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
+//using System.Reflection;
 
 //namespace CapnProto.Schema
-//{    
+//{
 //    partial class Type
 //    {
 //        internal const int LEN_POINTER = -1;

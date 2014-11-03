@@ -38,6 +38,10 @@
 //            {
 //                return (global::System.Collections.Generic.List<global::CapnProto.Schema.Node>)this.ѧ_p_0;
 //            }
+//            set
+//            {
+//                this.ѧ_p_0 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(1)]
 //        public global::System.Collections.Generic.List<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile> requestedFiles
@@ -45,6 +49,10 @@
 //            get
 //            {
 //                return (global::System.Collections.Generic.List<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile>)this.ѧ_p_1;
+//            }
+//            set
+//            {
+//                this.ѧ_p_1 = value;
 //            }
 //        }
 //        // body words: 0; pointers: 2
@@ -89,6 +97,10 @@
 //                {
 //                    return unchecked((ulong)this.ѧ_w_0);
 //                }
+//                set
+//                {
+//                    this.ѧ_w_0 = value;
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(1)]
 //            public string filename
@@ -97,6 +109,10 @@
 //                {
 //                    return (string)this.ѧ_p_0;
 //                }
+//                set
+//                {
+//                    this.ѧ_p_0 = value;
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(2)]
 //            public global::System.Collections.Generic.List<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import> imports
@@ -104,6 +120,10 @@
 //                get
 //                {
 //                    return (global::System.Collections.Generic.List<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import>)this.ѧ_p_1;
+//                }
+//                set
+//                {
+//                    this.ѧ_p_1 = value;
 //                }
 //            }
 //            // body words: 1; pointers: 2
@@ -144,6 +164,10 @@
 //                    {
 //                        return unchecked((uint)this.ѧ_w_0);
 //                    }
+//                    set
+//                    {
+//                        this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffff00000000) | unchecked(((ulong)(value)));
+//                    }
 //                }
 //                [global::CapnProto.FieldAttribute(1)]
 //                public string name
@@ -151,6 +175,10 @@
 //                    get
 //                    {
 //                        return (string)this.ѧ_p_0;
+//                    }
+//                    set
+//                    {
+//                        this.ѧ_p_0 = value;
 //                    }
 //                }
 //                // body words: 1; pointers: 1
@@ -205,16 +233,16 @@
 //                // interfaceGroup.methods
 //                if ((this.ѧ_w_1 & 0xffff00000000) == 0x300000000) this.ѧ_p_3 = ctx.Reader.ReadStructList<global::CapnProto.Schema.Method>(ctx, segment, origin + 4, raw[3]);
 //                // constGroup.type
-//                if ((this.ѧ_w_1 & 0xffff00000000) == 0x400000000) this.ѧ_p_3 = global::CapnProto.Schema.myserializer.ѧ_SerializerBase.ѧ_r_d07378ede1f9cc60(segment, origin + 4, ctx, raw[3]);
+//                if ((this.ѧ_w_1 & 0xffff00000000) == 0x400000000) this.ѧ_p_3 = global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase.ѧ_r_d07378ede1f9cc60(segment, origin + 4, ctx, raw[3]);
 //                // annotationGroup.type
-//                if ((this.ѧ_w_1 & 0xffff00000000) == 0x500000000) this.ѧ_p_3 = global::CapnProto.Schema.myserializer.ѧ_SerializerBase.ѧ_r_d07378ede1f9cc60(segment, origin + 4, ctx, raw[3]);
+//                if ((this.ѧ_w_1 & 0xffff00000000) == 0x500000000) this.ѧ_p_3 = global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase.ѧ_r_d07378ede1f9cc60(segment, origin + 4, ctx, raw[3]);
 //            }
 //            if (raw[4] != 0)
 //            {
 //                // interfaceGroup.extends
 //                if ((this.ѧ_w_1 & 0xffff00000000) == 0x300000000) this.ѧ_p_4 = ctx.Reader.ReadInt64List(segment, origin, raw[4]);
 //                // constGroup.value
-//                if ((this.ѧ_w_1 & 0xffff00000000) == 0x400000000) this.ѧ_p_4 = global::CapnProto.Schema.myserializer.ѧ_SerializerBase.ѧ_r_ce23dcd2d7b00c9b(segment, origin + 5, ctx, raw[4]);
+//                if ((this.ѧ_w_1 & 0xffff00000000) == 0x400000000) this.ѧ_p_4 = global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase.ѧ_r_ce23dcd2d7b00c9b(segment, origin + 5, ctx, raw[4]);
 //            }
 //        }
 //        static Node()
@@ -228,6 +256,10 @@
 //            {
 //                return unchecked((ulong)this.ѧ_w_0);
 //            }
+//            set
+//            {
+//                this.ѧ_w_0 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(1)]
 //        public string displayName
@@ -235,6 +267,10 @@
 //            get
 //            {
 //                return (string)this.ѧ_p_0;
+//            }
+//            set
+//            {
+//                this.ѧ_p_0 = value;
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(2)]
@@ -244,6 +280,10 @@
 //            {
 //                return unchecked((uint)this.ѧ_w_1);
 //            }
+//            set
+//            {
+//                this.ѧ_w_1 = (this.ѧ_w_1 & 0xffffffff00000000) | unchecked(((ulong)(value)));
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(3)]
 //        public ulong scopeId
@@ -251,6 +291,10 @@
 //            get
 //            {
 //                return unchecked((ulong)this.ѧ_w_2);
+//            }
+//            set
+//            {
+//                this.ѧ_w_2 = value;
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(4)]
@@ -260,6 +304,10 @@
 //            {
 //                return (global::System.Collections.Generic.List<global::CapnProto.Schema.NestedNode>)this.ѧ_p_1;
 //            }
+//            set
+//            {
+//                this.ѧ_p_1 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(5)]
 //        public global::System.Collections.Generic.List<global::CapnProto.Schema.Annotation> annotations
@@ -267,6 +315,10 @@
 //            get
 //            {
 //                return (global::System.Collections.Generic.List<global::CapnProto.Schema.Annotation>)this.ѧ_p_2;
+//            }
+//            set
+//            {
+//                this.ѧ_p_2 = value;
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(6)]
@@ -303,6 +355,11 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x100000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_1 = (this.parent.ѧ_w_1 & 0xffffffffffff) | unchecked(((ulong)(value.Value) << 48));
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(8)]
 //            public ushort? pointerCount
@@ -314,6 +371,11 @@
 //                        return unchecked((ushort)this.parent.ѧ_w_3);
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x100000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_3 = (this.parent.ѧ_w_3 & 0xffffffffffff0000) | unchecked(((ulong)(value.Value)));
 //                }
 //            }
 //            [global::CapnProto.FieldAttribute(9)]
@@ -338,6 +400,11 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x100000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    throw new global::System.NotImplementedException();
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(10)]
 //            public bool? isGroup
@@ -349,6 +416,18 @@
 //                        return (this.parent.ѧ_w_0 & 0x10000000) != 0;
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x100000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x10000000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffefffffff;
+//                    }
 //                }
 //            }
 //            [global::CapnProto.FieldAttribute(11)]
@@ -362,6 +441,11 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x100000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_3 = (this.parent.ѧ_w_3 & 0xffffffffffff) | unchecked(((ulong)(value.Value) << 48));
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(12)]
 //            public uint? discriminantOffset
@@ -374,6 +458,11 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x100000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_4 = (this.parent.ѧ_w_4 & 0xffffffff00000000) | unchecked(((ulong)(value.Value)));
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(13)]
 //            public global::System.Collections.Generic.List<global::CapnProto.Schema.Field> fields
@@ -381,6 +470,11 @@
 //                get
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff00000000) == 0x100000000 ? (global::System.Collections.Generic.List<global::CapnProto.Schema.Field>)this.parent.ѧ_p_3 : null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x100000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_3 = value;
 //                }
 //            }
 //        }
@@ -406,6 +500,11 @@
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff00000000) == 0x200000000 ? (global::System.Collections.Generic.List<global::CapnProto.Schema.Enumerant>)this.parent.ѧ_p_3 : null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x200000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_3 = value;
+//                }
 //            }
 //        }
 //        public global::CapnProto.Schema.Node.interfaceGroup @interface
@@ -430,6 +529,11 @@
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff00000000) == 0x300000000 ? (global::System.Collections.Generic.List<global::CapnProto.Schema.Method>)this.parent.ѧ_p_3 : null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x300000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_3 = value;
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(31)]
 //            public global::System.Collections.Generic.List<long> extends
@@ -437,6 +541,11 @@
 //                get
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff00000000) == 0x300000000 ? (global::System.Collections.Generic.List<long>)this.parent.ѧ_p_4 : null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x300000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_4 = value;
 //                }
 //            }
 //        }
@@ -462,6 +571,11 @@
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff00000000) == 0x400000000 ? (global::CapnProto.Schema.Type)this.parent.ѧ_p_3 : null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x400000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_3 = value;
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(17)]
 //            public global::CapnProto.Schema.Value value
@@ -469,6 +583,11 @@
 //                get
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff00000000) == 0x400000000 ? (global::CapnProto.Schema.Value)this.parent.ѧ_p_4 : null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x400000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_4 = value;
 //                }
 //            }
 //        }
@@ -494,6 +613,11 @@
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000 ? (global::CapnProto.Schema.Type)this.parent.ѧ_p_3 : null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_3 = value;
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(19)]
 //            public bool? targetsFile
@@ -505,6 +629,18 @@
 //                        return (this.parent.ѧ_w_0 & 0x4000) != 0;
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x4000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffffbfff;
+//                    }
 //                }
 //            }
 //            [global::CapnProto.FieldAttribute(20)]
@@ -518,6 +654,18 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x4000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffffbfff;
+//                    }
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(21)]
 //            public bool? targetsEnum
@@ -529,6 +677,18 @@
 //                        return (this.parent.ѧ_w_0 & 0x4000) != 0;
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x4000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffffbfff;
+//                    }
 //                }
 //            }
 //            [global::CapnProto.FieldAttribute(22)]
@@ -542,6 +702,18 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x4000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffffbfff;
+//                    }
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(23)]
 //            public bool? targetsStruct
@@ -553,6 +725,18 @@
 //                        return (this.parent.ѧ_w_0 & 0x4000) != 0;
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x4000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffffbfff;
+//                    }
 //                }
 //            }
 //            [global::CapnProto.FieldAttribute(24)]
@@ -566,6 +750,18 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x4000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffffbfff;
+//                    }
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(25)]
 //            public bool? targetsUnion
@@ -577,6 +773,18 @@
 //                        return (this.parent.ѧ_w_0 & 0x4000) != 0;
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x4000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffffbfff;
+//                    }
 //                }
 //            }
 //            [global::CapnProto.FieldAttribute(26)]
@@ -590,6 +798,18 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x4000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffffbfff;
+//                    }
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(27)]
 //            public bool? targetsInterface
@@ -601,6 +821,18 @@
 //                        return (this.parent.ѧ_w_0 & 0x8000) != 0;
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x8000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffff7fff;
+//                    }
 //                }
 //            }
 //            [global::CapnProto.FieldAttribute(28)]
@@ -614,6 +846,18 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x8000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffff7fff;
+//                    }
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(29)]
 //            public bool? targetsParam
@@ -626,6 +870,18 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x8000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffff7fff;
+//                    }
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(30)]
 //            public bool? targetsAnnotation
@@ -637,6 +893,18 @@
 //                        return (this.parent.ѧ_w_0 & 0x8000) != 0;
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff00000000) == 0x500000000)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x8000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xffffffffffff7fff;
+//                    }
 //                }
 //            }
 //        }
@@ -654,6 +922,10 @@
 //            get
 //            {
 //                return (global::CapnProto.Schema.Node.Unions)((this.ѧ_w_1 >> 32) & 0xFFFF);
+//            }
+//            set
+//            {
+//                this.ѧ_w_1 = (this.ѧ_w_1 & 0xffff0000ffffffff) | ((ulong)value << 32);
 //            }
 //        }
 //        // body words: 5; pointers: 5
@@ -695,6 +967,10 @@
 //            {
 //                return (string)this.ѧ_p_0;
 //            }
+//            set
+//            {
+//                this.ѧ_p_0 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(1)]
 //        public ulong id
@@ -702,6 +978,10 @@
 //            get
 //            {
 //                return unchecked((ulong)this.ѧ_w_0);
+//            }
+//            set
+//            {
+//                this.ѧ_w_0 = value;
 //            }
 //        }
 //        // body words: 1; pointers: 1
@@ -729,7 +1009,7 @@
 //            if (raw[1] != 0)
 //            {
 //                // Annotation.value
-//                this.ѧ_p_1 = global::CapnProto.Schema.myserializer.ѧ_SerializerBase.ѧ_r_ce23dcd2d7b00c9b(segment, origin + 2, ctx, raw[1]);
+//                this.ѧ_p_1 = global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase.ѧ_r_ce23dcd2d7b00c9b(segment, origin + 2, ctx, raw[1]);
 //            }
 //        }
 //        static Annotation()
@@ -743,6 +1023,10 @@
 //            {
 //                return unchecked((ulong)this.ѧ_w_0);
 //            }
+//            set
+//            {
+//                this.ѧ_w_0 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(1)]
 //        public global::CapnProto.Schema.Value value
@@ -750,6 +1034,10 @@
 //            get
 //            {
 //                return (global::CapnProto.Schema.Value)this.ѧ_p_1;
+//            }
+//            set
+//            {
+//                this.ѧ_p_1 = value;
 //            }
 //        }
 //        // body words: 1; pointers: 2
@@ -800,12 +1088,12 @@
 //            if (raw[2] != 0)
 //            {
 //                // slotGroup.type
-//                if ((this.ѧ_w_1 & 0xffff) == 0x0) this.ѧ_p_2 = global::CapnProto.Schema.myserializer.ѧ_SerializerBase.ѧ_r_d07378ede1f9cc60(segment, origin + 3, ctx, raw[2]);
+//                if ((this.ѧ_w_1 & 0xffff) == 0x0) this.ѧ_p_2 = global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase.ѧ_r_d07378ede1f9cc60(segment, origin + 3, ctx, raw[2]);
 //            }
 //            if (raw[3] != 0)
 //            {
 //                // slotGroup.defaultValue
-//                if ((this.ѧ_w_1 & 0xffff) == 0x0) this.ѧ_p_3 = global::CapnProto.Schema.myserializer.ѧ_SerializerBase.ѧ_r_ce23dcd2d7b00c9b(segment, origin + 4, ctx, raw[3]);
+//                if ((this.ѧ_w_1 & 0xffff) == 0x0) this.ѧ_p_3 = global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase.ѧ_r_ce23dcd2d7b00c9b(segment, origin + 4, ctx, raw[3]);
 //            }
 //        }
 //        static Field()
@@ -819,6 +1107,10 @@
 //            {
 //                return (string)this.ѧ_p_0;
 //            }
+//            set
+//            {
+//                this.ѧ_p_0 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(1)]
 //        public ushort codeOrder
@@ -826,6 +1118,10 @@
 //            get
 //            {
 //                return unchecked((ushort)this.ѧ_w_0);
+//            }
+//            set
+//            {
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffffff0000) | unchecked(((ulong)(value)));
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(2)]
@@ -835,6 +1131,10 @@
 //            {
 //                return (global::System.Collections.Generic.List<global::CapnProto.Schema.Annotation>)this.ѧ_p_1;
 //            }
+//            set
+//            {
+//                this.ѧ_p_1 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(3)]
 //        public ushort discriminantValue
@@ -842,6 +1142,10 @@
 //            get
 //            {
 //                return unchecked((ushort)(this.ѧ_w_0 >> 16));
+//            }
+//            set
+//            {
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffff0000ffff) | unchecked(((ulong)(value) << 16));
 //            }
 //        }
 //        public global::CapnProto.Schema.Field.slotGroup slot
@@ -870,6 +1174,11 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff) == 0x0)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_0 = (this.parent.ѧ_w_0 & 0xffffffff) | unchecked(((ulong)(value.Value) << 32));
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(5)]
 //            public global::CapnProto.Schema.Type type
@@ -878,6 +1187,11 @@
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff) == 0x0 ? (global::CapnProto.Schema.Type)this.parent.ѧ_p_2 : null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff) == 0x0)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_2 = value;
+//                }
 //            }
 //            [global::CapnProto.FieldAttribute(6)]
 //            public global::CapnProto.Schema.Value defaultValue
@@ -885,6 +1199,11 @@
 //                get
 //                {
 //                    return (this.parent.ѧ_w_1 & 0xffff) == 0x0 ? (global::CapnProto.Schema.Value)this.parent.ѧ_p_3 : null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff) == 0x0)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_3 = value;
 //                }
 //            }
 //            [global::CapnProto.FieldAttribute(10)]
@@ -897,6 +1216,18 @@
 //                        return (this.parent.ѧ_w_0 & 0x10000) != 0;
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff) == 0x0)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    if (value.Value)
+//                    {
+//                        this.parent.ѧ_w_0 |= 0x10000;
+//                    }
+//                    else
+//                    {
+//                        this.parent.ѧ_w_0 &= 0xfffffffffffeffff;
+//                    }
 //                }
 //            }
 //        }
@@ -926,6 +1257,11 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_1 & 0xffff) == 0x1)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_2 = value.Value;
+//                }
 //            }
 //        }
 //        public enum Unions
@@ -938,6 +1274,10 @@
 //            get
 //            {
 //                return (global::CapnProto.Schema.Field.Unions)((this.ѧ_w_1) & 0xFFFF);
+//            }
+//            set
+//            {
+//                this.ѧ_w_1 = (this.ѧ_w_1 & 0xffffffffffff0000) | (ulong)value;
 //            }
 //        }
 //        // body words: 3; pointers: 4
@@ -984,6 +1324,10 @@
 //            {
 //                return (global::System.Collections.Generic.List<global::CapnProto.Schema.Annotation>)this.ѧ_p_1;
 //            }
+//            set
+//            {
+//                this.ѧ_p_1 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(0)]
 //        public string name
@@ -992,6 +1336,10 @@
 //            {
 //                return (string)this.ѧ_p_0;
 //            }
+//            set
+//            {
+//                this.ѧ_p_0 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(1)]
 //        public ushort codeOrder
@@ -999,6 +1347,10 @@
 //            get
 //            {
 //                return unchecked((ushort)this.ѧ_w_0);
+//            }
+//            set
+//            {
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffffff0000) | unchecked(((ulong)(value)));
 //            }
 //        }
 //        // body words: 1; pointers: 2
@@ -1042,6 +1394,10 @@
 //            {
 //                return (string)this.ѧ_p_0;
 //            }
+//            set
+//            {
+//                this.ѧ_p_0 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(1)]
 //        public ushort codeOrder
@@ -1049,6 +1405,10 @@
 //            get
 //            {
 //                return unchecked((ushort)this.ѧ_w_0);
+//            }
+//            set
+//            {
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffffff0000) | unchecked(((ulong)(value)));
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(2)]
@@ -1058,6 +1418,10 @@
 //            {
 //                return unchecked((ulong)this.ѧ_w_1);
 //            }
+//            set
+//            {
+//                this.ѧ_w_1 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(3)]
 //        public ulong resultStructType
@@ -1065,6 +1429,10 @@
 //            get
 //            {
 //                return unchecked((ulong)this.ѧ_w_2);
+//            }
+//            set
+//            {
+//                this.ѧ_w_2 = value;
 //            }
 //        }
 //        // body words: 3; pointers: 1
@@ -1093,7 +1461,7 @@
 //            if (raw[0] != 0)
 //            {
 //                // listGroup.elementType
-//                if ((this.ѧ_w_0 & 0xffff) == 0xe) this.ѧ_p_0 = global::CapnProto.Schema.myserializer.ѧ_SerializerBase.ѧ_r_d07378ede1f9cc60(segment, origin + 1, ctx, raw[0]);
+//                if ((this.ѧ_w_0 & 0xffff) == 0xe) this.ѧ_p_0 = global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase.ѧ_r_d07378ede1f9cc60(segment, origin + 1, ctx, raw[0]);
 //            }
 //        }
 //        static Type()
@@ -1234,6 +1602,11 @@
 //                {
 //                    return (this.parent.ѧ_w_0 & 0xffff) == 0xe ? (global::CapnProto.Schema.Type)this.parent.ѧ_p_0 : null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_0 & 0xffff) == 0xe)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_p_0 = value;
+//                }
 //            }
 //        }
 //        public global::CapnProto.Schema.Type.enumGroup @enum
@@ -1261,6 +1634,11 @@
 //                        return unchecked((ulong)this.parent.ѧ_w_1);
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_0 & 0xffff) == 0xf)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_1 = value.Value;
 //                }
 //            }
 //        }
@@ -1290,6 +1668,11 @@
 //                    }
 //                    return null;
 //                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_0 & 0xffff) == 0x10)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_1 = value.Value;
+//                }
 //            }
 //        }
 //        public global::CapnProto.Schema.Type.interfaceGroup @interface
@@ -1317,6 +1700,11 @@
 //                        return unchecked((ulong)this.parent.ѧ_w_1);
 //                    }
 //                    return null;
+//                }
+//                set
+//                {
+//                    if (!((this.parent.ѧ_w_0 & 0xffff) == 0x11)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                    this.parent.ѧ_w_1 = value.Value;
 //                }
 //            }
 //        }
@@ -1355,6 +1743,10 @@
 //            get
 //            {
 //                return (global::CapnProto.Schema.Type.Unions)((this.ѧ_w_0) & 0xFFFF);
+//            }
+//            set
+//            {
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffffff0000) | (ulong)value;
 //            }
 //        }
 //        // body words: 2; pointers: 1
@@ -1419,6 +1811,18 @@
 //                }
 //                return null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x1)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                if (value.Value)
+//                {
+//                    this.ѧ_w_0 |= 0x4;
+//                }
+//                else
+//                {
+//                    this.ѧ_w_0 &= 0xfffffffffffffffb;
+//                }
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(2)]
 //        public sbyte? int8
@@ -1430,6 +1834,11 @@
 //                    return unchecked((sbyte)(this.ѧ_w_0 >> 16));
 //                }
 //                return null;
+//            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x2)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffff00ffff) | unchecked(((ulong)(value.Value) << 16));
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(3)]
@@ -1443,6 +1852,11 @@
 //                }
 //                return null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x3)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffff0000ffff) | unchecked(((ulong)(value.Value) << 16));
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(4)]
 //        public int? int32
@@ -1454,6 +1868,11 @@
 //                    return unchecked((int)(this.ѧ_w_0 >> 32));
 //                }
 //                return null;
+//            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x4)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffff) | unchecked(((ulong)(value.Value) << 32));
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(5)]
@@ -1467,6 +1886,11 @@
 //                }
 //                return null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x5)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_1 = unchecked((ulong)value.Value);
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(5)]
 //        public byte? uint8
@@ -1478,6 +1902,11 @@
 //                    return unchecked((byte)(this.ѧ_w_0 >> 8));
 //                }
 //                return null;
+//            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x6)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffffff00ff) | unchecked(((ulong)(value.Value) << 8));
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(7)]
@@ -1491,6 +1920,11 @@
 //                }
 //                return null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x7)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffff0000ffff) | unchecked(((ulong)(value.Value) << 16));
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(8)]
 //        public uint? uint32
@@ -1503,6 +1937,11 @@
 //                }
 //                return null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x8)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffff) | unchecked(((ulong)(value.Value) << 32));
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(9)]
 //        public ulong? uint64
@@ -1514,6 +1953,11 @@
 //                    return unchecked((ulong)this.ѧ_w_1);
 //                }
 //                return null;
+//            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x9)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_1 = value.Value;
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(10)]
@@ -1528,6 +1972,11 @@
 //                }
 //                return null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0xa)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                throw new global::System.NotImplementedException();
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(11)]
 //        public unsafe double? float64
@@ -1541,6 +1990,11 @@
 //                }
 //                return null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0xb)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                throw new global::System.NotImplementedException();
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(12)]
 //        public string Text
@@ -1548,6 +2002,11 @@
 //            get
 //            {
 //                return (this.ѧ_w_0 & 0xffff) == 0xc ? (string)this.ѧ_p_0 : null;
+//            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0xc)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_p_0 = value;
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(13)]
@@ -1557,6 +2016,11 @@
 //            {
 //                return (this.ѧ_w_0 & 0xffff) == 0xd ? (byte[])this.ѧ_p_0 : null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0xd)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_p_0 = value;
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(14)]
 //        public object list
@@ -1564,6 +2028,11 @@
 //            get
 //            {
 //                return (this.ѧ_w_0 & 0xffff) == 0xe ? (object)this.ѧ_p_0 : null;
+//            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0xe)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_p_0 = value;
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(15)]
@@ -1577,6 +2046,11 @@
 //                }
 //                return null;
 //            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0xf)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffff0000ffff) | unchecked(((ulong)(value.Value) << 16));
+//            }
 //        }
 //        [global::CapnProto.FieldAttribute(16)]
 //        public object @struct
@@ -1584,6 +2058,11 @@
 //            get
 //            {
 //                return (this.ѧ_w_0 & 0xffff) == 0x10 ? (object)this.ѧ_p_0 : null;
+//            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x10)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_p_0 = value;
 //            }
 //        }
 //        [global::CapnProto.FieldAttribute(17)]
@@ -1600,6 +2079,11 @@
 //            get
 //            {
 //                return (this.ѧ_w_0 & 0xffff) == 0x12 ? (object)this.ѧ_p_0 : null;
+//            }
+//            set
+//            {
+//                if (!((this.ѧ_w_0 & 0xffff) == 0x12)) throw new global::CapnProto.InvalidUnionDiscriminatorException();
+//                this.ѧ_p_0 = value;
 //            }
 //        }
 //        public enum Unions
@@ -1630,12 +2114,16 @@
 //            {
 //                return (global::CapnProto.Schema.Value.Unions)((this.ѧ_w_0) & 0xFFFF);
 //            }
+//            set
+//            {
+//                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffffff0000) | (ulong)value;
+//            }
 //        }
 //        // body words: 2; pointers: 1
 //        private ulong ѧ_w_0, ѧ_w_1;
 //        private object ѧ_p_0;
 //    }
-//    public class myserializer : global::CapnProto.TypeModel
+//    public class SchemaSerializer : global::CapnProto.TypeModel
 //    {
 //        private global::CapnProto.ITypeSerializer ѧ_f_bfc546f6210ad7ce, ѧ_f_cfea0eb02e810062, ѧ_f_e682ab4cf923a417, ѧ_f_ae504193122357e5, ѧ_f_debf55bbfa0fc242, ѧ_f_f1c8950dab257542, ѧ_f_9aad50a41f4af45f, ѧ_f_978a7cebdc549a4d, ѧ_f_9500cce23b334d80, ѧ_f_d07378ede1f9cc60, ѧ_f_ce23dcd2d7b00c9b;
 //        public override global::CapnProto.ITypeSerializer GetSerializer(global::System.Type type)
@@ -1653,7 +2141,7 @@
 //            if (type == typeof(global::CapnProto.Schema.Value)) return ѧ_f_ce23dcd2d7b00c9b ?? (ѧ_f_ce23dcd2d7b00c9b = new ѧ_s_ce23dcd2d7b00c9b(this));
 //            return base.GetSerializer(type);
 //        }
-//        class ѧ_s_bfc546f6210ad7ce : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.CodeGeneratorRequest>
+//        class ѧ_s_bfc546f6210ad7ce : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.CodeGeneratorRequest>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_bfc546f6210ad7ce(global::CapnProto.TypeModel model)
@@ -1670,7 +2158,7 @@
 //                return ѧ_r_bfc546f6210ad7ce(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_cfea0eb02e810062 : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile>
+//        class ѧ_s_cfea0eb02e810062 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_cfea0eb02e810062(global::CapnProto.TypeModel model)
@@ -1687,7 +2175,7 @@
 //                return ѧ_r_cfea0eb02e810062(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_e682ab4cf923a417 : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Node>
+//        class ѧ_s_e682ab4cf923a417 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Node>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_e682ab4cf923a417(global::CapnProto.TypeModel model)
@@ -1704,7 +2192,7 @@
 //                return ѧ_r_e682ab4cf923a417(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_ae504193122357e5 : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import>
+//        class ѧ_s_ae504193122357e5 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_ae504193122357e5(global::CapnProto.TypeModel model)
@@ -1721,7 +2209,7 @@
 //                return ѧ_r_ae504193122357e5(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_debf55bbfa0fc242 : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.NestedNode>
+//        class ѧ_s_debf55bbfa0fc242 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.NestedNode>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_debf55bbfa0fc242(global::CapnProto.TypeModel model)
@@ -1738,7 +2226,7 @@
 //                return ѧ_r_debf55bbfa0fc242(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_f1c8950dab257542 : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Annotation>
+//        class ѧ_s_f1c8950dab257542 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Annotation>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_f1c8950dab257542(global::CapnProto.TypeModel model)
@@ -1755,7 +2243,7 @@
 //                return ѧ_r_f1c8950dab257542(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_9aad50a41f4af45f : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Field>
+//        class ѧ_s_9aad50a41f4af45f : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Field>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_9aad50a41f4af45f(global::CapnProto.TypeModel model)
@@ -1772,7 +2260,7 @@
 //                return ѧ_r_9aad50a41f4af45f(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_978a7cebdc549a4d : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Enumerant>
+//        class ѧ_s_978a7cebdc549a4d : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Enumerant>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_978a7cebdc549a4d(global::CapnProto.TypeModel model)
@@ -1789,7 +2277,7 @@
 //                return ѧ_r_978a7cebdc549a4d(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_9500cce23b334d80 : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Method>
+//        class ѧ_s_9500cce23b334d80 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Method>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_9500cce23b334d80(global::CapnProto.TypeModel model)
@@ -1806,7 +2294,7 @@
 //                return ѧ_r_9500cce23b334d80(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_d07378ede1f9cc60 : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Type>
+//        class ѧ_s_d07378ede1f9cc60 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Type>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_d07378ede1f9cc60(global::CapnProto.TypeModel model)
@@ -1823,7 +2311,7 @@
 //                return ѧ_r_d07378ede1f9cc60(segment, origin, ctx, pointer);
 //            }
 //        }
-//        class ѧ_s_ce23dcd2d7b00c9b : global::CapnProto.Schema.myserializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Value>
+//        class ѧ_s_ce23dcd2d7b00c9b : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Value>
 //        {
 //            private readonly global::CapnProto.TypeModel model;
 //            internal ѧ_s_ce23dcd2d7b00c9b(global::CapnProto.TypeModel model)

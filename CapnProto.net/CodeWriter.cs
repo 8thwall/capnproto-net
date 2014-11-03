@@ -36,6 +36,10 @@ namespace CapnProto
             return null;
         }
         public abstract CodeWriter WriteError(string message);
+        public Schema.Node Lookup(ulong? id)
+        {
+            return id == null ? null : Lookup(id.Value);
+        }
         public Schema.Node Lookup(ulong id)
         {
             Schema.Node node;
@@ -109,6 +113,7 @@ namespace CapnProto
         }
 
         public abstract void WriteEnum(Schema.Node node);
+        public abstract void WriteConst(Schema.Node node);
 
         public virtual CodeWriter DeclareFields(string prefix, int count, Type type)
         {
@@ -133,6 +138,8 @@ namespace CapnProto
         public string Serializer { get { return serializer; } }
 
         public abstract CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field, Stack<UnionStub> union);
+
+        public abstract CodeWriter WriteGroupAccessor(Schema.Node parent, Schema.Node child, string name, bool extraNullable);
 
         public abstract CodeWriter DeclareFields(int bodyWords, int pointers);
 
@@ -163,6 +170,7 @@ namespace CapnProto
             {
                 if (node.@struct != null) WriteStruct(node, union);
                 if (node.@enum != null) WriteEnum(node);
+                if (node.@const != null) WriteConst(node);
             }
             return this;
      
@@ -170,11 +178,12 @@ namespace CapnProto
         public void WriteStruct(Schema.Node node, Stack<UnionStub> union)
         {
             var @struct = node.@struct;
+
             if (@struct == null || @struct.isGroup) return;
 
             if (@struct.isGroup)
             {
-                // WriteGroup(node, union);
+                //WriteGroup(node, union);
             }
             else
             {
@@ -189,6 +198,7 @@ namespace CapnProto
 
                 int bodyWords = 0, pointerWords = 0;
                 Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
+                HashSet<ulong> nestedDone = null;
                 foreach (var field in fields)
                 {
                     if (field.discriminantValue != ushort.MaxValue)
@@ -199,10 +209,14 @@ namespace CapnProto
 
                         if(field.slot != null && field.slot.type != null && field.slot.type.@struct != null)
                         {
-                            var found = Lookup(field.slot.type.@struct.typeId);
-                            if(found != null && found.@struct != null && found.@struct.isGroup)
+                            if (nestedDone == null) nestedDone = new HashSet<ulong>();
+                            if (nestedDone.Add(field.slot.type.@struct.typeId))
                             {
-                                WriteGroup(found, union);
+                                var found = Lookup(field.slot.type.@struct.typeId);
+                                if (found != null && found.@struct != null && found.@struct.isGroup)
+                                {
+                                    WriteGroup(found, union);
+                                }
                             }
                         }
                         union.Pop();
@@ -211,6 +225,21 @@ namespace CapnProto
                     {
                         // just write the damned field
                         WriteFieldAccessor(node, field, union);
+                    }
+                }
+                if (node.nestedNodes != null)
+                {
+                    foreach(var nestedNode in node.nestedNodes)
+                    {
+                        if(nestedDone == null || !nestedDone.Contains(nestedNode.id))
+                        {
+                            var found = Lookup(nestedNode.id);
+                            if (found != null && found.@struct != null && found.@struct.isGroup)
+                            {
+                                WriteGroup(found, union);
+                                WriteGroupAccessor(node, found, "get_" + found.displayName, false);
+                            }
+                        }
                     }
                 }
                 if (@struct.discriminantCount != 0)
