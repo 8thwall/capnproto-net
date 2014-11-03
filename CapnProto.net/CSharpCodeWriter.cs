@@ -974,7 +974,19 @@ namespace CapnProto
             Outdent();
             foreach (var field in node.@struct.fields)
             {
-                WriteFieldAccessor(node, field, union);
+                if (field.discriminantValue == ushort.MaxValue)
+                {
+                    WriteFieldAccessor(node, field, union);
+                } else
+                {
+                    union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
+                    WriteFieldAccessor(node, field, union);
+                    union.Pop();
+                }
+            }
+            if (node.@struct.discriminantCount != 0)
+            {
+                WriteDiscriminant(node, union);
             }
 
             WriteNestedTypes(node, union);
