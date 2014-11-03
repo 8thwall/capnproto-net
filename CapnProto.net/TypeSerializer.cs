@@ -15,7 +15,7 @@ namespace CapnProto
             // doing this via a generic method allows structs to efficiently use explicitly implemented interfaces;
             // without generics, casting to the interface forces boxing; with generics, it is a "constrained" call -
             // much preferred
-            System.Diagnostics.Debug.WriteLine(string.Format("{0}: Deserializing {1}", ctx.Depth, typeof(T).Name));
+            TypeModel.Log("{0}: Deserializing {1}", ctx.Depth, typeof(T).Name);
             ctx.StepIn();
             obj.Deserialize(segment, origin, ctx, pointer);
             ctx.StepOut();

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace CapnProto
 {
@@ -9,7 +6,7 @@ namespace CapnProto
     {
         public StructPointer(ulong value)
         {
-            if ((value & 3) != 0) throw new InvalidOperationException("Expected struct pointer");
+            if ((value & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Expected struct pointer");
             this.offset = ((int)value) >> 2;
             this.dataLength = (ushort)((value >> 32) & 0xFFFF);
             this.pointerLength = (ushort)((value >> 48) & 0xFFFF);

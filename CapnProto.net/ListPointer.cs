@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace CapnProto
 {
@@ -9,15 +6,15 @@ namespace CapnProto
     {
         public ListPointer(ulong value)
         {
-            if ((value & 3) != 1) throw new InvalidOperationException("Expected list pointer");
-            this.offset = ((int)value) >> 2;
-            this.combinedSize = (int)(value >> 32);
+            if ((value & PointerType.Mask) != PointerType.List) throw new InvalidOperationException("Expected list pointer; got " + PointerType.GetName(value));
+            this.value = value;
         }
-        private readonly int offset, combinedSize;
+
+        private readonly ulong value;
         /// <summary>
         /// Offset, in words, from the end of the pointer to the start of the first element of the list. 
         /// </summary>
-        public int Offset { get { return offset; } }
+        public int Offset { get { return unchecked(((int)value) >> 2); } }
 
         /// <summary>
         /// Size of each element;
@@ -28,11 +25,33 @@ namespace CapnProto
         /// 4 = 4 bytes
         /// 5 = 8 bytes (non-pointer)
         /// 6 = 8 bytes (pointer)
-        /// 7 = composite (see below)
+        /// 7 = composite
         /// </summary>
-        public ElementSize ElementSize { get { return (ElementSize)(combinedSize & 7); } }
+        public ElementSize ElementSize { get { return unchecked((ElementSize)(int)((value >> 32) & 7)); } }
 
-        public int Size { get { return combinedSize >> 3; } }
+        public int Size { get { return unchecked((int)(value >> 35)); } }
+
+        public static int Parse(ulong pointer, ref int origin, out ElementSize size)
+        {
+            //lsb                       list pointer                        msb
+            //+-+-----------------------------+--+----------------------------+
+            //|A|             B               |C |             D              |
+            //+-+-----------------------------+--+----------------------------+
+
+            uint first = unchecked((uint)pointer), second = unchecked((uint)(pointer >> 32));
+
+            // A (2 bits) = 1, to indicate that this is a list pointer.
+            if ((first & PointerType.Mask) != PointerType.List)
+            {
+                throw new InvalidOperationException("List header expected; got " + PointerType.GetName(first));
+            }
+            // B (30 bits) = Offset, in words, from the end of the pointer to the start of the first element of the list.  Signed.
+            origin += (int)(first >> 2);
+            // C (3 bits) = Size of each element:
+            size = (ElementSize)(int)(second & 7);
+            // D (29 bits) = Number of elements in the list, except when C is 7
+            return (int)(second >> 3);
+        }
     }
 
     public enum ElementSize

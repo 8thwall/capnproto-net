@@ -8,6 +8,136 @@ namespace CapnProto
 {
     abstract public partial class CapnProtoReader : IDisposable
     {
+
+        public void Crawl(TextWriter output)
+        {
+            var segments = GetSegments();
+            output.WriteLine("segments: {0}", segments.Length);
+            for(int i = 0;i < segments.Length; i++)
+            {
+                output.WriteLine("segment {0}: {1} words", i, segments[i]);
+            }
+
+            var pending = new SortedDictionary<PendingPointer, object>();
+            var ptr = ReadWord(0, 0);
+            pending.Add(new PendingPointer(0, 0, 1, ptr), null);
+
+            var keys = pending.Keys;
+            int lastSegment = 0, lastOffset = 0;
+            while(true)
+            {
+                PendingPointer next;
+                using (var iter = keys.GetEnumerator())
+                {
+                    if (!iter.MoveNext()) break;
+                    next = iter.Current;
+                }
+                pending.Remove(next);
+
+                output.WriteLine("{0}/{1}: {2}", next.Segment, next.EffectiveOffset, PointerType.GetName(next.Pointer));
+
+                if (next.Segment < lastSegment || (next.Segment == lastSegment && next.EffectiveOffset < lastOffset))
+                {
+                    output.WriteLine("Moving backwards!");
+                    break;
+                }
+                lastSegment = next.Segment;
+                lastOffset = next.EffectiveOffset;
+                
+
+                switch(next.Pointer & PointerType.Mask)
+                {
+                    case PointerType.Struct:
+                        {
+                            int data = unchecked((int)(ushort)(next.Pointer >> 32)),
+                                pointers = unchecked((int)(ushort)(next.Pointer >> 48));
+                            output.WriteLine("\tdata: {0}; pointers: {1}", data, pointers);
+                            for (int i = 0; i < pointers; i++)
+                            {
+                                ProcessPointer(output, pending, i, next, next.EffectiveOffset + data + i);
+                            }
+                        }
+                        break;
+                    case PointerType.List:
+                        var rhs = (uint)(next.Pointer >> 32);
+                        var itemType = unchecked((ElementSize)(int)(rhs & 7));
+                        var size = unchecked((int)(rhs >> 3));
+                        output.WriteLine("\ttype: {0}; size: {1}", itemType, size);
+                        switch(itemType)
+                        {
+                            case ElementSize.EightBytesPointer:
+                                for(int i = 0; i < size; i++)
+                                {
+                                    ProcessPointer(output, pending, i, next, next.EffectiveOffset + i);
+                                }
+                                break;
+                            case ElementSize.Composite:
+                                var tagWord = ReadWord(next.Segment, next.EffectiveOffset);
+                                int data = unchecked((int)(ushort)(tagWord >> 32)),
+                                    pointers = unchecked((int)(ushort)(tagWord >> 48)),
+                                    itemCount = unchecked((int)(((uint)tagWord) >> 2)),
+                                    itemSize = data + pointers;
+                                ulong itemPointer = tagWord & 0xFFFFFFFF00000003;
+                                output.WriteLine("\tdata: {0}; pointers: {1}; items: {2} (each {3} words)", data, pointers, itemCount, itemSize);
+                                if (pointers != 0)
+                                {
+                                    int offset = next.EffectiveOffset + 1;
+                                    for (int i = 0; i < itemCount; i++)
+                                    {
+                                        offset += data;
+                                        for (int j = 0; j < pointers; j++)
+                                        {
+                                            ProcessPointer(output, pending, j, next, offset++);
+                                        }
+                                    }
+                                }
+                                break;
+                        }
+                        break;
+                    case PointerType.Far:
+                        if((next.Pointer & 4) != 0)
+                        {
+                            // double-landing pad
+                            throw new NotSupportedException("double landing-pad not supported for crawl");
+                        } else
+                        {
+                            ProcessPointer(output, pending, 0, next, next.EffectiveOffset);
+                        }
+                        break;
+                }
+            }
+        }
+
+        private void ProcessPointer(TextWriter output, SortedDictionary<PendingPointer, object> pending, int index, PendingPointer parent, int offset)
+        {
+            ulong ptr;
+            ptr = ReadWord(parent.Segment, offset);
+            if (ptr == 0)
+            {
+                output.WriteLine("\t\t{0}: [nil]", index);
+            }
+            else
+            {
+                var newPtr = new PendingPointer(parent.Segment, parent.EffectiveOffset, offset + 1, ptr);
+                output.WriteLine("\t\t{0}: {1} at {2}/{3}", index, PointerType.GetName(ptr), newPtr.Segment, newPtr.EffectiveOffset);
+                if (pending.ContainsKey(newPtr))
+                {
+                    output.WriteLine("\t\t\tduplicated key");
+                    foreach (PendingPointer key in pending.Keys)
+                    {
+                        if(key.Equals(newPtr))
+                        {
+                            output.WriteLine("\t\t\talso referenced from {0}/{1}", key.ParentSegment, key.ParentOffset);
+                        }
+                    }                    
+                }
+                else
+                {
+                    pending.Add(newPtr, null);
+                }
+            }
+        }
+
         protected const int ScratchLengthBytes = 64, ScratchLengthWords = ScratchLengthBytes / 8; // must be at least 8
         protected readonly byte[] Scratch = new byte[ScratchLengthBytes];
         public static CapnProtoReader Create(Stream source, object context = null, bool leaveOpen = false)
@@ -49,39 +179,10 @@ namespace CapnProto
             return BitConverter.ToUInt64(tmp, 0);
         }
 
-        public int ParseListHeader(ulong pointer, ref int origin, out ElementSize size)
-        {
-            //lsb                       list pointer                        msb
-            //+-+-----------------------------+--+----------------------------+
-            //|A|             B               |C |             D              |
-            //+-+-----------------------------+--+----------------------------+
-
-            uint first = unchecked((uint)pointer), second = unchecked((uint)(pointer >> 32));
-
-            // A (2 bits) = 1, to indicate that this is a list pointer.
-            if ((first & 3) != 1)
-            {
-                string actual;
-                switch(first & 3)
-                {
-                    case 0: actual = "struct"; break;
-                    case 1: actual = "list"; break;
-                    case 2: actual = "far"; break;
-                    default: actual = "other"; break;
-                }
-                throw new InvalidOperationException("List header expected; got " + actual);
-            }
-            // B (30 bits) = Offset, in words, from the end of the pointer to the start of the first element of the list.  Signed.
-            origin += (int)(first >> 2);
-            // C (3 bits) = Size of each element:
-            size = (ElementSize)(int)(second & 7);
-            // D (29 bits) = Number of elements in the list, except when C is 7
-            return (int)(second >> 3);
-        }
         private int AssertListHeader(ulong pointer, ref int origin, ElementSize expectedSize)
         {
             ElementSize actualSize;
-            int count = ParseListHeader(pointer, ref origin, out actualSize);
+            int count = ListPointer.Parse(pointer, ref origin, out actualSize);
             if (expectedSize != actualSize) throw new InvalidOperationException("Invalid list pointer size; expected " + expectedSize.ToString() + ", found " + actualSize.ToString());
             return count;
         }
@@ -89,6 +190,7 @@ namespace CapnProto
         public virtual unsafe List<string> ReadStringList(int segment, int origin, ulong pointer)
         {
             int count = AssertListHeader(pointer, ref origin, ElementSize.EightBytesPointer);
+            TypeModel.Log("Reading string; using {0} stack words", count);
             ulong* raw = stackalloc ulong[count];
             ReadWords(segment, origin, count, count, raw);
             var list = new List<string>(count);
@@ -102,24 +204,28 @@ namespace CapnProto
         public virtual unsafe List<T> ReadStructList<T>(DeserializationContext context, int segment, int origin, ulong pointer) where T : IBlittable
         {
             ElementSize size;
-            if((pointer & 3) == 2)
+            if ((pointer & PointerType.Mask) == PointerType.Far)
             {
-                pointer = ParseFarPointer(pointer, out segment, out origin);
+                TypeModel.Log("{0}: de-referencing from {1}/{2}", PointerType.GetName(pointer), segment, origin);
+                pointer = ParseFarPointer(pointer, ref segment, ref origin);
+                TypeModel.Log("{0}: de-referenced to {1}/{2}", PointerType.GetName(pointer), segment, origin);
             }
-            int count = ParseListHeader(pointer, ref origin, out size);
-            System.Diagnostics.Debug.WriteLine(string.Format("{0}: Deserializing {1} list of {2} from {3}/{4}",
-                context.Depth, size, typeof(T).Name, segment, origin));
+            int count = ListPointer.Parse(pointer, ref origin, out size);
+            if (count == 0) return new List<T>();
+            TypeModel.Log("{0}: Deserializing {1} list of {2} from {3}/{4} (size {5})",
+                context.Depth, size, typeof(T).Name, segment, origin, count);
             switch (size)
             {
                 case ElementSize.EightBytesPointer:
                     {
+                        TypeModel.Log("Reading bulk pointers; using {0} stack words", count);
                         ulong* raw = stackalloc ulong[count];
                         ReadWords(segment, origin, count, count, raw);
                         var list = new List<T>(count);
                         var model = context.Model;
                         for (int i = 0; i < count; i++)
                         {
-                            System.Diagnostics.Debug.WriteLine("{0}: element {1} of {2} at {3}/{4}", context.Depth, i, count, segment, origin);
+                            TypeModel.Log("{0}: element {1} of {2} at {3}/{4}", context.Depth, i, count, segment, origin);
                             list.Add(model.Deserialize<T>(segment, origin + i, context, raw[i]));
                         }
                         return list;
@@ -131,7 +237,7 @@ namespace CapnProto
                         // instead indicates the number of elements in the list.
                         // Meanwhile, section (D) of the list pointer – which normally would store this element count
                         // – instead stores the total number of words in the list (not counting the tag word).
-                        if ((tag & 3) != 0) throw new InvalidOperationException("Struct-based list-tag expected");
+                        if ((tag & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Struct-based list-tag expected");
                         uint first = (uint)tag, second = (uint)(tag >> 32);
                         int numberOfElements = unchecked((int)(first >> 2));
                         int dataWords = unchecked((int)(second & 0xFFFF)),
@@ -144,7 +250,7 @@ namespace CapnProto
                         var model = context.Model;
                         for (int i = 0; i < numberOfElements; i++)
                         {
-                            System.Diagnostics.Debug.WriteLine("{0}: element {1} of {2} at {3}/{4}", context.Depth, i, numberOfElements, segment, origin);
+                            TypeModel.Log("{0}: element {1} of {2} at {3}/{4}", context.Depth, i, numberOfElements, segment, origin);
                             T newElement = model.Deserialize<T>(segment, origin, context, elementPointer);
                             list.Add(newElement);
                             origin += elementSize;
@@ -163,26 +269,43 @@ namespace CapnProto
         // B (1 bit) = 0 if the landing pad is one word, 1 if it is two words.
         // C (29 bits) = Offset, in words, from the start of the target segment to the location of the far-pointer landing-pad within that segment.  Unsigned.
         // D (32 bits) = ID of the target segment.  (Segments are numbered sequentially starting from zero.)
-        private ulong ParseFarPointer(ulong pointer, out int segment, out int origin)
+        private ulong ParseFarPointer(ulong pointer, ref int segment, ref int origin)
         {
-
-            if ((pointer & 3) != 2) throw new InvalidOperationException("Expected far pointer");
-            bool doubleLandingPad = (pointer & 4) != 0;
-            if (doubleLandingPad) throw new NotImplementedException("double landing pad: not implemented");
+            int newSegment, newOrigin;
+            bool doubleLandingPad = DereferenceFarPointer(pointer, out newSegment, out newOrigin);
+            TypeModel.Log("far-pointer resolved to landing-pad at {0}/{1}", newSegment, newOrigin);
+            if (doubleLandingPad)
+            {
+                // double landing-pad; the next word is the object-header, where-as
+                // the contents of the landing-pad are a landing-pad to the *content*
+                var tagWord = ReadWord(segment, origin + 1);
+                pointer = ReadWord(newSegment, newOrigin);
+                if(DereferenceFarPointer(pointer, out newSegment, out newOrigin))
+                {
+                    throw new InvalidOperationException("Triple landing-pads should not exist");
+                }
+                TypeModel.Log("far-pointer resolved to landing-pad at {0}/{1}", newSegment, newOrigin);
+                return tagWord;
+            }
+            else
+            {
+                // basic landing-pad
+                segment = newSegment;
+                origin = newOrigin;
+                return ReadWord(segment, origin++);
+            }
+        }
+        static bool DereferenceFarPointer(ulong pointer, out int segment, out int origin)
+        {
+            if ((pointer & PointerType.Mask) != PointerType.Far) throw new InvalidOperationException("Expected far pointer");
             segment = unchecked((int)(pointer >> 32));
             origin = unchecked((int)(((uint)pointer) >> 3));
-            System.Diagnostics.Debug.WriteLine("far-pointer resolved to landing-pad at {0}/{1}", segment, origin);
-
-            // the value at segment/pointer is a pointer to the actual object
-            var tmp = ReadWord(segment, origin++);
-            if ((tmp & 3) != 0) throw new InvalidOperationException("expected struct pointer on the landing-pad");
-            int offset = unchecked((int)(((uint)tmp) >> 2));
-            origin += offset;
-            return ReadWord(segment, origin++);
+            return (pointer & 4) != 0;
         }
         public virtual unsafe List<long> ReadInt64List(int segment, int origin, ulong pointer)
         {
             int count = AssertListHeader(pointer, ref origin, ElementSize.EightBytesNonPointer);
+            TypeModel.Log("Reading uints; using {0} stack words", count);
             ulong* raw = stackalloc ulong[count];
             ReadWords(segment, origin, count, count, raw);
             var list = new List<long>(count);
@@ -222,6 +345,10 @@ namespace CapnProto
         }
         public byte[] ReadBytesFromPointer(int segment, int wordOffset, ulong ptr)
         {
+            if ((ptr & PointerType.Mask) == PointerType.Far)
+            {
+                ptr = ParseFarPointer(ptr, ref segment, ref wordOffset);
+            }
             var lptr = new ListPointer(ptr);
             if (lptr.ElementSize != ElementSize.OneByte) throw new InvalidOperationException("Expected pointer to single-byte data");
 
@@ -232,6 +359,10 @@ namespace CapnProto
         static readonly byte[] NixBytes = new byte[0];
         public string ReadStringFromPointer(int segment, int wordOffset, ulong ptr)
         {
+            if((ptr & PointerType.Mask) == PointerType.Far)
+            {
+                ptr = ParseFarPointer(ptr, ref segment, ref wordOffset);
+            }
             var lptr = new ListPointer(ptr);
             if (lptr.ElementSize != ElementSize.OneByte) throw new InvalidOperationException("Expected pointer to single-byte data");
 
@@ -313,22 +444,22 @@ namespace CapnProto
         //D(16 bits) = Size of the struct's pointer section, in words.
         public unsafe void ReadData(int segment, int origin, ulong pointer, ulong* raw, int max)
         {
-            if ((pointer & 3) != 0) throw new InvalidOperationException("Expected struct pointer");
+            if ((pointer & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Expected struct pointer");
             var offset = unchecked(((int)pointer) >> 2); // note: int because signed
             var count = (int)((pointer >> 32) & 0xFFFF);
-            System.Diagnostics.Debug.WriteLine(string.Format("reading data payload from {0}/{1}: {2} words", segment, origin + offset, Math.Max(count, max)));
+            TypeModel.Log("reading data payload from {0}/{1}: {2} words", segment, origin + offset, Math.Max(count, max));
             ReadWords(segment, origin + offset, count, max, raw);
         }
 
         public unsafe int ReadPointers(int segment, int origin, ulong pointer, ulong* raw, int max)
         {
-            if ((pointer & 3) != 0) throw new InvalidOperationException("Expected struct pointer");
+            if ((pointer & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Expected struct pointer");
             var offset = unchecked(((int)pointer) >> 2); // note: int because signed
             var dataCount = (int)((pointer >> 32) & 0xFFFF);
             var count = (int)((pointer >> 48) & 0xFFFF);
 
             int pointerBase = origin + offset + dataCount;
-            System.Diagnostics.Debug.WriteLine(string.Format("reading pointers from {0}/{1}: {2} words", segment, pointerBase, Math.Max(count, max)));
+            TypeModel.Log("reading pointers from {0}/{1}: {2} words", segment, pointerBase, Math.Max(count, max));
             ReadWords(segment, pointerBase, count, max, raw);
             return pointerBase;
         }
@@ -361,9 +492,9 @@ namespace CapnProto
             int count = 1 + (otherSegments == null ? 0 : otherSegments.Length);
             int[] lengths = new int[count];
             lengths[0] = firstSegment.Length;
-            if(otherSegments != null)
+            if (otherSegments != null)
             {
-                for(int i = 0 ; i < otherSegments.Length ; i++)
+                for (int i = 0; i < otherSegments.Length; i++)
                 {
                     lengths[i + 1] = otherSegments[i].Length;
                 }

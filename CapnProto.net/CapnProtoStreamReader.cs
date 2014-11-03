@@ -42,7 +42,6 @@ namespace CapnProto
         }
         protected override byte[] ReadBytes(int segment, int wordOffset, int count)
         {
-            source.Position = checked((currentSegmentRoot + wordOffset) * 8);
             byte[] arr = new byte[count];
             CopyBytes(segment, wordOffset, arr, 0, count);
             return arr;
@@ -51,6 +50,10 @@ namespace CapnProto
         private void CopyBytes(int segment, int wordOffset, byte[] buffer, int bufferOffset, int count)
         {
             if (count <= 0) throw new ArgumentOutOfRangeException("count");
+            if (Segment != segment)
+            {
+                ChangeSegment(segment);
+            }
             source.Position = checked((currentSegmentRoot + wordOffset) * 8);
             int read;
 

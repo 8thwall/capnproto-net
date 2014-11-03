@@ -52,6 +52,8 @@
     </Compile>
     <Compile Include="GroupAttrubute.cs" />
     <Compile Include="IBlittable.cs" />
+    <Compile Include="PendingPointer.cs" />
+    <Compile Include="PointerType.cs" />
     <Compile Include="Schema.cs" />
     <Compile Include="Schema.Definition.cs">
       <DependentUpon>Schema.cs</DependentUpon>
