@@ -11,11 +11,16 @@ namespace CapnProto
 
         public void Crawl(TextWriter output)
         {
-            var segments = GetSegments();
-            output.WriteLine("segments: {0}", segments.Length);
-            for(int i = 0;i < segments.Length; i++)
+            int count = SegmentCount;
+            if(count == 0)
             {
-                output.WriteLine("segment {0}: {1} words", i, segments[i]);
+                count = ReadSegmentsHeader();
+            }
+            output.WriteLine("segments: {0}", count);
+            for(int i = 0;i < count; i++)
+            {
+                var range = GetSegment(i);
+                output.WriteLine("segment {0}: {1} words, offset: {2}", i, range.Length, range.Offset);
             }
 
             var pending = new SortedDictionary<PendingPointer, object>();
@@ -79,11 +84,13 @@ namespace CapnProto
                                     itemSize = data + pointers;
                                 ulong itemPointer = tagWord & 0xFFFFFFFF00000003;
                                 output.WriteLine("\tdata: {0}; pointers: {1}; items: {2} (each {3} words)", data, pointers, itemCount, itemSize);
-                                if (pointers != 0)
+                                if (pointers != 0 && itemCount != 0)
                                 {
                                     int offset = next.EffectiveOffset + 1;
+                                    string itemTypeName = PointerType.GetName(itemPointer); // the same for all elements
                                     for (int i = 0; i < itemCount; i++)
                                     {
+                                        output.WriteLine("\t{0}/{1}: element {2} - {3}", next.Segment, offset, i, itemTypeName);
                                         offset += data;
                                         for (int j = 0; j < pointers; j++)
                                         {
@@ -97,9 +104,14 @@ namespace CapnProto
                     case PointerType.Far:
                         if((next.Pointer & 4) != 0)
                         {
-                            // double-landing pad
-                            throw new NotSupportedException("double landing-pad not supported for crawl");
-                        } else
+                            var innerPtr = ReadWord(next.Segment, next.EffectiveOffset);
+                            var tagWord = ReadWord(next.Segment, next.EffectiveOffset + 1);
+
+                            var newPointer = new PendingPointer(next.Segment, next.EffectiveOffset, next.EffectiveOffset, innerPtr, tagWord);
+                            output.WriteLine("\tdouble-far resolved to {0}/{1}", newPointer.Segment, newPointer.EffectiveOffset);
+                            pending.Add(newPointer, null);                            
+                        }
+                        else
                         {
                             ProcessPointer(output, pending, 0, next, next.EffectiveOffset);
                         }
@@ -207,7 +219,7 @@ namespace CapnProto
             if ((pointer & PointerType.Mask) == PointerType.Far)
             {
                 TypeModel.Log("{0}: de-referencing from {1}/{2}", PointerType.GetName(pointer), segment, origin);
-                pointer = ParseFarPointer(pointer, ref segment, ref origin);
+                pointer = ResolveFarPointer(pointer, ref segment, ref origin);
                 TypeModel.Log("{0}: de-referenced to {1}/{2}", PointerType.GetName(pointer), segment, origin);
             }
             int count = ListPointer.Parse(pointer, ref origin, out size);
@@ -269,7 +281,7 @@ namespace CapnProto
         // B (1 bit) = 0 if the landing pad is one word, 1 if it is two words.
         // C (29 bits) = Offset, in words, from the start of the target segment to the location of the far-pointer landing-pad within that segment.  Unsigned.
         // D (32 bits) = ID of the target segment.  (Segments are numbered sequentially starting from zero.)
-        private ulong ParseFarPointer(ulong pointer, ref int segment, ref int origin)
+        internal ulong ResolveFarPointer(ulong pointer, ref int segment, ref int origin)
         {
             int newSegment, newOrigin;
             bool doubleLandingPad = DereferenceFarPointer(pointer, out newSegment, out newOrigin);
@@ -316,30 +328,35 @@ namespace CapnProto
             return list;
         }
 
-        protected abstract void OnChangeSegment(int segment, int offset, int length);
+        protected abstract void OnChangeSegment(int index, SegmentRange range);
 
         private int segment;
         public int Segment { get { return segment; } }
+
+        public int SegmentCount
+        {
+            get
+            {
+                if (otherSegments != null) return otherSegments.Length + 1;
+                return firstSegment.Length == 0 ? 0 : 1;
+            }
+        }
         public void ChangeSegment(int segment)
         {
             if (segment != this.segment)
             {
-                int offset, length;
                 if (segment == 0)
                 {
-                    offset = firstSegment.Offset;
-                    length = firstSegment.Length;
+                    OnChangeSegment(0, firstSegment);
                 }
                 else
                 {
 
-                    if (segment < 0 || segment-- > otherSegments.Length)
+                    if (segment < 0 || segment > otherSegments.Length)
                         throw new ArgumentOutOfRangeException("segment");
 
-                    offset = otherSegments[segment].Offset;
-                    length = otherSegments[segment].Length;
+                    OnChangeSegment(segment, otherSegments[segment - 1]);
                 }
-                OnChangeSegment(segment, offset, length);
                 this.segment = segment;
             }
         }
@@ -347,7 +364,7 @@ namespace CapnProto
         {
             if ((ptr & PointerType.Mask) == PointerType.Far)
             {
-                ptr = ParseFarPointer(ptr, ref segment, ref wordOffset);
+                ptr = ResolveFarPointer(ptr, ref segment, ref wordOffset);
             }
             var lptr = new ListPointer(ptr);
             if (lptr.ElementSize != ElementSize.OneByte) throw new InvalidOperationException("Expected pointer to single-byte data");
@@ -361,7 +378,7 @@ namespace CapnProto
         {
             if((ptr & PointerType.Mask) == PointerType.Far)
             {
-                ptr = ParseFarPointer(ptr, ref segment, ref wordOffset);
+                ptr = ResolveFarPointer(ptr, ref segment, ref wordOffset);
             }
             var lptr = new ListPointer(ptr);
             if (lptr.ElementSize != ElementSize.OneByte) throw new InvalidOperationException("Expected pointer to single-byte data");
@@ -394,7 +411,33 @@ namespace CapnProto
 
         private SegmentRange firstSegment;
         private SegmentRange[] otherSegments;
-        public virtual void ReadPreamble()
+
+        public void SetSegments(SegmentRange range)
+        {
+            firstSegment = range;
+            otherSegments = null;
+        }
+        public void SetSegments(SegmentRange[] ranges)
+        {
+            if (ranges == null || ranges.Length == 0)
+            {
+                firstSegment = default(SegmentRange);
+                otherSegments = null;
+            } else
+            {
+                firstSegment = ranges[0];
+                if(ranges.Length == 1)
+                {
+                    otherSegments = null;
+                }
+                else
+                {
+                    Array.Resize(ref otherSegments, ranges.Length - 1);
+                    Array.Copy(ranges, 1, otherSegments, 0, ranges.Length - 1);
+                }
+            }
+        }
+        public int ReadSegmentsHeader()
         {
             int offset = 0;
             var word = ReadWord(0, offset++);
@@ -402,7 +445,8 @@ namespace CapnProto
 
             int segmentOffset = 1 + (additionalSegments / 2);
             if ((additionalSegments % 2) != 0) segmentOffset++;
-            firstSegment = new SegmentRange(ref segmentOffset, (int)(word >> 32));
+            firstSegment = new SegmentRange(segmentOffset, (int)(word >> 32));
+            segmentOffset += firstSegment.Length;
             if (additionalSegments != 0)
             {
                 otherSegments = new SegmentRange[additionalSegments];
@@ -410,26 +454,31 @@ namespace CapnProto
                 for (int i = 0; i < additionalSegments / 2; i++)
                 {
                     word = ReadWord(0, offset++);
-                    otherSegments[index++] = new SegmentRange(ref segmentOffset, (int)word);
-                    otherSegments[index++] = new SegmentRange(ref segmentOffset, (int)(word >> 32));
+                    var range = new SegmentRange(segmentOffset, (int)word);
+                    otherSegments[index++] = range;
+                    segmentOffset += range.Length;
+                    otherSegments[index++] = new SegmentRange(segmentOffset, (int)(word >> 32));
+                    segmentOffset += range.Length;
                 }
 
                 if ((additionalSegments % 2) != 0)
                 {
                     word = ReadWord(0, offset++);
-                    otherSegments[index] = new SegmentRange(ref segmentOffset, (int)word);
+                    var range = new SegmentRange(segmentOffset, (int)word);
+                    otherSegments[index] = range;
+                    segmentOffset += range.Length;
                 }
             }
-            OnChangeSegment(0, firstSegment.Offset, firstSegment.Length);
+            OnChangeSegment(0, firstSegment);
+            return additionalSegments + 1;
         }
-        private struct SegmentRange
+        public struct SegmentRange
         {
             public readonly int Offset, Length;
-            public SegmentRange(ref int offset, int length)
+            public SegmentRange(int offset, int length)
             {
                 this.Offset = offset;
                 this.Length = length;
-                offset += length;
             }
         }
 
@@ -444,7 +493,7 @@ namespace CapnProto
         //D(16 bits) = Size of the struct's pointer section, in words.
         public unsafe void ReadData(int segment, int origin, ulong pointer, ulong* raw, int max)
         {
-            if ((pointer & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Expected struct pointer");
+            if ((pointer & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Expected struct pointer; got " + PointerType.GetName(pointer));
             var offset = unchecked(((int)pointer) >> 2); // note: int because signed
             var count = (int)((pointer >> 32) & 0xFFFF);
             TypeModel.Log("reading data payload from {0}/{1}: {2} words", segment, origin + offset, Math.Max(count, max));
@@ -453,7 +502,7 @@ namespace CapnProto
 
         public unsafe int ReadPointers(int segment, int origin, ulong pointer, ulong* raw, int max)
         {
-            if ((pointer & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Expected struct pointer");
+            if ((pointer & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Expected struct pointer; got " + PointerType.GetName(pointer));
             var offset = unchecked(((int)pointer) >> 2); // note: int because signed
             var dataCount = (int)((pointer >> 32) & 0xFFFF);
             var count = (int)((pointer >> 48) & 0xFFFF);
@@ -487,19 +536,12 @@ namespace CapnProto
                 raw[i] = 0;
         }
 
-        public int[] GetSegments()
+        public SegmentRange GetSegment(int index)
         {
-            int count = 1 + (otherSegments == null ? 0 : otherSegments.Length);
-            int[] lengths = new int[count];
-            lengths[0] = firstSegment.Length;
-            if (otherSegments != null)
-            {
-                for (int i = 0; i < otherSegments.Length; i++)
-                {
-                    lengths[i + 1] = otherSegments[i].Length;
-                }
-            }
-            return lengths;
+            if (index == 0) return firstSegment;
+            if (index > 0 && otherSegments != null && index <= otherSegments.Length)
+                return otherSegments[index - 1];
+            throw new ArgumentOutOfRangeException("index");
         }
     }
 }

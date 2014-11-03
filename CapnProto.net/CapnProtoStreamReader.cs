@@ -18,7 +18,7 @@ namespace CapnProto
 
         static CapnProtoStreamReader()
         {
-            if (!BitConverter.IsLittleEndian) throw new NotSupportedException("Big-endian is not yet supported");
+            TypeModel.AssertLittleEndian();
         }
 
         public override void Dispose()
@@ -28,9 +28,9 @@ namespace CapnProto
         }
 
 
-        protected override void OnChangeSegment(int segment, int offset, int len)
+        protected override void OnChangeSegment(int segment, SegmentRange range)
         {
-            currentSegmentRoot = offset;
+            currentSegmentRoot = range.Offset;
         }
 
         protected override string ReadString(int segment, int wordOffset, int count)

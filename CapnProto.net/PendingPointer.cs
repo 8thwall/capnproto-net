@@ -6,7 +6,7 @@ namespace CapnProto
     {
         private readonly int origin, segment, effectiveOffset, parentSegment, parentOffset;
         private readonly ulong pointer;
-        public int Origin {  get { return origin; } }
+        public int Origin { get { return origin; } }
 
         public int ParentSegment { get { return parentSegment; } }
         public int ParentOffset { get { return parentOffset; } }
@@ -35,6 +35,11 @@ namespace CapnProto
                 default:
                     throw new InvalidOperationException("Cannot create pending pointer of this type");
             }
+        }
+        public PendingPointer(int parentSegment, int parentOffset, int fromOrigin, ulong pointer, ulong pointerOverride)
+            : this(parentSegment, parentOffset, fromOrigin, pointer)
+        {
+            this.pointer = pointerOverride;
         }
 
         public bool Equals(PendingPointer other)
