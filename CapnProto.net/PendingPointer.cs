@@ -33,7 +33,7 @@ namespace CapnProto
                     effectiveOffset = unchecked((int)(((uint)pointer) >> 3));
                     break;
                 default:
-                    throw new InvalidOperationException("Cannot create pending pointer of this type");
+                    throw new InvalidOperationException("Cannot create pending pointer of this type: " + PointerType.GetName(pointer));
             }
         }
         public PendingPointer(int parentSegment, int parentOffset, int fromOrigin, ulong pointer, ulong pointerOverride)

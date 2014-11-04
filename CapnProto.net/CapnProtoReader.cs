@@ -39,7 +39,7 @@ namespace CapnProto
                 }
                 pending.Remove(next);
 
-                output.WriteLine("{0}/{1}: {2}", next.Segment, next.EffectiveOffset, PointerType.GetName(next.Pointer));
+                output.WriteLine("{0:00}/{1:000000}: {2}", next.Segment, next.EffectiveOffset, PointerType.GetName(next.Pointer));
 
                 if (next.Segment < lastSegment || (next.Segment == lastSegment && next.EffectiveOffset < lastOffset))
                 {
@@ -90,7 +90,7 @@ namespace CapnProto
                                     string itemTypeName = PointerType.GetName(itemPointer); // the same for all elements
                                     for (int i = 0; i < itemCount; i++)
                                     {
-                                        output.WriteLine("\t{0}/{1}: element {2} - {3}", next.Segment, offset, i, itemTypeName);
+                                        output.WriteLine("\t{0:00}/{1:000000}: element {2} - {3}", next.Segment, offset, i, itemTypeName);
                                         offset += data;
                                         for (int j = 0; j < pointers; j++)
                                         {
@@ -108,7 +108,7 @@ namespace CapnProto
                             var tagWord = ReadWord(next.Segment, next.EffectiveOffset + 1);
 
                             var newPointer = new PendingPointer(next.Segment, next.EffectiveOffset, next.EffectiveOffset, innerPtr, tagWord);
-                            output.WriteLine("\tdouble-far resolved to {0}/{1}", newPointer.Segment, newPointer.EffectiveOffset);
+                            output.WriteLine("\tdouble-far resolved to {0:00}/{1:000000}", newPointer.Segment, newPointer.EffectiveOffset);
                             pending.Add(newPointer, null);                            
                         }
                         else
@@ -128,10 +128,14 @@ namespace CapnProto
             {
                 output.WriteLine("\t\t{0}: [nil]", index);
             }
+            else if((ptr & PointerType.Mask) == PointerType.Other)
+            {
+                output.WriteLine("\t\tSkipping pointer: " + PointerType.GetName(ptr));
+            }
             else
             {
                 var newPtr = new PendingPointer(parent.Segment, parent.EffectiveOffset, offset + 1, ptr);
-                output.WriteLine("\t\t{0}: {1} at {2}/{3}", index, PointerType.GetName(ptr), newPtr.Segment, newPtr.EffectiveOffset);
+                output.WriteLine("\t\t{0}: {1} at {2:00}/{3:000000}", index, PointerType.GetName(ptr), newPtr.Segment, newPtr.EffectiveOffset);
                 if (pending.ContainsKey(newPtr))
                 {
                     output.WriteLine("\t\t\tduplicated key");
@@ -139,7 +143,7 @@ namespace CapnProto
                     {
                         if(key.Equals(newPtr))
                         {
-                            output.WriteLine("\t\t\talso referenced from {0}/{1}", key.ParentSegment, key.ParentOffset);
+                            output.WriteLine("\t\t\talso referenced from {0:00}/{1:000000}", key.ParentSegment, key.ParentOffset);
                         }
                     }                    
                 }
@@ -218,13 +222,13 @@ namespace CapnProto
             ElementSize size;
             if ((pointer & PointerType.Mask) == PointerType.Far)
             {
-                TypeModel.Log("{0}: de-referencing from {1}/{2}", PointerType.GetName(pointer), segment, origin);
+                TypeModel.Log("{0}: de-referencing from {1:00}/{2:000000}", PointerType.GetName(pointer), segment, origin);
                 pointer = ResolveFarPointer(pointer, ref segment, ref origin);
-                TypeModel.Log("{0}: de-referenced to {1}/{2}", PointerType.GetName(pointer), segment, origin);
+                TypeModel.Log("{0}: de-referenced to {1:00}/{2:000000}", PointerType.GetName(pointer), segment, origin);
             }
             int count = ListPointer.Parse(pointer, ref origin, out size);
             if (count == 0) return new List<T>();
-            TypeModel.Log("{0}: Deserializing {1} list of {2} from {3}/{4} (size {5})",
+            TypeModel.Log("{0}: Deserializing {1} list of {2} from {3:00}/{4:000000} (size {5})",
                 context.Depth, size, typeof(T).Name, segment, origin, count);
             switch (size)
             {
@@ -237,7 +241,7 @@ namespace CapnProto
                         var model = context.Model;
                         for (int i = 0; i < count; i++)
                         {
-                            TypeModel.Log("{0}: element {1} of {2} at {3}/{4}", context.Depth, i, count, segment, origin);
+                            TypeModel.Log("{0}: element {1} of {2} at {3:00}/{4:000000}", context.Depth, i, count, segment, origin);
                             list.Add(model.Deserialize<T>(segment, origin + i, context, raw[i]));
                         }
                         return list;
@@ -262,7 +266,7 @@ namespace CapnProto
                         var model = context.Model;
                         for (int i = 0; i < numberOfElements; i++)
                         {
-                            TypeModel.Log("{0}: element {1} of {2} at {3}/{4}", context.Depth, i, numberOfElements, segment, origin);
+                            TypeModel.Log("{0}: element {1} of {2} at {3:00}/{4:000000}", context.Depth, i, numberOfElements, segment, origin);
                             T newElement = model.Deserialize<T>(segment, origin, context, elementPointer);
                             list.Add(newElement);
                             origin += elementSize;
@@ -285,7 +289,7 @@ namespace CapnProto
         {
             int newSegment, newOrigin;
             bool doubleLandingPad = DereferenceFarPointer(pointer, out newSegment, out newOrigin);
-            TypeModel.Log("far-pointer resolved to landing-pad at {0}/{1}", newSegment, newOrigin);
+            TypeModel.Log("far-pointer resolved to landing-pad at {0:00}/{1:000000}", newSegment, newOrigin);
             if (doubleLandingPad)
             {
                 // double landing-pad; the next word is the object-header, where-as
@@ -296,7 +300,7 @@ namespace CapnProto
                 {
                     throw new InvalidOperationException("Triple landing-pads should not exist");
                 }
-                TypeModel.Log("far-pointer resolved to landing-pad at {0}/{1}", newSegment, newOrigin);
+                TypeModel.Log("far-pointer resolved to landing-pad at {0:00}/{1:000000}", newSegment, newOrigin);
                 return tagWord;
             }
             else
@@ -457,7 +461,8 @@ namespace CapnProto
                     var range = new SegmentRange(segmentOffset, (int)word);
                     otherSegments[index++] = range;
                     segmentOffset += range.Length;
-                    otherSegments[index++] = new SegmentRange(segmentOffset, (int)(word >> 32));
+                    range = new SegmentRange(segmentOffset, (int)(word >> 32));
+                    otherSegments[index++] = range;
                     segmentOffset += range.Length;
                 }
 
@@ -496,7 +501,7 @@ namespace CapnProto
             if ((pointer & PointerType.Mask) != PointerType.Struct) throw new InvalidOperationException("Expected struct pointer; got " + PointerType.GetName(pointer));
             var offset = unchecked(((int)pointer) >> 2); // note: int because signed
             var count = (int)((pointer >> 32) & 0xFFFF);
-            TypeModel.Log("reading data payload from {0}/{1}: {2} words", segment, origin + offset, Math.Max(count, max));
+            TypeModel.Log("reading data payload from {0:00}/{1:000000}: {2} words", segment, origin + offset, Math.Max(count, max));
             ReadWords(segment, origin + offset, count, max, raw);
         }
 
@@ -508,7 +513,7 @@ namespace CapnProto
             var count = (int)((pointer >> 48) & 0xFFFF);
 
             int pointerBase = origin + offset + dataCount;
-            TypeModel.Log("reading pointers from {0}/{1}: {2} words", segment, pointerBase, Math.Max(count, max));
+            TypeModel.Log("reading pointers from {0:00}/{1:000000}: {2} words", segment, pointerBase, Math.Max(count, max));
             ReadWords(segment, pointerBase, count, max, raw);
             return pointerBase;
         }
