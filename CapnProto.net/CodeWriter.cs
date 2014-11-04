@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using CapnProto.Schema;
+
 namespace CapnProto
 {
     public abstract class CodeWriter
@@ -62,10 +64,10 @@ namespace CapnProto
         public abstract CodeWriter EndNamespace();
         public abstract CodeWriter BeginClass(Schema.Node node);
         public abstract CodeWriter WriteLittleEndianCheck(Schema.Node node);
-        public abstract CodeWriter BeginClass(bool @public, bool @internal, string name, Type baseType);
+        public abstract CodeWriter BeginClass(bool @public, bool @internal, string name, System.Type baseType);
         public abstract CodeWriter EndClass();
 
-        public abstract CodeWriter DeclareField(string name, Type type);
+        public abstract CodeWriter DeclareField(string name, System.Type type);
 
         public abstract CodeWriter BeginOverride(System.Reflection.MethodInfo method);
 
@@ -75,7 +77,7 @@ namespace CapnProto
 
         public abstract CodeWriter EndOverride();
 
-        public abstract CodeWriter Write(Type type);
+        public abstract CodeWriter Write(System.Type type);
 
         public abstract CodeWriter WriteCustomSerializerClass(Schema.Node node, string typeName, string methodName);
 
@@ -107,15 +109,60 @@ namespace CapnProto
         {
             return Write(value.ToString(CultureInfo.InvariantCulture));
         }
+        public virtual CodeWriter Write(long value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+        public abstract CodeWriter Write(bool value);
+
+        public virtual CodeWriter Write(float value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+        public virtual CodeWriter Write(double value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        public abstract CodeWriter WriteLiteral(string value);
+
+        public virtual CodeWriter Write(Schema.Type type, Value value)
+        {
+            if (value == null) Write("null");
+            switch(value.Union)
+            {
+                case Value.Unions.@bool: return Write(value.@bool.Value);
+                case Value.Unions.float32: return Write(value.float32.Value);
+                case Value.Unions.float64: return Write(value.float64.Value);
+                case Value.Unions.int8: return Write(value.int8.Value);
+                case Value.Unions.uint8: return Write(value.uint8.Value);
+                case Value.Unions.int16: return Write(value.int16.Value);
+                case Value.Unions.uint16: return Write(value.uint16.Value);
+                case Value.Unions.int32: return Write(value.int32.Value);
+                case Value.Unions.uint32: return Write(value.uint32.Value);
+                case Value.Unions.int64: return Write(value.int64.Value);
+                case Value.Unions.uint64: return Write(value.uint64.Value);
+                case Value.Unions.Text: return WriteLiteral(value.Text);
+                case Value.Unions.@enum: return WriteEnumLiteral(type, value.@enum.Value);
+            }
+            throw new NotSupportedException("Cannot write value: " + value.Union);
+        }
+
+        public abstract CodeWriter WriteEnumLiteral(Schema.Type type, ushort value);
+
+        public virtual CodeWriter Write(Schema.Type.Unions type)
+        {
+            return Write(type.ToString());
+        }
         public virtual CodeWriter Write(Schema.Type type)
         {
             return Write(Format(type));
         }
 
         public abstract void WriteEnum(Schema.Node node);
-        public abstract void WriteConst(Schema.Node node);
+        public abstract CodeWriter WriteConst(Schema.Node node);
 
-        public virtual CodeWriter DeclareFields(string prefix, int count, Type type)
+        public virtual CodeWriter DeclareFields(string prefix, int count, System.Type type)
         {
             for (int i = 0; i < count; i++)
             {
@@ -124,7 +171,7 @@ namespace CapnProto
             return this;
         }
 
-        public virtual CodeWriter DeclareFields(List<string> names, Type type)
+        public virtual CodeWriter DeclareFields(List<string> names, System.Type type)
         {
             foreach (var name in names)
             {
@@ -138,6 +185,15 @@ namespace CapnProto
         public string Serializer { get { return serializer; } }
 
         public abstract CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field, Stack<UnionStub> union);
+
+        protected internal virtual string LocalName(string name, bool escape = true)
+        {
+            if (name == null) return "";
+            int idx = name.LastIndexOfAny(nameTokens);
+            if (idx >= 0) name = name.Substring(idx + 1);
+            return name;
+        }
+        static readonly char[] nameTokens = { '.', '/', '\\', ':' };
 
         public abstract CodeWriter WriteGroupAccessor(Schema.Node parent, Schema.Node child, string name, bool extraNullable);
 
@@ -168,92 +224,93 @@ namespace CapnProto
         {
             if (node != null)
             {
-                if (node.@struct != null) WriteStruct(node, union);
-                if (node.@enum != null) WriteEnum(node);
-                if (node.@const != null) WriteConst(node);
+                switch (node.Union)
+                {
+                    case Schema.Node.Unions.@struct:
+                        WriteStruct(node, union);
+                        break;
+                    case Schema.Node.Unions.@enum:
+                        WriteEnum(node);
+                        break;
+                    case Schema.Node.Unions.@const:
+                        WriteConst(node);
+                        break;
+                }
             }
             return this;
-     
+
         }
         public void WriteStruct(Schema.Node node, Stack<UnionStub> union)
         {
+            if (node.Union != Schema.Node.Unions.@struct) return;
             var @struct = node.@struct;
 
-            if (@struct == null || @struct.isGroup) return;
+            if (@struct.isGroup.Value) return;
 
-            if (@struct.isGroup)
+            // the nested type does not inherit the unions from the caller
+            if (union.Count != 0)
             {
-                //WriteGroup(node, union);
+                union = new Stack<UnionStub>();
             }
-            else
+            BeginClass(node).WriteLittleEndianCheck(node);
+
+            var fields = @struct.fields;
+
+            int bodyWords = 0, pointerWords = 0;
+            Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
+            HashSet<ulong> nestedDone = null;
+            foreach (var field in fields)
             {
-                // the nested type does not inherit the unions from the caller
-                if (union.Count != 0)
+                if (field.discriminantValue != ushort.MaxValue)
                 {
-                    union = new Stack<UnionStub>();
-                }
-                BeginClass(node).WriteLittleEndianCheck(node);
+                    // write with union-based restructions
+                    union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
+                    WriteFieldAccessor(node, field, union);
 
-                var fields = @struct.fields;
-
-                int bodyWords = 0, pointerWords = 0;
-                Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
-                HashSet<ulong> nestedDone = null;
-                foreach (var field in fields)
-                {
-                    if (field.discriminantValue != ushort.MaxValue)
+                    if (field.slot.type != null && field.slot.type.Union == Schema.Type.Unions.@struct)
                     {
-                        // write with union-based restructions
-                        union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
-                        WriteFieldAccessor(node, field, union);
-
-                        if(field.slot != null && field.slot.type != null && field.slot.type.@struct != null)
+                        if (nestedDone == null) nestedDone = new HashSet<ulong>();
+                        if (nestedDone.Add(field.slot.type.@struct.typeId.Value))
                         {
-                            if (nestedDone == null) nestedDone = new HashSet<ulong>();
-                            if (nestedDone.Add(field.slot.type.@struct.typeId))
-                            {
-                                var found = Lookup(field.slot.type.@struct.typeId);
-                                if (found != null && found.@struct != null && found.@struct.isGroup)
-                                {
-                                    WriteGroup(found, union);
-                                }
-                            }
-                        }
-                        union.Pop();
-                    }
-                    else
-                    {
-                        // just write the damned field
-                        WriteFieldAccessor(node, field, union);
-                    }
-                }
-                if (node.nestedNodes != null)
-                {
-                    foreach(var nestedNode in node.nestedNodes)
-                    {
-                        if(nestedDone == null || !nestedDone.Contains(nestedNode.id))
-                        {
-                            var found = Lookup(nestedNode.id);
-                            if (found != null && found.@struct != null && found.@struct.isGroup)
+                            var found = Lookup(field.slot.type.@struct.typeId);
+                            if (found != null && found.Union == Schema.Node.Unions.@struct && found.@struct.isGroup.Value)
                             {
                                 WriteGroup(found, union);
-                                WriteGroupAccessor(node, found, "get_" + found.displayName, false);
                             }
                         }
                     }
+                    union.Pop();
                 }
-                if (@struct.discriminantCount != 0)
+                else
                 {
-                    WriteDiscriminant(node, union);
+                    // just write the damned field
+                    WriteFieldAccessor(node, field, union);
                 }
-
-                DeclareFields(bodyWords, pointerWords);
-
-                WriteNestedTypes(node, union);
-                EndClass();
+            }
+            if (node.nestedNodes != null)
+            {
+                foreach (var nestedNode in node.nestedNodes)
+                {
+                    if (nestedDone == null || !nestedDone.Contains(nestedNode.id))
+                    {
+                        var found = Lookup(nestedNode.id);
+                        if (found != null && found.Union == Schema.Node.Unions.@struct && found.@struct.isGroup.Value)
+                        {
+                            WriteGroup(found, union);
+                            WriteGroupAccessor(node, found, "get_" + LocalName(found.displayName), false);
+                        }
+                    }
+                }
+            }
+            if (@struct.discriminantCount != 0)
+            {
+                WriteDiscriminant(node, union);
             }
 
+            DeclareFields(bodyWords, pointerWords);
 
+            WriteNestedTypes(node, union);
+            EndClass();
         }
     }
 }

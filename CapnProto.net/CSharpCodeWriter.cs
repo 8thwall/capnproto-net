@@ -1,8 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using CapnProto.Schema;
+using System;
+using System.ComponentModel;
 
 namespace CapnProto
 {
@@ -29,6 +31,7 @@ namespace CapnProto
         }
         static string Escape(string name)
         {
+            if (name == null) return null;
             switch (name)
             {
                 case "abstract":
@@ -113,17 +116,25 @@ namespace CapnProto
                     return name;
             }
         }
-        public override void WriteConst(Schema.Node node)
+
+        public override CodeWriter Write(bool value)
         {
+            return Write(value ? "true" : "false");
+        }
+        public override CodeWriter WriteLiteral(string value)
+        {
+            if (value == null) return Write("null");
+            return Write("@\"").Write(value.Replace("\"","\"\"")).Write("\"");
+        }
+        public override CodeWriter WriteConst(Schema.Node node)
+        {
+            if (node == null || node.Union != Schema.Node.Unions.@const) return this;
             var @const = node.@const;
-            if (@const == null) return;
-            WriteLine().Write("public const ").Write(@const.type).Write(LocalName(node)).Write(" = 0");
-            WriteLine().Write("#warning constants not implemented");
-            Write(";");
+            return WriteLine().Write("public const ").Write(@const.type).Write(" ").Write(LocalName(node)).Write(" = ").Write(@const.type, @const.value).Write(";");
         }
         public override CodeWriter BeginClass(Schema.Node node)
         {
-            if (node.@struct != null)
+            if (node.Union == Schema.Node.Unions.@struct)
             {
                 //if (node.@struct.isGroup)
                 //{
@@ -201,34 +212,33 @@ namespace CapnProto
         {
             var elType = field.slot.type.list.elementType;
             int index = (int)field.slot.offset;
-#warning switch to switch
-            if (elType.text != null)
+
+            switch (elType.Union)
             {
-                Write("ctx.Reader.ReadStringList(segment, origin + ").Write(index + 1).Write(", raw[").Write(index).Write("]);");
-            }
-            else if (elType.@struct != null)
-            {
-                var found = Lookup(elType.@struct.typeId);
-                if (found == null)
-                {
-                    Write("null; #error type not found: ").Write(elType.@struct.typeId);
-                }
-                else if (found.@struct == null || found.@struct.isGroup)
-                {
-                    Write("null; #error invalid type for list: ").Write(found.displayName);
-                }
-                else
-                {
-                    Write("ctx.Reader.ReadStructList<").Write(FullyQualifiedName(found)).Write(">(ctx, segment, origin + ").Write(index + 1).Write(", raw[").Write(index).Write("]);");
-                }
-            }
-            else if (elType.int64 != null)
-            {
-                Write("ctx.Reader.ReadInt64List(segment, origin, raw[").Write(index).Write("]);");
-            }
-            else
-            {
-                Write("null;").WriteLine().Write("#warning not yet supported");
+                case Schema.Type.Unions.text:
+                    Write("ctx.Reader.ReadStringList(segment, origin + ").Write(index + 1).Write(", raw[").Write(index).Write("]);");
+                    break;
+                case Schema.Type.Unions.@struct:
+                    var found = Lookup(elType.@struct.typeId);
+                    if (found == null)
+                    {
+                        Write("null; #error type not found: ").Write(elType.@struct.typeId);
+                    }
+                    else if (found.Union != Schema.Node.Unions.@struct || found.@struct.isGroup.Value)
+                    {
+                        Write("null; #error invalid type for list: ").Write(found.displayName);
+                    }
+                    else
+                    {
+                        Write("ctx.Reader.ReadStructList<").Write(FullyQualifiedName(found)).Write(">(ctx, segment, origin + ").Write(index + 1).Write(", raw[").Write(index).Write("]);");
+                    }
+                    break;
+                case Schema.Type.Unions.int64:
+                    Write("ctx.Reader.ReadInt64List(segment, origin, raw[").Write(index).Write("]);");
+                    break;
+                default:
+                    Write("null;").WriteLine().Write("#warning not yet supported: " + elType.Union);
+                    break;
             }
         }
 
@@ -237,7 +247,7 @@ namespace CapnProto
             foreach (var field in node.@struct.fields)
             {
                 var slot = field.slot;
-                if (slot == null || slot.type == null) continue;
+                if (slot.type == null) continue;
                 int len = slot.type.GetFieldLength();
 
                 if (len == Schema.Type.LEN_POINTER)
@@ -251,10 +261,10 @@ namespace CapnProto
                     }
                     fields.Add(Tuple.Create(node, field, Clone(union)));
 
-                    if (slot.type.@struct != null)
+                    if (slot.type.Union == Schema.Type.Unions.@struct)
                     {
                         var found = writer.Lookup(slot.type.@struct.typeId);
-                        if (found != null && found.@struct != null && found.@struct.isGroup)
+                        if (found != null && found.Union == Schema.Node.Unions.@struct && found.@struct.isGroup.Value)
                         {
                             CascadePointers(writer, found, ptrFields, union);
                         }
@@ -276,18 +286,18 @@ namespace CapnProto
                     var declaring = tuple.Item1;
                     var field = tuple.Item2;
                     var union = tuple.Item3;
-                    if (field.slot == null || field.slot.type == null) continue;
+                    if (field.slot.type == null) continue;
                     Schema.Node found = null;
-                    if (field.slot.type.@struct != null)
+                    if (field.slot.type.Union == Schema.Type.Unions.@struct)
                     {
                         found = Lookup(field.slot.type.@struct.typeId);
-                        if (found == null || found.@struct == null)
+                        if (found == null || found.Union != Schema.Node.Unions.@struct)
                         {
                             WriteLine().Write("#warning not found: ").Write(field.slot.type.@struct.typeId);
                             continue;
                         }
 
-                        if (found.@struct.isGroup) continue; // group data is included separately at the correct locations
+                        if (found.@struct.isGroup.Value) continue; // group data is included separately at the correct locations
                     }
                     WriteLine().Write("// ").Write(declaring.displayName).Write(".").Write(field.name).WriteLine();
                     if (union.Count != 0)
@@ -297,44 +307,46 @@ namespace CapnProto
                         Write(") ");
                     }
                     Write("this." + PointerPrefix).Write(pair.Key).Write(" = ");
-                    if (field.slot.type.text != null)
+                    switch (field.slot.type.Union)
                     {
-                        Write("ctx.Reader.ReadStringFromPointer(segment, origin + ").Write(field.slot.offset + 1);
-                        Write(", raw[").Write(field.slot.offset).Write("]);");
-                    }
-                    else if (field.slot.type.data != null)
-                    {
-                        Write("ctx.Reader.ReadBytesFromPointer(segment, origin + ").Write(field.slot.offset + 1);
-                        Write(", raw[").Write(field.slot.offset).Write("]);");
-                    }
-                    else if (field.slot.type.@struct != null && found != null)
-                    {
-                        Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
-                            .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
-                            .Write(found.CustomSerializerName()).Write("(segment, origin + ").Write(field.slot.offset + 1);
-                        Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
-                    }
-                    else if (field.slot.type.list != null)
-                    {
-                        WriteListImpl(field);
-                        //if (!WriteListImpl(field, true))
-                        //{
-                        //    //Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
-                        //    //    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
-                        //    Write(ListMethodName(lists.Count))
-                        //    .Write("(segment, origin");
-                        //    lists.Add(field);
-                        //    if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
-                        //    Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
-                        //}
-                    }
-                    else if (field.slot.type.anyPointer != null)
-                    {
-                        Write("null;").WriteLine().Write("#warning any-pointer not yet implemented");
-                    }
-                    else
-                    {
-                        Write("null;").WriteLine().Write("#warning unexpected type");
+                        case Schema.Type.Unions.text:
+
+                            Write("ctx.Reader.ReadStringFromPointer(segment, origin + ").Write(field.slot.offset + 1);
+                            Write(", raw[").Write(field.slot.offset).Write("]);");
+                            break;
+                        case Schema.Type.Unions.data:
+
+                            Write("ctx.Reader.ReadBytesFromPointer(segment, origin + ").Write(field.slot.offset + 1);
+                            Write(", raw[").Write(field.slot.offset).Write("]);");
+                            break;
+                        case Schema.Type.Unions.@struct:
+                            if (found != null)
+                            {
+                                Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
+                                    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
+                                    .Write(found.CustomSerializerName()).Write("(segment, origin + ").Write(field.slot.offset + 1);
+                                Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
+                            }
+                            break;
+                        case Schema.Type.Unions.list:
+                            WriteListImpl(field);
+                            //if (!WriteListImpl(field, true))
+                            //{
+                            //    //Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
+                            //    //    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
+                            //    Write(ListMethodName(lists.Count))
+                            //    .Write("(segment, origin");
+                            //    lists.Add(field);
+                            //    if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
+                            //    Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
+                            //}
+                            break;
+                        case Schema.Type.Unions.anyPointer:
+                            Write("null;").WriteLine().Write("#warning any-pointer not yet implemented");
+                            break;
+                        default:
+                            Write("null;").WriteLine().Write("#warning unexpected type: " + field.slot.type.Union);
+                            break;
                     }
                 }
                 Outdent();
@@ -361,7 +373,7 @@ namespace CapnProto
 
         }
 
-        public override CodeWriter BeginClass(bool @public, bool @internal, string name, Type baseType)
+        public override CodeWriter BeginClass(bool @public, bool @internal, string name, System.Type baseType)
         {
             WriteLine();
             if (@public) Write("public ");
@@ -393,11 +405,11 @@ namespace CapnProto
             return Outdent();
         }
 
-        public override CodeWriter DeclareField(string name, Type type)
+        public override CodeWriter DeclareField(string name, System.Type type)
         {
             return WriteLine().Write("private ").Write(type).Write(" ").Write(Escape(name)).Write(";");
         }
-        public override CodeWriter DeclareFields(string prefix, int count, Type type)
+        public override CodeWriter DeclareFields(string prefix, int count, System.Type type)
         {
             if (count != 0)
             {
@@ -410,7 +422,7 @@ namespace CapnProto
             }
             return this;
         }
-        public override CodeWriter DeclareFields(List<string> names, Type type)
+        public override CodeWriter DeclareFields(List<string> names, System.Type type)
         {
             if (names.Count != 0)
             {
@@ -475,16 +487,16 @@ namespace CapnProto
             return WriteLine().Write("#error ").Write(message);
         }
 
-        public override CodeWriter Write(Type type)
+        public override CodeWriter Write(System.Type type)
         {
             return Write(Format(type));
         }
-        private string Format(Type type)
+        private string Format(System.Type type)
         {
             if (type == null || type == typeof(void)) return "void";
             if (!type.IsEnum) // reports same typecodes
             {
-                switch (Type.GetTypeCode(type))
+                switch (System.Type.GetTypeCode(type))
                 {
                     case TypeCode.Boolean: return "bool";
                     case TypeCode.Byte: return "byte";
@@ -540,14 +552,14 @@ namespace CapnProto
         {
             var parent = FindParent(node);
             Stack<Schema.Node> roots = null;
-            if (parent != null)
+            if (parent != null && parent.file == null)
             {
                 roots = new Stack<Schema.Node>();
                 do
                 {
                     roots.Push(parent);
                     parent = FindParent(parent);
-                } while (parent != null);
+                } while (parent != null && parent.file == null);
             }
             var sb = new StringBuilder("global::");
             if (!string.IsNullOrWhiteSpace(Namespace)) sb.Append(Namespace).Append('.');
@@ -559,9 +571,16 @@ namespace CapnProto
             return sb.Append(LocalName(node)).ToString();
         }
 
+        protected internal override string LocalName(string name, bool escape = true)
+        {
+            return escape ? Escape(base.LocalName(name, escape)) : base.LocalName(name, escape);
+        }
         private string LocalName(Schema.Node node)
         {
-            return Escape(node.displayName);
+            string name = node.displayName;
+            int prefixLen = (int)node.displayNamePrefixLength;
+            if (prefixLen != 0) name = name.Substring(prefixLen);
+            return LocalName(name);
         }
         public override CodeWriter WriteCustomReaderMethod(Schema.Node node)
         {
@@ -608,41 +627,67 @@ namespace CapnProto
         public override string Format(Schema.Type type, bool nullable = false)
         {
             if (type == null) return null;
-            if (type.anyPointer != null) return "object";
-            if (type.@bool != null) return nullable ? "bool?" : "bool";
-            if (type.data != null) return "byte[]";
-            if (type.float32 != null) return nullable ? "float?" : "float";
-            if (type.float64 != null) return nullable ? "double?" : "double";
-            if (type.int16 != null) return nullable ? "short?" : "short";
-            if (type.int32 != null) return nullable ? "int?" : "int";
-            if (type.int64 != null) return nullable ? "long?" : "long";
-            if (type.int8 != null) return nullable ? "sbyte?" : "sbyte";
-            if (type.text != null) return "string";
-            if (type.uint16 != null) return nullable ? "ushort?" : "ushort";
-            if (type.uint32 != null) return nullable ? "uint?" : "uint";
-            if (type.uint64 != null) return nullable ? "ulong?" : "ulong";
-            if (type.uint8 != null) return nullable ? "byte?" : "byte";
-            if (type.@void != null) return "global::CapnProto.Void";
-
             ulong typeid = 0;
-            if (type.@interface != null)
-                typeid = type.@interface.typeId;
-            else if (type.@struct != null)
-                typeid = type.@struct.typeId;
-            else if (type.@enum != null)
-                typeid = type.@enum.typeId;
+            switch (type.Union)
+            {
+                case Schema.Type.Unions.anyPointer:
+                    return "object";
+                case Schema.Type.Unions.@bool:
+                    return nullable ? "bool?" : "bool";
+                case Schema.Type.Unions.data:
+                    return "byte[]";
+                case Schema.Type.Unions.float32:
+                    return nullable ? "float?" : "float";
+                case Schema.Type.Unions.float64:
+                    return nullable ? "double?" : "double";
+                case Schema.Type.Unions.int16:
+                    return nullable ? "short?" : "short";
+                case Schema.Type.Unions.int32:
+                    return nullable ? "int?" : "int";
+                case Schema.Type.Unions.int64:
+                    return nullable ? "long?" : "long";
+                case Schema.Type.Unions.int8:
+                    return nullable ? "sbyte?" : "sbyte";
+                case Schema.Type.Unions.text:
+                    return "string";
+                case Schema.Type.Unions.uint16:
+                    return nullable ? "ushort?" : "ushort";
+                case Schema.Type.Unions.uint32:
+                    return nullable ? "uint?" : "uint";
+                case Schema.Type.Unions.uint64:
+                    return nullable ? "ulong?" : "ulong";
+                case Schema.Type.Unions.uint8:
+                    return nullable ? "byte?" : "byte";
+                case Schema.Type.Unions.@void:
+                    return "global::CapnProto.Void";
+                case Schema.Type.Unions.@interface:
+                    typeid = type.@interface.typeId.Value;
+                    break;
+                case Schema.Type.Unions.@struct:
+                    typeid = type.@struct.typeId.Value;
+                    break;
+                case Schema.Type.Unions.@enum:
+                    typeid = type.@enum.typeId.Value;
+                    break;
+            }
             Schema.Node node;
             if (typeid != 0 && (node = Lookup(typeid)) != null)
             {
                 if (nullable)
                 {
-                    if (node.@enum != null) return FullyQualifiedName(node) + "?";
-                    if (node.@struct != null && node.@struct.isGroup) return FullyQualifiedName(node) + "?";
+                    switch (node.Union)
+                    {
+                        case Schema.Node.Unions.@enum:
+                            return FullyQualifiedName(node) + "?";
+                        case Schema.Node.Unions.@struct:
+                            if (node.@struct.isGroup.Value) return FullyQualifiedName(node) + "?";
+                            break;
+                    }
                 }
                 return FullyQualifiedName(node);
             }
 
-            if (type.list != null)
+            if (type.Union == Schema.Type.Unions.list)
             {
                 string el = Format(type.list.elementType);
                 if (!string.IsNullOrWhiteSpace(el))
@@ -663,7 +708,7 @@ namespace CapnProto
 
         public override void WriteEnum(Schema.Node node)
         {
-            if (node == null || node.@enum == null || node.@enum.enumerants == null) return;
+            if (node == null || node.Union != Schema.Node.Unions.@enum || node.@enum.enumerants == null) return;
             WriteLine().Write("public enum ").Write(LocalName(node));
             Indent();
             var items = node.@enum.enumerants;
@@ -701,15 +746,17 @@ namespace CapnProto
             foreach (var stub in union)
             {
                 if (!first) Write(" && ");
+                
                 Write("(").Write(fieldOwner).Write("." + DataPrefix).Write(stub.FieldIndex).Write(" & ")
                     .Write(stub.Mask).Write(") == ").Write(stub.Expected);
+                first = false;
             }
             if (union.Count != 1) Write(")");
             return this;
         }
         public override CodeWriter WriteGroupAccessor(Schema.Node parent, Schema.Node child, string name, bool extraNullable)
         {
-            string fieldOwner = parent.@struct.isGroup ? "this.parent" : "this";
+            string fieldOwner = parent.@struct.isGroup.Value ? "this.parent" : "this";
             BeginProperty(child, name, extraNullable);
             WriteLine().Write("get");
             Indent();
@@ -719,28 +766,57 @@ namespace CapnProto
         }
         public override CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field, Stack<UnionStub> union)
         {
-            string fieldOwner = parent.@struct.isGroup ? "this.parent" : "this";
+            string fieldOwner = parent.@struct.isGroup.Value ? "this.parent" : "this";
+
+            if(field.Union == Field.Unions.group)
+            {
+                var found = Lookup(field.group.typeId);
+                if(found == null)
+                {
+                    return WriteLine().Write("#warning no type for: " + field.name);
+                }
+
+                return WriteGroupAccessor(parent, found, LocalName(field.name), union.Count != 0);
+            }
 
             if (field.slot.type == null)
             {
                 return WriteLine().Write("#warning no type for: " + field.name);
             }
-            if (field.ordinal != null && field.ordinal.@implicit == null)
-            {
-                WriteLine().Write("[global::CapnProto.FieldAttribute(").Write(field.ordinal.@explicit).Write(")]");
-            }
+            var ordinal = field.get_ordinalGroup;
             var slot = field.slot;
             var type = slot.type;
-            bool extraNullable = union.Count != 0 && type.@struct == null;
-
             var len = type.GetFieldLength();
-            var grp = (len == Schema.Type.LEN_POINTER && type.@struct != null) ? Lookup(type.@struct.typeId) : null;
-            if(grp != null && grp.@struct != null && grp.@struct.isGroup)
+            if (ordinal.Union == Schema.Field.ordinalGroup.Unions.@explicit)
             {
-                return WriteGroupAccessor(parent, grp, field.name, extraNullable);
+                WriteLine().Write("[").Write(typeof(FieldAttribute)).Write("(").Write(ordinal.@explicit.Value);
+                var offset = slot.offset;
+                if(offset.HasValue)
+                {
+                    if(len == Schema.Type.LEN_POINTER)
+                    {
+                        Write(", pointer: ").Write(offset.Value);
+                    } else
+                    {
+                        int o = (int)offset.Value * len;
+                        Write(", ").Write(o).Write(", ").Write(o + len);
+                    }
+                }
+                Write(")]");
+            }
+            
+            bool extraNullable = union.Count != 0 && type.Union != Schema.Type.Unions.@struct;
+            var grp = (len == Schema.Type.LEN_POINTER && type.Union == Schema.Type.Unions.@struct) ? Lookup(type.@struct.typeId) : null;
+            if (grp != null && grp.Union == Schema.Node.Unions.@struct && grp.@struct.isGroup.Value)
+            {
+                return WriteGroupAccessor(parent, grp, LocalName(field.name), extraNullable);
+            }
+            if(slot.hadExplicitDefault.Value)
+            {
+                WriteLine().Write("[").Write(typeof(DefaultValueAttribute)).Write("(").Write(type, slot.defaultValue).Write(")]");
             }
 
-            BeginProperty(field.slot.type, field.name, extraNullable);
+            BeginProperty(type, field.name, extraNullable);
             WriteLine().Write("get");
             Indent();
 
@@ -766,60 +842,79 @@ namespace CapnProto
                 int byteInData = checked((int)slot.offset * len), byteInWord = byteInData % 64;
 
                 string fieldName = DataPrefix + (byteInData / 64);
-#warning move this to a switch when available
-
+                ulong mask;
                 if (union.Count != 0)
                 {
                     WriteLine().Write("if (");
                     WriteUnionTest(fieldOwner, union).Write(")");
                     Indent();
                 }
-                if (type.@bool != null)
+                switch (type.Union)
                 {
-                    ulong mask = ((ulong)1) << byteInWord;
-                    WriteLine().Write("return (").Write(fieldOwner).Write(".").Write(fieldName).Write(" & ").Write(mask).Write(") != 0;");
 
-                }
-                else if ((type.int8 ?? type.int16 ?? type.int32 ?? type.int64
-                  ?? type.uint8 ?? type.uint16 ?? type.uint32 ?? type.uint64) != null)
-                {
-                    WriteLine().Write("return unchecked((").Write(type).Write(")");
-                    if (byteInWord == 0) Write(fieldOwner).Write(".").Write(fieldName);
-                    else Write("(").Write(fieldOwner).Write(".").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")");
-                    Write(");");
-                }
-                else if (type.@enum != null && len == 16)
-                {
-                    var e = Lookup(type.@enum.typeId);
-                    if (e == null || e.@enum == null || e.@enum.enumerants == null)
-                    {
-                        WriteLine().Write("#error enum not found: ").Write(type.@enum.typeId);
-                    }
-                    else
-                    {
-                        // all enums are Int16; so 4 
-                        ulong mask = ((ulong)0xFFFF) << byteInWord;
+                    case Schema.Type.Unions.@bool:
 
-                        WriteLine().Write("switch(").Write(fieldOwner).Write(".").Write(fieldName).Write(" & ").Write(mask).Write(")");
-                        Indent();
-                        foreach (var enumerant in e.@enum.enumerants)
+                        mask = ((ulong)1) << byteInWord;
+                        WriteLine().Write("return (").Write(fieldOwner).Write(".").Write(fieldName).Write(" & ").Write(mask);
+                        if (slot.hadExplicitDefault.Value && slot.defaultValue.Union == Schema.Value.Unions.@bool &&
+                            slot.defaultValue.@bool.Value)
                         {
-                            WriteLine().Write("case ").Write((ulong)enumerant.codeOrder << byteInWord).Write(": return ").Write(FullyQualifiedName(e)).Write(".").Write(Escape(enumerant.name)).Write(";");
+                            Write(") == 0;");
                         }
-                        WriteLine().Write("default: throw new global::System.InvalidOperationException(\"unexpected enum value: \" + unchecked((ushort)(")
-                            .Write(fieldOwner).Write(".").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")));");
-                        Outdent();
-                    }
-                }
-                else if ((type.float32 ?? type.float64) != null)
-                {
-                    WriteLine().Write(typeof(ulong)).Write(" tmp = ").Write(fieldOwner).Write(".").Write(fieldName);
-                    if (byteInWord != 0) Write(" >> ").Write(byteInWord);
-                    Write(";").WriteLine().Write("return *((").Write(type).Write("*)(&tmp));");
-                }
-                else
-                {
-                    WriteLine().Write("throw new global::System.NotImplementedException();");
+                        else
+                        {
+                            Write(") != 0;");
+                        }
+                        break;
+                    case Schema.Type.Unions.int8:
+                    case Schema.Type.Unions.uint8:
+                    case Schema.Type.Unions.int16:
+                    case Schema.Type.Unions.uint16:
+                    case Schema.Type.Unions.int32:
+                    case Schema.Type.Unions.uint32:
+                    case Schema.Type.Unions.int64:
+                    case Schema.Type.Unions.uint64:
+                        WriteLine().Write("return unchecked((").Write(type).Write(")(");
+                        if (byteInWord == 0) Write(fieldOwner).Write(".").Write(fieldName);
+                        else Write("(").Write(fieldOwner).Write(".").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")");
+                        if (slot.hadExplicitDefault.Value)
+                        {
+                            WriteXorDefaultValue(field.slot.defaultValue, byteInWord);
+                        }
+                        Write("));");
+                        break;
+                    case Schema.Type.Unions.@enum:
+
+                        var e = Lookup(type.@enum.typeId);
+                        if (e == null || e.Union != Schema.Node.Unions.@enum || e.@enum.enumerants == null)
+                        {
+                            WriteLine().Write("#error enum not found: ").Write(type.@enum.typeId);
+                        }
+                        else
+                        {
+                            // all enums are Int16; so 4 
+                            mask = ((ulong)0xFFFF) << byteInWord;
+
+                            WriteLine().Write("switch(").Write(fieldOwner).Write(".").Write(fieldName).Write(" & ").Write(mask).Write(")");
+                            Indent();
+                            foreach (var enumerant in e.@enum.enumerants)
+                            {
+                                WriteLine().Write("case ").Write((ulong)enumerant.codeOrder << byteInWord).Write(": return ").Write(FullyQualifiedName(e)).Write(".").Write(Escape(enumerant.name)).Write(";");
+                            }
+                            WriteLine().Write("default: throw new global::System.InvalidOperationException(\"unexpected enum value: \" + unchecked((ushort)(")
+                                .Write(fieldOwner).Write(".").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")));");
+                            Outdent();
+                        }
+                        break;
+                    case Schema.Type.Unions.float32:
+                    case Schema.Type.Unions.float64:
+                        WriteLine().Write(typeof(ulong)).Write(" tmp = ").Write(fieldOwner).Write(".").Write(fieldName);
+                        if (byteInWord != 0) Write(" >> ").Write(byteInWord);
+                        Write(";").WriteLine().Write("return *((").Write(type).Write("*)(&tmp));");
+                        break;
+                    default:
+                        WriteLine().Write("throw new global::System.NotImplementedException(); // ").Write(type.Union);
+                        break;
                 }
                 if (union.Count != 0)
                 {
@@ -859,45 +954,50 @@ namespace CapnProto
                     WriteLine().Write("if(!(");
                     WriteUnionTest(fieldOwner, union).Write(")) throw new ").Write(typeof(InvalidUnionDiscriminatorException)).Write("();");
                 }
-#warning move this to a switch when available
+                ulong mask;
+                switch (type.Union)
+                {
+                    case Schema.Type.Unions.@bool:
+                        mask = ((ulong)1) << byteInWord;
+                        WriteLine().Write("if(value");
+                        if (extraNullable) Write(".Value");
+                        Write(")");
+                        Indent();
+                        WriteLine().Write(fieldNameIncludingOwner).Write(" |= ").Write(mask).Write(";");
+                        Outdent();
+                        WriteLine().Write("else");
+                        Indent();
+                        WriteLine().Write(fieldNameIncludingOwner).Write(" &= ").Write(~mask).Write(";");
+                        Outdent();
+                        break;
+                    case Schema.Type.Unions.uint64:
+                        WriteLine().Write(fieldNameIncludingOwner).Write(" = value").Write(extraNullable ? ".Value;" : ";");
+                        break;
+                    case Schema.Type.Unions.int64:
+                        WriteLine().Write(fieldNameIncludingOwner).Write(" = unchecked((ulong)value").Write(extraNullable ? ".Value);" : ");");
+                        break;
+                    case Schema.Type.Unions.int8:
+                    case Schema.Type.Unions.uint8:
+                    case Schema.Type.Unions.int16:
+                    case Schema.Type.Unions.uint16:
+                    case Schema.Type.Unions.int32:
+                    case Schema.Type.Unions.uint32:
+                        mask = 0;
+                        if ((type.int8 ?? type.uint8) != null) mask = 0xFF;
+                        else if ((type.int16 ?? type.uint16) != null) mask = 0xFFFF;
+                        else if ((type.int32 ?? type.uint32) != null) mask = 0xFFFFFFFF;
+                        mask = ~(mask << byteInWord);
 
-                if (type.@bool != null)
-                {
-                    ulong mask = ((ulong)1) << byteInWord;
-                    WriteLine().Write("if(value");
-                    if (extraNullable) Write(".Value");
-                    Write(")");
-                    Indent();
-                    WriteLine().Write(fieldNameIncludingOwner).Write(" |= ").Write(mask).Write(";");
-                    Outdent();
-                    WriteLine().Write("else");
-                    Indent();
-                    WriteLine().Write(fieldNameIncludingOwner).Write(" &= ").Write(~mask).Write(";");
-                    Outdent();
-                }
-                else if (type.uint64 != null)
-                {
-                    WriteLine().Write(fieldNameIncludingOwner).Write(" = value").Write(extraNullable ? ".Value;" : ";");
-                }
-                else if (type.int64 != null)
-                {
-                    WriteLine().Write(fieldNameIncludingOwner).Write(" = unchecked((ulong)value").Write(extraNullable ? ".Value);" : ");");
-                }
-                else if ((type.int8 ?? type.int16 ?? type.int32
-                  ?? type.uint8 ?? type.uint16 ?? type.uint32) != null)
-                {
-                    ulong mask = 0;
-                    if ((type.int8 ?? type.uint8) != null) mask = 0xFF;
-                    else if ((type.int16 ?? type.uint16) != null) mask = 0xFFFF;
-                    else if ((type.int32 ?? type.uint32) != null) mask = 0xFFFFFFFF;
-                    mask = ~(mask << byteInWord);
-
-                    WriteLine().Write(fieldNameIncludingOwner).Write(" = (").Write(fieldNameIncludingOwner).Write(" & ").Write(mask)
-                        .Write(") | unchecked(((ulong)(value");
-                    if (extraNullable) Write(".Value");
-                    Write(")");
-                    if (byteInWord != 0) Write(" << ").Write(byteInWord);
-                    Write("));");
+                        WriteLine().Write(fieldNameIncludingOwner).Write(" = (").Write(fieldNameIncludingOwner).Write(" & ").Write(mask)
+                            .Write(") | unchecked(((ulong)(value");
+                        if (extraNullable) Write(".Value");
+                        Write(")");
+                        if (byteInWord != 0) Write(" << ").Write(byteInWord);
+                        Write("));");
+                        break;
+                    default:
+                        WriteLine().Write("throw new global::System.NotImplementedException(); // ").Write(type.Union);
+                        break;
                 }
 
                 //                else if (type.@enum != null && len == 16)
@@ -929,13 +1029,32 @@ namespace CapnProto
                 //                    if (byteInWord != 0) Write(" >> ").Write(byteInWord);
                 //                    Write(";").WriteLine().Write("return *((").Write(type).Write("*)(&tmp));");
                 //                }
-                else
-                {
-                    WriteLine().Write("throw new global::System.NotImplementedException();");
-                }
                 Outdent();
             }
             return Outdent();
+        }
+
+        private void WriteXorDefaultValue(Value defaultValue, int byteInWord)
+        {
+            if (defaultValue == null) return;
+            ulong value; ;
+            switch(defaultValue.Union)
+            {
+                case Value.Unions.@void: value = 0; break;
+                case Value.Unions.@bool: value = defaultValue.@bool.Value ? (ulong)1 : 0; break;
+                case Value.Unions.int8: value = unchecked((ulong)defaultValue.int8.Value); break;
+                case Value.Unions.uint8: value = unchecked((ulong)defaultValue.uint8.Value); break;
+                case Value.Unions.int16: value = unchecked((ulong)defaultValue.int16.Value); break;
+                case Value.Unions.uint16: value = unchecked((ulong)defaultValue.uint16.Value); break;
+                case Value.Unions.int32: value = unchecked((ulong)defaultValue.int32.Value); break;
+                case Value.Unions.uint32: value = unchecked((ulong)defaultValue.uint32.Value); break;
+                case Value.Unions.int64: value = unchecked((ulong)defaultValue.int64.Value); break;
+                case Value.Unions.uint64: value = unchecked((ulong)defaultValue.uint64.Value); break;
+                default:
+                    throw new NotSupportedException("Default value not supported for: " + defaultValue.Union);
+            }
+            if (value != 0)
+                Write(" ^ ").Write(value << byteInWord);
         }
 
         public override CodeWriter DeclareFields(int bodyWords, int pointers)
@@ -956,7 +1075,7 @@ namespace CapnProto
         public override CodeWriter WriteGroup(Schema.Node node, Stack<UnionStub> union)
         {
             var parent = node;
-            while (parent != null && parent.@struct != null && parent.@struct.isGroup)
+            while (parent != null && parent.Union == Schema.Node.Unions.@struct && parent.@struct.isGroup.Value)
             {
                 parent = FindParent(parent);
             }
@@ -977,7 +1096,8 @@ namespace CapnProto
                 if (field.discriminantValue == ushort.MaxValue)
                 {
                     WriteFieldAccessor(node, field, union);
-                } else
+                }
+                else
                 {
                     union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
                     WriteFieldAccessor(node, field, union);
@@ -1012,7 +1132,7 @@ namespace CapnProto
             WriteLine().Write("get");
             Indent();
             int wordIndex = (int)@struct.discriminantOffset / 64, byteInWord = (int)@struct.discriminantOffset % 64;
-            WriteLine().Write("return (").Write(FullyQualifiedName(node)).Write(".Unions)((").Write(@struct.isGroup ? "this.parent" : "this").Write(".")
+            WriteLine().Write("return (").Write(FullyQualifiedName(node)).Write(".Unions)((").Write(@struct.isGroup.Value ? "this.parent" : "this").Write(".")
                 .Write(DataPrefix).Write(wordIndex);
             if (byteInWord != 0) Write(" >> ").Write(byteInWord);
             Write(") & 0xFFFF);");
@@ -1020,12 +1140,17 @@ namespace CapnProto
             WriteLine().Write("set");
             Indent();
             ulong mask = ~((ulong)0xFFFF << byteInWord);
-            WriteLine().Write(@struct.isGroup ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" = (")
-                .Write(@struct.isGroup ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" & ").Write(mask).Write(") | ");
+            WriteLine().Write(@struct.isGroup.Value ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" = (")
+                .Write(@struct.isGroup.Value ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" & ").Write(mask).Write(") | ");
             if (byteInWord == 0) Write("(ulong)value;");
             else Write("((ulong)value << ").Write(byteInWord).Write(");");
             Outdent();
             return Outdent();
+        }
+
+        public override CodeWriter WriteEnumLiteral(Schema.Type type, ushort value)
+        {
+            return Write("(").Write(type).Write(")").Write(value);
         }
     }
 }

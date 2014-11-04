@@ -24,20 +24,19 @@ namespace CapnProto
             return GetSerializer<T>().Deserialize(segment, origin, ctx, pointer);
         }
 
-        [System.Diagnostics.Conditional("DEBUG")]
+        [System.Diagnostics.Conditional("VERBOSE")]
         internal static void Log(string format, params object[] args)
         {
-#if DEBUG
+#if VERBOSE
             var s = string.Format(format, args);
             System.Diagnostics.Debug.WriteLine(s);
-            Console.WriteLine(s);
 #endif
         }
 
-        [System.Diagnostics.Conditional("DEBUG")]
+        [System.Diagnostics.Conditional("VERBOSE")]
         internal static void Log(bool condition, string format, params object[] args)
         {
-#if DEBUG
+#if VERBOSE
             if (condition) Log(format, args);
 #endif
         }

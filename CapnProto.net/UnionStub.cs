@@ -3,6 +3,7 @@ namespace CapnProto
 {
     public struct UnionStub
     {
+        public UnionStub(uint? offset, ushort? value) : this(offset.Value, value.Value) { }
         public UnionStub(uint offset, ushort value)
         {
             this.offset = offset;
