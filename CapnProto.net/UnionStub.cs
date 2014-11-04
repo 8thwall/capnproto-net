@@ -17,11 +17,11 @@ namespace CapnProto
         }
         public int FieldIndex
         {
-            get { return checked((int)(offset / 64)); }
+            get { return checked((int)((offset * 16) / 64)); }
         }
         private int ByteIndex
         {
-            get { return checked((int)(offset % 64)); }
+            get { return checked((int)((offset * 16) % 64)); }
         }
         public ulong Mask
         {

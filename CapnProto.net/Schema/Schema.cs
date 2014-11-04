@@ -190,7 +190,7 @@ namespace CapnProto.Schema
         private static void ConfigureNode(System.Type type, Node node, Dictionary<System.Type, Node> map)
         {
 
-            List<NestedNode> nestedNodes = new List<NestedNode>();
+            var nestedNodes = new List<Node.NestedNode>();
             List<Field> fields = new List<Field>();
 
             node.nestedNodes = nestedNodes;
@@ -220,7 +220,7 @@ namespace CapnProto.Schema
                 Node nested;
                 if (map.TryGetValue(nestedType, out nested))
                 {
-                    nestedNodes.Add(new NestedNode
+                    nestedNodes.Add(new Node.NestedNode
                     {
                         id = nested.id,
                         name = nested.displayName
@@ -244,7 +244,7 @@ namespace CapnProto.Schema
             {
                 var @struct = node.@struct;
                 @struct.discriminantCount = discCount;
-                @struct.discriminantOffset = discOffset;
+                @struct.discriminantOffset = discOffset / 16;
             }
         }
         static Field CreateField(MemberInfo member, ref ushort discCount, ref uint discOffset)
@@ -278,7 +278,7 @@ namespace CapnProto.Schema
                 {
                     slot.offset = checked((uint)fa.Pointer);
                 }
-                var ordinal = field.get_ordinalGroup;
+                var ordinal = field.ordinal;
                 if (fa.Number >= 0)
                 {
                     ordinal.Union = Field.ordinalGroup.Unions.@explicit;
@@ -460,6 +460,7 @@ namespace CapnProto.Schema
 
         internal static void ComputeSpace(CodeWriter writer, Node node, ref int bodyWords, ref int pointerWords)
         {
+
             //if(node.@struct.dataWordCount != 0 || node.@struct.pointerCount != 0)
             //{
             //    if (node.@struct.dataWordCount > bodyWords)
@@ -471,30 +472,33 @@ namespace CapnProto.Schema
             int bodyEnd = 0;
             if (node.@struct.discriminantCount != 0)
             {
-                bodyEnd = (int)(node.@struct.discriminantOffset + 16);
+                bodyEnd = (int)((node.@struct.discriminantOffset + 1) * 16);
             }
-            foreach (var field in node.@struct.@fields)
+            if (node.@struct.fields != null)
             {
-                if (field.Union == Field.Unions.slot)
+                foreach (var field in node.@struct.@fields)
                 {
-                    var slot = field.slot;
-                    int len = slot.type.GetFieldLength();
+                    if (field.Union == Field.Unions.slot)
+                    {
+                        var slot = field.slot;
+                        int len = slot.type.GetFieldLength();
 
-                    var relatedType = slot.type.Union == Type.Unions.@struct ? writer.Lookup(slot.type.@struct.typeId) : null;
-                    if (relatedType != null && relatedType.IsGroup())
-                    {
-                        ComputeSpace(writer, relatedType, ref bodyWords, ref pointerWords);
-                    }
-                    else if (len == 0) { }
-                    else if (len == Type.LEN_POINTER)
-                    {
-                        int end = checked((int)slot.offset + 1);
-                        if (end > pointerWords) pointerWords = end;
-                    }
-                    else
-                    {
-                        int end = checked(len * (int)(slot.offset + 1));
-                        if (end > bodyEnd) bodyEnd = end;
+                        var relatedType = slot.type.Union == Type.Unions.@struct ? writer.Lookup(slot.type.@struct.typeId) : null;
+                        if (relatedType != null && relatedType.IsGroup())
+                        {
+                            ComputeSpace(writer, relatedType, ref bodyWords, ref pointerWords);
+                        }
+                        else if (len == 0) { }
+                        else if (len == Type.LEN_POINTER)
+                        {
+                            int end = checked((int)slot.offset + 1);
+                            if (end > pointerWords) pointerWords = end;
+                        }
+                        else
+                        {
+                            int end = checked(len * (int)(slot.offset + 1));
+                            if (end > bodyEnd) bodyEnd = end;
+                        }
                     }
                 }
             }

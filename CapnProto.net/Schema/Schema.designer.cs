@@ -219,7 +219,7 @@ namespace CapnProto.Schema
             if (raw[1] != 0)
             {
                 // Node.nestedNodes
-                this.ѧ_p_1 = ctx.Reader.ReadStructList<global::CapnProto.Schema.NestedNode>(ctx, segment, origin + 2, raw[1]);
+                this.ѧ_p_1 = ctx.Reader.ReadStructList<global::CapnProto.Schema.Node.NestedNode>(ctx, segment, origin + 2, raw[1]);
             }
             if (raw[2] != 0)
             {
@@ -300,11 +300,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(4)]
-        public global::System.Collections.Generic.List<global::CapnProto.Schema.NestedNode> nestedNodes
+        public global::System.Collections.Generic.List<global::CapnProto.Schema.Node.NestedNode> nestedNodes
         {
             get
             {
-                return (global::System.Collections.Generic.List<global::CapnProto.Schema.NestedNode>)this.ѧ_p_1;
+                return (global::System.Collections.Generic.List<global::CapnProto.Schema.Node.NestedNode>)this.ѧ_p_1;
             }
             set
             {
@@ -933,63 +933,65 @@ namespace CapnProto.Schema
         // body words: 5; pointers: 5
         private ulong ѧ_w_0, ѧ_w_1, ѧ_w_2, ѧ_w_3, ѧ_w_4;
         private object ѧ_p_0, ѧ_p_1, ѧ_p_2, ѧ_p_3, ѧ_p_4;
+
+        [global::CapnProto.Id(0xdebf55bbfa0fc242)]
+        public partial class NestedNode : global::CapnProto.IBlittable
+        {
+            static partial void OnCreate(ref global::CapnProto.Schema.Node.NestedNode obj);
+            internal static global::CapnProto.Schema.Node.NestedNode ѧ_ctor()
+            {
+                global::CapnProto.Schema.Node.NestedNode tmp = null;
+                OnCreate(ref tmp);
+                // if you are providing custom construction, please also provide a private
+                // parameterless constructor (it can just throw an exception if you like)
+                return tmp ?? new global::CapnProto.Schema.Node.NestedNode();
+            }
+            unsafe void global::CapnProto.IBlittable.Deserialize(int segment, int origin, global::CapnProto.DeserializationContext ctx, ulong pointer)
+            {
+                ulong* raw = stackalloc ulong[1];
+                ctx.Reader.ReadData(segment, origin, pointer, raw, 1);
+                ѧ_w_0 = raw[0];
+                origin = ctx.Reader.ReadPointers(segment, origin, pointer, raw, 1);
+                if (raw[0] != 0)
+                {
+                    // NestedNode.name
+                    this.ѧ_p_0 = ctx.Reader.ReadStringFromPointer(segment, origin + 1, raw[0]);
+                }
+            }
+            static NestedNode()
+            {
+                global::CapnProto.TypeModel.AssertLittleEndian();
+            }
+            [global::CapnProto.FieldAttribute(0)]
+            public string name
+            {
+                get
+                {
+                    return (string)this.ѧ_p_0;
+                }
+                set
+                {
+                    this.ѧ_p_0 = value;
+                }
+            }
+            [global::CapnProto.FieldAttribute(1)]
+            public ulong id
+            {
+                get
+                {
+                    return unchecked((ulong)this.ѧ_w_0);
+                }
+                set
+                {
+                    this.ѧ_w_0 = value;
+                }
+            }
+            // body words: 1; pointers: 1
+            private ulong ѧ_w_0;
+            private object ѧ_p_0;
+        }
     }
-    [global::CapnProto.Id(0xdebf55bbfa0fc242)]
-    public partial class NestedNode : global::CapnProto.IBlittable
-    {
-        static partial void OnCreate(ref global::CapnProto.Schema.NestedNode obj);
-        internal static global::CapnProto.Schema.NestedNode ѧ_ctor()
-        {
-            global::CapnProto.Schema.NestedNode tmp = null;
-            OnCreate(ref tmp);
-            // if you are providing custom construction, please also provide a private
-            // parameterless constructor (it can just throw an exception if you like)
-            return tmp ?? new global::CapnProto.Schema.NestedNode();
-        }
-        unsafe void global::CapnProto.IBlittable.Deserialize(int segment, int origin, global::CapnProto.DeserializationContext ctx, ulong pointer)
-        {
-            ulong* raw = stackalloc ulong[1];
-            ctx.Reader.ReadData(segment, origin, pointer, raw, 1);
-            ѧ_w_0 = raw[0];
-            origin = ctx.Reader.ReadPointers(segment, origin, pointer, raw, 1);
-            if (raw[0] != 0)
-            {
-                // NestedNode.name
-                this.ѧ_p_0 = ctx.Reader.ReadStringFromPointer(segment, origin + 1, raw[0]);
-            }
-        }
-        static NestedNode()
-        {
-            global::CapnProto.TypeModel.AssertLittleEndian();
-        }
-        [global::CapnProto.FieldAttribute(0)]
-        public string name
-        {
-            get
-            {
-                return (string)this.ѧ_p_0;
-            }
-            set
-            {
-                this.ѧ_p_0 = value;
-            }
-        }
-        [global::CapnProto.FieldAttribute(1)]
-        public ulong id
-        {
-            get
-            {
-                return unchecked((ulong)this.ѧ_w_0);
-            }
-            set
-            {
-                this.ѧ_w_0 = value;
-            }
-        }
-        // body words: 1; pointers: 1
-        private ulong ѧ_w_0;
-        private object ѧ_p_0;
-    }
+    
     [global::CapnProto.Id(0xf1c8950dab257542)]
     public partial class Annotation : global::CapnProto.IBlittable
     {
@@ -1316,7 +1318,7 @@ namespace CapnProto.Schema
                 }
             }
         }
-        public global::CapnProto.Schema.Field.ordinalGroup get_ordinalGroup
+        public global::CapnProto.Schema.Field.ordinalGroup ordinal
         {
             get
             {
@@ -2191,7 +2193,7 @@ namespace CapnProto.Schema
             if (type == typeof(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile)) return ѧ_f_cfea0eb02e810062 ?? (ѧ_f_cfea0eb02e810062 = new ѧ_s_cfea0eb02e810062(this));
             if (type == typeof(global::CapnProto.Schema.Node)) return ѧ_f_e682ab4cf923a417 ?? (ѧ_f_e682ab4cf923a417 = new ѧ_s_e682ab4cf923a417(this));
             if (type == typeof(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import)) return ѧ_f_ae504193122357e5 ?? (ѧ_f_ae504193122357e5 = new ѧ_s_ae504193122357e5(this));
-            if (type == typeof(global::CapnProto.Schema.NestedNode)) return ѧ_f_debf55bbfa0fc242 ?? (ѧ_f_debf55bbfa0fc242 = new ѧ_s_debf55bbfa0fc242(this));
+            if (type == typeof(global::CapnProto.Schema.Node.NestedNode)) return ѧ_f_debf55bbfa0fc242 ?? (ѧ_f_debf55bbfa0fc242 = new ѧ_s_debf55bbfa0fc242(this));
             if (type == typeof(global::CapnProto.Schema.Annotation)) return ѧ_f_f1c8950dab257542 ?? (ѧ_f_f1c8950dab257542 = new ѧ_s_f1c8950dab257542(this));
             if (type == typeof(global::CapnProto.Schema.Field)) return ѧ_f_9aad50a41f4af45f ?? (ѧ_f_9aad50a41f4af45f = new ѧ_s_9aad50a41f4af45f(this));
             if (type == typeof(global::CapnProto.Schema.Enumerant)) return ѧ_f_978a7cebdc549a4d ?? (ѧ_f_978a7cebdc549a4d = new ѧ_s_978a7cebdc549a4d(this));
@@ -2268,7 +2270,7 @@ namespace CapnProto.Schema
                 return ѧ_r_ae504193122357e5(segment, origin, ctx, pointer);
             }
         }
-        class ѧ_s_debf55bbfa0fc242 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.NestedNode>
+        class ѧ_s_debf55bbfa0fc242 : global::CapnProto.Schema.SchemaSerializer.ѧ_SerializerBase, global::CapnProto.ITypeSerializer<global::CapnProto.Schema.Node.NestedNode>
         {
             private readonly global::CapnProto.TypeModel model;
             internal ѧ_s_debf55bbfa0fc242(global::CapnProto.TypeModel model)
@@ -2280,7 +2282,7 @@ namespace CapnProto.Schema
             {
                 return ѧ_r_debf55bbfa0fc242(segment, origin, ctx, pointer);
             }
-            public global::CapnProto.Schema.NestedNode Deserialize(int segment, int origin, global::CapnProto.DeserializationContext ctx, ulong pointer)
+            public global::CapnProto.Schema.Node.NestedNode Deserialize(int segment, int origin, global::CapnProto.DeserializationContext ctx, ulong pointer)
             {
                 return ѧ_r_debf55bbfa0fc242(segment, origin, ctx, pointer);
             }
@@ -2421,11 +2423,11 @@ namespace CapnProto.Schema
 #pragma warning restore 0618
                 return obj;
             }
-            internal static global::CapnProto.Schema.NestedNode ѧ_r_debf55bbfa0fc242(int segment, int origin, global::CapnProto.DeserializationContext ctx, ulong pointer)
+            internal static global::CapnProto.Schema.Node.NestedNode ѧ_r_debf55bbfa0fc242(int segment, int origin, global::CapnProto.DeserializationContext ctx, ulong pointer)
             {
-                var obj = global::CapnProto.Schema.NestedNode.ѧ_ctor();
+                var obj = global::CapnProto.Schema.Node.NestedNode.ѧ_ctor();
 #pragma warning disable 0618
-                global::CapnProto.TypeSerializer.Deserialize<global::CapnProto.Schema.NestedNode>(ref obj, segment, origin, ctx, pointer);
+                global::CapnProto.TypeSerializer.Deserialize<global::CapnProto.Schema.Node.NestedNode>(ref obj, segment, origin, ctx, pointer);
 #pragma warning restore 0618
                 return obj;
             }

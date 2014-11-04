@@ -5,7 +5,7 @@ using System.Text;
 using CapnProto.Schema;
 using System;
 using System.ComponentModel;
-
+using System.Linq;
 namespace CapnProto
 {
     public class CSharpCodeWriter : CodeWriter
@@ -244,32 +244,52 @@ namespace CapnProto
 
         private static void CascadePointers(CodeWriter writer, Schema.Node node, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, Stack<UnionStub> union)
         {
-            foreach (var field in node.@struct.fields)
+            if (node.@struct.fields != null)
             {
-                var slot = field.slot;
-                if (slot.type == null) continue;
-                int len = slot.type.GetFieldLength();
-
-                if (len == Schema.Type.LEN_POINTER)
+                foreach (var field in node.@struct.fields)
                 {
                     bool isFiltered = field.discriminantValue != ushort.MaxValue;
-                    if (isFiltered) union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
-                    List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>> fields;
-                    if (!ptrFields.TryGetValue((int)slot.offset, out fields))
+                    switch (field.Union)
                     {
-                        ptrFields.Add((int)slot.offset, fields = new List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>());
-                    }
-                    fields.Add(Tuple.Create(node, field, Clone(union)));
+                        case Field.Unions.group:
+                            {
+                                var found = writer.Lookup(field.group.typeId);
+                                if (found != null)
+                                {
+                                    if (isFiltered) union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
+                                    CascadePointers(writer, found, ptrFields, union);
+                                    if (isFiltered) union.Pop();
+                                }
+                                break;
+                            }
+                        case Field.Unions.slot:
+                            {
+                                var slot = field.slot;
+                                if (slot.type == null) continue;
+                                int len = slot.type.GetFieldLength();
 
-                    if (slot.type.Union == Schema.Type.Unions.@struct)
-                    {
-                        var found = writer.Lookup(slot.type.@struct.typeId);
-                        if (found != null && found.IsGroup())
-                        {
-                            CascadePointers(writer, found, ptrFields, union);
-                        }
+                                if (len == Schema.Type.LEN_POINTER)
+                                {
+                                    if (isFiltered) union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
+                                    List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>> fields;
+                                    if (!ptrFields.TryGetValue((int)slot.offset, out fields))
+                                    {
+                                        ptrFields.Add((int)slot.offset, fields = new List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>());
+                                    }
+                                    fields.Add(Tuple.Create(node, field, Clone(union)));
+                                    if (slot.type.Union == Schema.Type.Unions.@struct)
+                                    {
+                                        var found = writer.Lookup(slot.type.@struct.typeId);
+                                        if (found != null && found.IsGroup())
+                                        {
+                                            CascadePointers(writer, found, ptrFields, union);
+                                        }
+                                    }
+                                    if (isFiltered) union.Pop();
+                                }
+                                break;
+                            }
                     }
-                    if (isFiltered) union.Pop();
                 }
             }
         }
@@ -791,7 +811,7 @@ namespace CapnProto
             {
                 return WriteLine().Write("#warning no type for: " + field.name);
             }
-            var ordinal = field.get_ordinalGroup;
+            var ordinal = field.ordinal;
             var slot = field.slot;
             var type = slot.type;
             var len = type.GetFieldLength();
@@ -1082,10 +1102,6 @@ namespace CapnProto
 
         public override CodeWriter WriteGroup(Schema.Node node, Stack<UnionStub> union)
         {
-            if(LocalName(node) == "structGroup")
-            {
-                System.Diagnostics.Debugger.Break();
-            }
             var parent = node;
             while (parent != null && parent.IsGroup())
             {
@@ -1103,17 +1119,20 @@ namespace CapnProto
             Indent();
             WriteLine().Write("this.parent = parent;");
             Outdent();
-            foreach (var field in node.@struct.fields)
+            if (node.@struct.fields != null)
             {
-                if (field.discriminantValue == ushort.MaxValue)
+                foreach (var field in node.@struct.fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name))
                 {
-                    WriteFieldAccessor(node, field, union);
-                }
-                else
-                {
-                    union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
-                    WriteFieldAccessor(node, field, union);
-                    union.Pop();
+                    if (field.discriminantValue == ushort.MaxValue)
+                    {
+                        WriteFieldAccessor(node, field, union);
+                    }
+                    else
+                    {
+                        union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
+                        WriteFieldAccessor(node, field, union);
+                        union.Pop();
+                    }
                 }
             }
             if (node.@struct.discriminantCount != 0)
@@ -1132,10 +1151,13 @@ namespace CapnProto
             if (union.Count != 0) Write("new ");
             Write("enum Unions");
             Indent();
-            foreach (var field in @struct.fields)
+            if (@struct.fields != null)
             {
-                if (field.discriminantValue != ushort.MaxValue)
-                    WriteLine().Write(Escape(field.name)).Write(" = ").Write(field.discriminantValue).Write(",");
+                foreach (var field in @struct.fields)
+                {
+                    if (field.discriminantValue != ushort.MaxValue)
+                        WriteLine().Write(Escape(field.name)).Write(" = ").Write(field.discriminantValue).Write(",");
+                }
             }
             Outdent();
 
@@ -1143,7 +1165,8 @@ namespace CapnProto
             Indent();
             WriteLine().Write("get");
             Indent();
-            int wordIndex = (int)@struct.discriminantOffset / 64, byteInWord = (int)@struct.discriminantOffset % 64;
+            var offset = (int)(@struct.discriminantOffset * 16);
+            int wordIndex = offset / 64, byteInWord = offset % 64;
             WriteLine().Write("return (").Write(FullyQualifiedName(node)).Write(".Unions)((").Write(node.IsGroup() ? "this.parent" : "this").Write(".")
                 .Write(DataPrefix).Write(wordIndex);
             if (byteInWord != 0) Write(" >> ").Write(byteInWord);

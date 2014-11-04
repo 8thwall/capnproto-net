@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using CapnProto.Schema;
-
+using System.Linq;
 namespace CapnProto
 {
     public abstract class CodeWriter
@@ -133,7 +133,7 @@ namespace CapnProto
 
         public virtual CodeWriter Write(Schema.Type type, Value value)
         {
-            if (value == null) Write("null");
+            if (value == null) return Write("null");
             switch(value.Union)
             {
                 case Value.Unions.@bool: return Write(value.@bool.Value);
@@ -277,43 +277,43 @@ namespace CapnProto
             Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
             HashSet<ulong> nestedDone = null;
 
-            foreach (var field in fields)
+            if (fields != null)
             {
-                if (node.displayName.EndsWith("ordinal"))
-                    System.Diagnostics.Debugger.Break();
-
-                bool pushed = false;
-                if (field.discriminantValue != ushort.MaxValue)
+                foreach (var field in fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name))
                 {
-                    // write with union-based restructions
-                    union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
-                    pushed = true;
-                }
-
-                WriteFieldAccessor(node, field, union);
-
-                // declare the struct too, if we need to - noting that it includes union-context
-                Node child = null;
-                switch(field.Union)
-                {
-                    case Field.Unions.group:
-                        child = Lookup(field.group.typeId);
-                        break;
-                    case Field.Unions.slot:
-                        if (field.slot.type.Union == Schema.Type.Unions.@struct)
-                            child = Lookup(field.slot.type.@struct.typeId);
-                        break;
-                }
-                if(child != null && child.IsGroup())
-                {
-                    if (nestedDone == null) nestedDone = new HashSet<ulong>();
-                    if (nestedDone.Add(child.id))
+                    bool pushed = false;
+                    if (field.discriminantValue != ushort.MaxValue)
                     {
-                        WriteGroup(child, union);
+                        // write with union-based restructions
+                        union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
+                        pushed = true;
                     }
-                }
 
-                if(pushed) union.Pop();
+                    WriteFieldAccessor(node, field, union);
+
+                    // declare the struct too, if we need to - noting that it includes union-context
+                    Node child = null;
+                    switch (field.Union)
+                    {
+                        case Field.Unions.group:
+                            child = Lookup(field.group.typeId);
+                            break;
+                        case Field.Unions.slot:
+                            if (field.slot.type.Union == Schema.Type.Unions.@struct)
+                                child = Lookup(field.slot.type.@struct.typeId);
+                            break;
+                    }
+                    if (child != null && child.IsGroup())
+                    {
+                        if (nestedDone == null) nestedDone = new HashSet<ulong>();
+                        if (nestedDone.Add(child.id))
+                        {
+                            WriteGroup(child, union);
+                        }
+                    }
+
+                    if (pushed) union.Pop();
+                }
             }
             //if (node.nestedNodes != null)
             //{

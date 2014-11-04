@@ -55,13 +55,6 @@
     <Compile Include="IBlittable.cs" />
     <Compile Include="PendingPointer.cs" />
     <Compile Include="PointerType.cs" />
-    <Compile Include="Schema.cs" />
-    <Compile Include="Schema.Definition.cs">
-      <DependentUpon>Schema.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Schema.Designer.cs">
-      <DependentUpon>Schema.cs</DependentUpon>
-    </Compile>
     <Compile Include="Schema\Schema.cs" />
     <Compile Include="Schema\Schema.designer.cs" />
     <Compile Include="TypeSerializer.cs" />
