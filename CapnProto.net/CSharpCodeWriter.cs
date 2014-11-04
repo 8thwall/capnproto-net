@@ -580,7 +580,15 @@ namespace CapnProto
             string name = node.displayName;
             int prefixLen = (int)node.displayNamePrefixLength;
             if (prefixLen != 0) name = name.Substring(prefixLen);
-            return LocalName(name);
+
+            if (node.Union == Node.Unions.@struct && node.@struct.isGroup.Value)
+            {
+                return LocalName(name + "Group");
+            }
+            else
+            {
+                return LocalName(name);
+            }
         }
         public override CodeWriter WriteCustomReaderMethod(Schema.Node node)
         {
@@ -776,7 +784,7 @@ namespace CapnProto
                     return WriteLine().Write("#warning no type for: " + field.name);
                 }
 
-                return WriteGroupAccessor(parent, found, LocalName(field.name), union.Count != 0);
+                return WriteGroupAccessor(parent, found, field.name, union.Count != 0);
             }
 
             if (field.slot.type == null)
@@ -809,7 +817,7 @@ namespace CapnProto
             var grp = (len == Schema.Type.LEN_POINTER && type.Union == Schema.Type.Unions.@struct) ? Lookup(type.@struct.typeId) : null;
             if (grp != null && grp.Union == Schema.Node.Unions.@struct && grp.@struct.isGroup.Value)
             {
-                return WriteGroupAccessor(parent, grp, LocalName(field.name), extraNullable);
+                return WriteGroupAccessor(parent, grp, field.name, extraNullable);
             }
             if(slot.hadExplicitDefault.Value)
             {

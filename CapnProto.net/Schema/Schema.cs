@@ -450,6 +450,14 @@ namespace CapnProto.Schema
 
         internal static void ComputeSpace(CodeWriter writer, Node node, ref int bodyWords, ref int pointerWords)
         {
+            //if(node.@struct.dataWordCount != 0 || node.@struct.pointerCount != 0)
+            //{
+            //    if (node.@struct.dataWordCount > bodyWords)
+            //        bodyWords = node.@struct.dataWordCount.Value;
+            //    if (node.@struct.pointerCount > pointerWords)
+            //        pointerWords = node.@struct.pointerCount.Value;
+            //    return;
+            //}
             int bodyEnd = 0;
             if (node.@struct.discriminantCount != 0)
             {
@@ -478,6 +486,13 @@ namespace CapnProto.Schema
                         int end = checked(len * (int)(slot.offset + 1));
                         if (end > bodyEnd) bodyEnd = end;
                     }
+                }
+            }
+            foreach (var child in writer.NodesByParentScope(node.id))
+            {
+                if(child.Union == Node.Unions.@struct && child.@struct.isGroup.Value)
+                {
+                    ComputeSpace(writer, child, ref bodyWords, ref pointerWords);
                 }
             }
             var localBodyWords = (bodyEnd + 63) / 64;

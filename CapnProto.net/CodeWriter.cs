@@ -26,6 +26,11 @@ namespace CapnProto
         protected Schema.Node FindParent(Schema.Node node)
         {
             if (node == null || node.id == 0) return null;
+            if(node.scopeId != 0 && node.scopeId != node.id)
+            {
+                var tmp = Lookup(node.scopeId);
+                if (tmp != null) return tmp;
+            }
             foreach (var pair in map)
             {
                 var nested = pair.Value.nestedNodes;
@@ -206,19 +211,41 @@ namespace CapnProto
         public virtual CodeWriter WriteNestedTypes(Schema.Node node, Stack<UnionStub> union)
         {
             var children = node.nestedNodes;
+            var seen = new HashSet<ulong>();
             if (children != null)
             {
                 foreach (var child in children)
                 {
-                    var found = Lookup(child.id);
-                    if (found != null)
+                    if (seen.Add(child.id))
                     {
-                        WriteNode(found, union);
+                        var found = Lookup(child.id);
+                        if (found != null)
+                        {
+                            WriteNode(found, union);
+                        }
+                        else WriteError("not found: " + child.id + " / " + child.name);
                     }
-                    else WriteError("not found: " + child.id + " / " + child.name);
+                }
+            }
+            foreach (var child in NodesByParentScope(node.id))
+            {
+                if (child.Union == Node.Unions.@struct
+                    && child.@struct.isGroup.Value && seen.Add(child.id))
+                {
+                    WriteGroup(child, union);
                 }
             }
             return this;
+        }
+        public IEnumerable<Node> NodesByParentScope(ulong parentId)
+        {
+            if(parentId != 0)
+            {
+                foreach(var child in map.Values)
+                {
+                    if (child.scopeId == parentId) yield return child;
+                }
+            }
         }
         public virtual CodeWriter WriteNode(Schema.Node node, Stack<UnionStub> union)
         {
@@ -297,7 +324,7 @@ namespace CapnProto
                         if (found != null && found.Union == Schema.Node.Unions.@struct && found.@struct.isGroup.Value)
                         {
                             WriteGroup(found, union);
-                            WriteGroupAccessor(node, found, "get_" + LocalName(found.displayName), false);
+                            WriteGroupAccessor(node, found, LocalName(found.displayName, false), false);
                         }
                     }
                 }
