@@ -147,7 +147,7 @@ namespace CapnProto
                 case Value.Unions.uint32: return Write(value.uint32.Value);
                 case Value.Unions.int64: return Write(value.int64.Value);
                 case Value.Unions.uint64: return Write(value.uint64.Value);
-                case Value.Unions.Text: return WriteLiteral(value.Text);
+                case Value.Unions.text: return WriteLiteral(value.text);
                 case Value.Unions.@enum: return WriteEnumLiteral(type, value.@enum.Value);
             }
             throw new NotSupportedException("Cannot write value: " + value.Union);
@@ -227,14 +227,6 @@ namespace CapnProto
                     }
                 }
             }
-            foreach (var child in NodesByParentScope(node.id))
-            {
-                if (child.Union == Node.Unions.@struct
-                    && child.@struct.isGroup.Value && seen.Add(child.id))
-                {
-                    WriteGroup(child, union);
-                }
-            }
             return this;
         }
         public IEnumerable<Node> NodesByParentScope(ulong parentId)
@@ -268,12 +260,10 @@ namespace CapnProto
 
         }
         public void WriteStruct(Schema.Node node, Stack<UnionStub> union)
-        {
+        {            
+            if (node.IsGroup()) return;
             if (node.Union != Schema.Node.Unions.@struct) return;
             var @struct = node.@struct;
-
-            if (@struct.isGroup.Value) return;
-
             // the nested type does not inherit the unions from the caller
             if (union.Count != 0)
             {
@@ -286,49 +276,60 @@ namespace CapnProto
             int bodyWords = 0, pointerWords = 0;
             Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
             HashSet<ulong> nestedDone = null;
+
             foreach (var field in fields)
             {
+                if (node.displayName.EndsWith("ordinal"))
+                    System.Diagnostics.Debugger.Break();
+
+                bool pushed = false;
                 if (field.discriminantValue != ushort.MaxValue)
                 {
                     // write with union-based restructions
                     union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
-                    WriteFieldAccessor(node, field, union);
+                    pushed = true;
+                }
 
-                    if (field.slot.type != null && field.slot.type.Union == Schema.Type.Unions.@struct)
-                    {
-                        if (nestedDone == null) nestedDone = new HashSet<ulong>();
-                        if (nestedDone.Add(field.slot.type.@struct.typeId.Value))
-                        {
-                            var found = Lookup(field.slot.type.@struct.typeId);
-                            if (found != null && found.Union == Schema.Node.Unions.@struct && found.@struct.isGroup.Value)
-                            {
-                                WriteGroup(found, union);
-                            }
-                        }
-                    }
-                    union.Pop();
-                }
-                else
+                WriteFieldAccessor(node, field, union);
+
+                // declare the struct too, if we need to - noting that it includes union-context
+                Node child = null;
+                switch(field.Union)
                 {
-                    // just write the damned field
-                    WriteFieldAccessor(node, field, union);
+                    case Field.Unions.group:
+                        child = Lookup(field.group.typeId);
+                        break;
+                    case Field.Unions.slot:
+                        if (field.slot.type.Union == Schema.Type.Unions.@struct)
+                            child = Lookup(field.slot.type.@struct.typeId);
+                        break;
                 }
-            }
-            if (node.nestedNodes != null)
-            {
-                foreach (var nestedNode in node.nestedNodes)
+                if(child != null && child.IsGroup())
                 {
-                    if (nestedDone == null || !nestedDone.Contains(nestedNode.id))
+                    if (nestedDone == null) nestedDone = new HashSet<ulong>();
+                    if (nestedDone.Add(child.id))
                     {
-                        var found = Lookup(nestedNode.id);
-                        if (found != null && found.Union == Schema.Node.Unions.@struct && found.@struct.isGroup.Value)
-                        {
-                            WriteGroup(found, union);
-                            WriteGroupAccessor(node, found, LocalName(found.displayName, false), false);
-                        }
+                        WriteGroup(child, union);
                     }
                 }
+
+                if(pushed) union.Pop();
             }
+            //if (node.nestedNodes != null)
+            //{
+            //    foreach (var nestedNode in node.nestedNodes)
+            //    {
+            //        if (nestedDone == null || !nestedDone.Contains(nestedNode.id))
+            //        {
+            //            var found = Lookup(nestedNode.id);
+            //            if (found != null && found.IsGroup())
+            //            {
+            //                WriteGroup(found, union);
+            //                WriteGroupAccessor(node, found, LocalName(found.displayName, false), false);
+            //            }
+            //        }
+            //    }
+            //}
             if (@struct.discriminantCount != 0)
             {
                 WriteDiscriminant(node, union);

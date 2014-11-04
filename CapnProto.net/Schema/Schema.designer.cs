@@ -2056,7 +2056,7 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(12)]
-        public string Text
+        public string text
         {
             get
             {
@@ -2159,7 +2159,7 @@ namespace CapnProto.Schema
             uint64 = 9,
             float32 = 10,
             float64 = 11,
-            Text = 12,
+            text = 12,
             data = 13,
             list = 14,
             @enum = 15,

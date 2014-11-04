@@ -44,9 +44,19 @@ namespace CapnProto.Schema
             return 0;
         }
     }
-
+    partial class Field
+    {
+        public override string ToString()
+        {
+            return name;
+        }
+    }
     partial class Node
     {
+        public bool IsGroup()
+        {
+            return Union == Unions.@struct && @struct.isGroup.Value;
+        }
         public override string ToString()
         {
             return id == 0 ? displayName : (id + ": " + displayName);
@@ -410,7 +420,7 @@ namespace CapnProto.Schema
                 {
                     throw new InvalidOperationException("Duplicate id: " + node.id + " / " + node.UniqueName() + " on " + node.displayName);
                 }
-                if (node.Union == Node.Unions.@struct && !node.@struct.isGroup.Value)
+                if (node.Union == Node.Unions.@struct && !node.IsGroup())
                 {
                     generateSerializers.Add(node);
                     fieldNames.Add(CodeWriter.PrivatePrefix + "f_" + node.UniqueName());
@@ -471,7 +481,7 @@ namespace CapnProto.Schema
                     int len = slot.type.GetFieldLength();
 
                     var relatedType = slot.type.Union == Type.Unions.@struct ? writer.Lookup(slot.type.@struct.typeId) : null;
-                    if (relatedType != null && relatedType.Union == Node.Unions.@struct && relatedType.@struct.isGroup.Value)
+                    if (relatedType != null && relatedType.IsGroup())
                     {
                         ComputeSpace(writer, relatedType, ref bodyWords, ref pointerWords);
                     }
@@ -490,7 +500,7 @@ namespace CapnProto.Schema
             }
             foreach (var child in writer.NodesByParentScope(node.id))
             {
-                if(child.Union == Node.Unions.@struct && child.@struct.isGroup.Value)
+                if(child.IsGroup())
                 {
                     ComputeSpace(writer, child, ref bodyWords, ref pointerWords);
                 }

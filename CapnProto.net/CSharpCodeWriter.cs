@@ -224,7 +224,7 @@ namespace CapnProto
                     {
                         Write("null; #error type not found: ").Write(elType.@struct.typeId);
                     }
-                    else if (found.Union != Schema.Node.Unions.@struct || found.@struct.isGroup.Value)
+                    else if (found.Union != Schema.Node.Unions.@struct || found.IsGroup())
                     {
                         Write("null; #error invalid type for list: ").Write(found.displayName);
                     }
@@ -264,7 +264,7 @@ namespace CapnProto
                     if (slot.type.Union == Schema.Type.Unions.@struct)
                     {
                         var found = writer.Lookup(slot.type.@struct.typeId);
-                        if (found != null && found.Union == Schema.Node.Unions.@struct && found.@struct.isGroup.Value)
+                        if (found != null && found.IsGroup())
                         {
                             CascadePointers(writer, found, ptrFields, union);
                         }
@@ -297,7 +297,7 @@ namespace CapnProto
                             continue;
                         }
 
-                        if (found.@struct.isGroup.Value) continue; // group data is included separately at the correct locations
+                        if (found.IsGroup()) continue; // group data is included separately at the correct locations
                     }
                     WriteLine().Write("// ").Write(declaring.displayName).Write(".").Write(field.name).WriteLine();
                     if (union.Count != 0)
@@ -581,7 +581,7 @@ namespace CapnProto
             int prefixLen = (int)node.displayNamePrefixLength;
             if (prefixLen != 0) name = name.Substring(prefixLen);
 
-            if (node.Union == Node.Unions.@struct && node.@struct.isGroup.Value)
+            if (node.IsGroup())
             {
                 return LocalName(name + "Group");
             }
@@ -688,7 +688,7 @@ namespace CapnProto
                         case Schema.Node.Unions.@enum:
                             return FullyQualifiedName(node) + "?";
                         case Schema.Node.Unions.@struct:
-                            if (node.@struct.isGroup.Value) return FullyQualifiedName(node) + "?";
+                            if (node.IsGroup()) return FullyQualifiedName(node) + "?";
                             break;
                     }
                 }
@@ -764,7 +764,7 @@ namespace CapnProto
         }
         public override CodeWriter WriteGroupAccessor(Schema.Node parent, Schema.Node child, string name, bool extraNullable)
         {
-            string fieldOwner = parent.@struct.isGroup.Value ? "this.parent" : "this";
+            string fieldOwner = parent.IsGroup() ? "this.parent" : "this";
             BeginProperty(child, name, extraNullable);
             WriteLine().Write("get");
             Indent();
@@ -774,7 +774,7 @@ namespace CapnProto
         }
         public override CodeWriter WriteFieldAccessor(Schema.Node parent, Schema.Field field, Stack<UnionStub> union)
         {
-            string fieldOwner = parent.@struct.isGroup.Value ? "this.parent" : "this";
+            string fieldOwner = parent.IsGroup() ? "this.parent" : "this";
 
             if(field.Union == Field.Unions.group)
             {
@@ -815,7 +815,7 @@ namespace CapnProto
             
             bool extraNullable = union.Count != 0 && type.Union != Schema.Type.Unions.@struct;
             var grp = (len == Schema.Type.LEN_POINTER && type.Union == Schema.Type.Unions.@struct) ? Lookup(type.@struct.typeId) : null;
-            if (grp != null && grp.Union == Schema.Node.Unions.@struct && grp.@struct.isGroup.Value)
+            if (grp != null && grp.IsGroup())
             {
                 return WriteGroupAccessor(parent, grp, field.name, extraNullable);
             }
@@ -1082,8 +1082,12 @@ namespace CapnProto
 
         public override CodeWriter WriteGroup(Schema.Node node, Stack<UnionStub> union)
         {
+            if(LocalName(node) == "structGroup")
+            {
+                System.Diagnostics.Debugger.Break();
+            }
             var parent = node;
-            while (parent != null && parent.Union == Schema.Node.Unions.@struct && parent.@struct.isGroup.Value)
+            while (parent != null && parent.IsGroup())
             {
                 parent = FindParent(parent);
             }
@@ -1140,7 +1144,7 @@ namespace CapnProto
             WriteLine().Write("get");
             Indent();
             int wordIndex = (int)@struct.discriminantOffset / 64, byteInWord = (int)@struct.discriminantOffset % 64;
-            WriteLine().Write("return (").Write(FullyQualifiedName(node)).Write(".Unions)((").Write(@struct.isGroup.Value ? "this.parent" : "this").Write(".")
+            WriteLine().Write("return (").Write(FullyQualifiedName(node)).Write(".Unions)((").Write(node.IsGroup() ? "this.parent" : "this").Write(".")
                 .Write(DataPrefix).Write(wordIndex);
             if (byteInWord != 0) Write(" >> ").Write(byteInWord);
             Write(") & 0xFFFF);");
@@ -1148,11 +1152,27 @@ namespace CapnProto
             WriteLine().Write("set");
             Indent();
             ulong mask = ~((ulong)0xFFFF << byteInWord);
-            WriteLine().Write(@struct.isGroup.Value ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" = (")
-                .Write(@struct.isGroup.Value ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" & ").Write(mask).Write(") | ");
+            WriteLine().Write(node.IsGroup() ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" = (")
+                .Write(node.IsGroup() ? "this.parent" : "this").Write(".").Write(DataPrefix).Write(wordIndex).Write(" & ").Write(mask).Write(") | ");
             if (byteInWord == 0) Write("(ulong)value;");
             else Write("((ulong)value << ").Write(byteInWord).Write(");");
             Outdent();
+            
+
+            //foreach(var field in @struct.fields)
+            //{
+            //    if(field.discriminantValue != ushort.MaxValue && field.slot.type.Union == Schema.Type.Unions.@struct)
+            //    {
+            //        var found = Lookup(field.slot.type.@struct.typeId);
+            //        if(found != null && found.IsGroup())
+            //        {
+            //            union.Push(new UnionStub(@struct.discriminantOffset, field.discriminantValue));
+
+            //            union.Pop();
+            //        }
+            //    }
+            //}
+
             return Outdent();
         }
 
