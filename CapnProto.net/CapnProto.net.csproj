@@ -47,7 +47,7 @@
   <ItemGroup>
     <Compile Include="CapnProtoReader.cs" />
     <Compile Include="CodeWriter.cs" />
-    <Compile Include="CodeWriter.cs1\InvalidUnionDiscriminatorException.cs" />
+    <Compile Include="InvalidUnionDiscriminatorException.cs" />
     <Compile Include="CSharpCodeWriter.cs">
       <DependentUpon>CodeWriter.cs</DependentUpon>
     </Compile>

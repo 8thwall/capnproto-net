@@ -110,6 +110,42 @@ namespace CapnProto
         {
             return Write(value.ToString(CultureInfo.InvariantCulture));
         }
+        public virtual CodeWriter Write(int? value)
+        {
+            return Write(value.Value);
+        }
+        public virtual CodeWriter Write(byte value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+        public virtual CodeWriter Write(byte? value)
+        {
+            return Write(value.Value);
+        }
+        public virtual CodeWriter Write(sbyte value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+        public virtual CodeWriter Write(sbyte? value)
+        {
+            return Write(value.Value);
+        }
+        public virtual CodeWriter Write(short value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+        public virtual CodeWriter Write(short? value)
+        {
+            return Write(value.Value);
+        }
+        public virtual CodeWriter Write(ushort value)
+        {
+            return Write(value.ToString(CultureInfo.InvariantCulture));
+        }
+        public virtual CodeWriter Write(ushort? value)
+        {
+            return Write(value.Value);
+        }
         public virtual CodeWriter Write(ulong value)
         {
             return Write(value.ToString(CultureInfo.InvariantCulture));

@@ -1526,7 +1526,7 @@ namespace CapnProto.Schema
             }
             set
             {
-                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffffff0000) | (ulong)value;
+                this.ѧ_w_0 = (this.ѧ_w_0 & (ulong)0xffffffffffff0000) | (ulong)value;
             }
         }
         // body words: 2; pointers: 1
@@ -1851,7 +1851,7 @@ namespace CapnProto.Schema
             }
             set
             {
-                this.ѧ_w_0 = (this.ѧ_w_0 & 0xffffffffffff0000) | (ulong)value;
+                this.ѧ_w_0 = (this.ѧ_w_0 & (ulong)0xffffffffffff0000) | (ulong)value;
             }
         }
         // body words: 2; pointers: 1
@@ -2138,7 +2138,7 @@ namespace CapnProto.Schema
             }
             set
             {
-                this.ѧ_w_1 = (this.ѧ_w_1 & 0xffffffffffff0000) | (ulong)value;
+                this.ѧ_w_1 = (this.ѧ_w_1 & (ulong)0xffffffffffff0000) | (ulong)value;
             }
         }
         // body words: 3; pointers: 4
