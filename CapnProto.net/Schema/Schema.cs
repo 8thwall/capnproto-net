@@ -301,7 +301,7 @@ namespace CapnProto.Schema
             }
             else
             {
-                field.discriminantValue = ushort.MaxValue;
+                field.discriminantValue = Field.noDiscriminant;
             }
             field.name = member.Name;
 

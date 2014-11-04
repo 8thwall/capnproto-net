@@ -1945,7 +1945,7 @@ namespace CapnProto.Schema
         {
             get
             {
-                return unchecked((ushort)((this.ѧ_w_0 >> 16) ^ 0xffff0000));
+                return unchecked((ushort)((this.ѧ_w_0 >> 16) ^ 0xffff));
             }
             set
             {

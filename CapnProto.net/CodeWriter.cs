@@ -282,7 +282,7 @@ namespace CapnProto
                 foreach (var field in fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name))
                 {
                     bool pushed = false;
-                    if (field.discriminantValue != ushort.MaxValue)
+                    if (field.discriminantValue != Field.noDiscriminant)
                     {
                         // write with union-based restructions
                         union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));

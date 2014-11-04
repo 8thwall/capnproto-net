@@ -248,7 +248,7 @@ namespace CapnProto
             {
                 foreach (var field in node.@struct.fields)
                 {
-                    bool isFiltered = field.discriminantValue != ushort.MaxValue;
+                    bool isFiltered = field.discriminantValue != Field.noDiscriminant;
                     switch (field.Union)
                     {
                         case Field.Unions.group:
@@ -907,7 +907,7 @@ namespace CapnProto
                         else Write("(").Write(fieldOwner).Write(".").Write(fieldName).Write(" >> ").Write(byteInWord).Write(")");
                         if (slot.hadExplicitDefault.Value)
                         {
-                            WriteXorDefaultValue(field.slot.defaultValue, byteInWord);
+                            WriteXorDefaultValue(field.slot.defaultValue, 0); // passing byteInWord = 0 because already shifted
                         }
                         Write("));");
                         break;
@@ -1123,7 +1123,7 @@ namespace CapnProto
             {
                 foreach (var field in node.@struct.fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name))
                 {
-                    if (field.discriminantValue == ushort.MaxValue)
+                    if (field.discriminantValue == Field.noDiscriminant)
                     {
                         WriteFieldAccessor(node, field, union);
                     }
@@ -1155,7 +1155,7 @@ namespace CapnProto
             {
                 foreach (var field in @struct.fields)
                 {
-                    if (field.discriminantValue != ushort.MaxValue)
+                    if (field.discriminantValue != Field.noDiscriminant)
                         WriteLine().Write(Escape(field.name)).Write(" = ").Write(field.discriminantValue).Write(",");
                 }
             }
@@ -1180,11 +1180,11 @@ namespace CapnProto
             if (byteInWord == 0) Write("(ulong)value;");
             else Write("((ulong)value << ").Write(byteInWord).Write(");");
             Outdent();
-            
+
 
             //foreach(var field in @struct.fields)
             //{
-            //    if(field.discriminantValue != ushort.MaxValue && field.slot.type.Union == Schema.Type.Unions.@struct)
+            //    if(field.discriminantValue != Field.noDiscriminant && field.slot.type.Union == Schema.Type.Unions.@struct)
             //    {
             //        var found = Lookup(field.slot.type.@struct.typeId);
             //        if(found != null && found.IsGroup())
