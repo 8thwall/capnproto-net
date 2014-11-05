@@ -7,7 +7,7 @@ namespace CapnProto
     internal class CapnProtoStreamReader : CapnProtoReader
     {
         private System.IO.Stream source;
-        private readonly bool leaveOpen;
+        private bool leaveOpen;
 
         public override string ToString()
         {
@@ -34,9 +34,38 @@ namespace CapnProto
                 return false;
             }
         }
-        public CapnProtoStreamReader(Stream source, object context, bool leaveOpen)
+
+        public static CapnProtoStreamReader Create(Stream source, object context, bool leaveOpen)
         {
             if (source == null) throw new ArgumentNullException("source");
+
+            var obj = Cache<CapnProtoStreamReader>.Pop();
+            if(obj != null)
+            {
+                obj.Init(source, context, leaveOpen);
+                return obj;
+            }
+            return new CapnProtoStreamReader(source, context, leaveOpen);
+        }
+        private CapnProtoStreamReader(Stream source, object context, bool leaveOpen)
+        {
+            Init(source, context, leaveOpen);
+        }
+        protected override void Reset(bool recycling)
+        {
+            if(source != null)
+            {
+                if (!leaveOpen) source.Dispose();
+                source = null;
+            }
+            if(recycling)
+            {
+                segmentStart = 0;
+            }
+            base.Reset(recycling);
+        }
+        private void Init(Stream source, object context, bool leaveOpen)
+        {
             this.leaveOpen = leaveOpen;
             this.source = source;
             base.Init(context);
@@ -51,10 +80,12 @@ namespace CapnProto
         {
             if (disposing)
             {
-                if (source != null && !leaveOpen) source.Dispose();
-                source = null;
+                Cache<CapnProtoStreamReader>.Push(this);
             }
-            base.OnDispose(disposing);
+            else
+            {
+                base.OnDispose(false);
+            }
         }
 
 
@@ -77,7 +108,8 @@ namespace CapnProto
             {
                 ChangeSegment(segment);
             }
-            source.Position = checked(UnderlyingBaseOffset + (wordOffset * 8));
+            
+            source.Position = checked(segmentStart + (wordOffset * 8));
             int read;
 
             if ((read = source.Read(buffer, bufferOffset, count)) == count) return; // got it all first try; nice

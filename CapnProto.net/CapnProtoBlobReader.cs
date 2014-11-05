@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CapnProto
 {
@@ -8,9 +9,6 @@ namespace CapnProto
         GCHandle handle;
         private int offset, count;
         ulong*[] segments;
-
-        [ThreadStatic]
-        private static CapnProtoBlobReader recycled;
 
         public static CapnProtoBlobReader Create(byte[] blob, int offset, int count, object context)
         {
@@ -22,13 +20,11 @@ namespace CapnProto
             }
             if (offset + count > blob.Length) throw new ArgumentOutOfRangeException("count");
 
-            var tmp = recycled;
-            if(tmp != null)
+            var obj = Cache<CapnProtoBlobReader>.Pop();
+            if(obj != null)
             {
-                recycled = null;
-                GC.ReRegisterForFinalize(tmp);
-                tmp.Init(blob, offset, count, context);
-                return tmp;
+                obj.Init(blob, offset, count, context);
+                return obj;
             }
             return new CapnProtoBlobReader(blob, offset, count, context);
         }
@@ -84,26 +80,14 @@ namespace CapnProto
             else
             {
                 segments = null;
+                decoder = null;
             }
         }
         protected override void OnDispose(bool disposing)
         {
             if(disposing)
             {
-                if(recycled == null)
-                {
-                    // note: don't want to add GC.SuppressFinalize
-                    // to Reset, in case Reset is called independently
-                    // of lifetime management
-                    Reset(true);
-                    GC.SuppressFinalize(this);
-                    recycled = this;
-                }
-                else
-                {
-                    Reset(false);
-                    GC.SuppressFinalize(this);
-                }
+                Cache<CapnProtoBlobReader>.Push(this);
             }
             else
             {
@@ -112,6 +96,7 @@ namespace CapnProto
                     handle.Free();
                     handle = default(GCHandle);
                 }
+                base.OnDispose(false);
             }
         }
         public override ulong ReadWord(int segment, int wordOffset)
@@ -129,6 +114,22 @@ namespace CapnProto
         {
             // nothing to do
         }
+
+        Decoder decoder;
+        protected override string ReadString(int segment, int origin, int count)
+        {
+            byte* root = (byte*)(segments[segment] + origin);
+            if (root[count - 1] != 0) throw ExpectedNullTerminatedString();
+            var dec = decoder;
+            if (dec == null) decoder = dec = Encoding.UTF8.GetDecoder();
+            else dec.Reset();
+            int len = dec.GetCharCount(root, count - 1, true);
+            char* c = stackalloc char[len];
+            dec.GetChars(root, count - 1, c, len, false);
+            string s = new string(c, 0, len);
+            return s;
+        }
+
         protected override unsafe void ReadWords(int segment, int origin, int available, int expected, ulong* raw)
         {
             int wordsToRead = Math.Max(available, expected);

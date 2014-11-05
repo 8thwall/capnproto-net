@@ -8,6 +8,45 @@ namespace CapnProto
 {
     abstract public partial class CapnProtoReader : IDisposable
     {
+
+        protected static class Cache<T> where T : CapnProtoReader
+        {
+            [ThreadStatic]
+            private static T recycled;
+
+            public static T Pop()
+            {
+                var tmp = recycled;
+                if(tmp != null)
+                {
+                    recycled = null;
+                    GC.ReRegisterForFinalize(tmp);
+                    return tmp;
+                }
+                return null;
+            }
+
+            public static void Push(T obj)
+            {
+                if(obj != null)
+                {
+                    // note: don't want to add GC.SuppressFinalize
+                    // to Reset, in case Reset is called independently
+                    // of lifetime management
+                    if (recycled == null)
+                    {
+                        obj.Reset(true);
+                        GC.SuppressFinalize(obj);
+                        recycled = obj;
+                    }
+                    else
+                    {
+                        obj.Reset(false);
+                        GC.SuppressFinalize(obj);
+                    }
+                }
+            }
+        }
         public override string ToString()
         {
             return GetType().Name;
@@ -203,11 +242,19 @@ namespace CapnProto
                 // unfortunately, we can't access ms._origin, so we can't be sure what
                 // region the caller wants to use - unless we can prove that they want
                 // all of it
-                var buffer = ms.GetBuffer();
-                if(buffer.Length == (int)ms.Length)
+                byte[] buffer;
+                try
+                {
+                    buffer = ms.GetBuffer();
+                } catch(UnauthorizedAccessException)
+                {
+                    // not all buffers are available to the caller
+                    buffer = null;
+                }
+                if(buffer != null && buffer.Length == (int)ms.Length)
                     return Create(buffer, context, 0, buffer.Length);
             }
-            return new CapnProtoStreamReader(source, context, leaveOpen);
+            return CapnProtoStreamReader.Create(source, context, leaveOpen);
         }
 
         protected CapnProtoReader() { }
@@ -433,15 +480,6 @@ namespace CapnProto
             int len = lptr.Size;
             if (len == 0) throw ExpectedNullTerminatedString();
 
-            if (len <= ScratchLengthBytes)
-            {
-                var tmp = Scratch;
-                ReadWords(segment, wordOffset + lptr.Offset, tmp, 0, ToWords(len));
-                if (tmp[len - 1] != 0) throw ExpectedNullTerminatedString();
-
-                return Encoding.UTF8.GetString(tmp, 0, len - 1);
-
-            }
             return ReadString(segment, wordOffset + lptr.Offset, len);
         }
         private static int ToWords(int bytes)
@@ -455,6 +493,14 @@ namespace CapnProto
 
         protected virtual string ReadString(int segment, int wordOffset, int count)
         {
+            if (count <= ScratchLengthBytes)
+            {
+                var tmp = Scratch;
+                ReadWords(segment, wordOffset, tmp, 0, ToWords(count));
+                if (tmp[count - 1] != 0) throw ExpectedNullTerminatedString();
+
+                return Encoding.UTF8.GetString(tmp, 0, count - 1);
+            }
             // this is a terrible implementation
             var bytes = ReadBytes(segment, wordOffset, count);
             if (bytes[count - 1] != 0) throw ExpectedNullTerminatedString();
