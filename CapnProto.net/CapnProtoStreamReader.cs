@@ -9,6 +9,10 @@ namespace CapnProto
         private System.IO.Stream source;
         private readonly bool leaveOpen;
 
+        public override string ToString()
+        {
+            return GetType().Name + " / " + (source == null ? "nil" : source.GetType().Name);
+        }
         protected override bool TryReadWordDirect(long byteOffset, out ulong word)
         {
             var buffer = Scratch;
@@ -30,11 +34,12 @@ namespace CapnProto
                 return false;
             }
         }
-        public CapnProtoStreamReader(Stream source, object context, bool leaveOpen) : base(context)
+        public CapnProtoStreamReader(Stream source, object context, bool leaveOpen)
         {
             if (source == null) throw new ArgumentNullException("source");
             this.leaveOpen = leaveOpen;
             this.source = source;
+            base.Init(context);
         }
 
         static CapnProtoStreamReader()
@@ -42,10 +47,14 @@ namespace CapnProto
             TypeModel.AssertLittleEndian();
         }
 
-        public override void Dispose()
+        protected override void OnDispose(bool disposing)
         {
-            if (source != null && !leaveOpen) source.Dispose();
-            source = null;
+            if (disposing)
+            {
+                if (source != null && !leaveOpen) source.Dispose();
+                source = null;
+            }
+            base.OnDispose(disposing);
         }
 
 
@@ -54,13 +63,6 @@ namespace CapnProto
             segmentStart = UnderlyingBaseOffset + (8 * range.Offset);
         }
 
-        protected override string ReadString(int segment, int wordOffset, int count)
-        {
-            // this is a terrible implementation
-            var bytes = ReadBytes(segment, wordOffset, count);
-            if (bytes[count - 1] != 0) throw ExpectedNullTerminatedString();
-            return Encoding.UTF8.GetString(bytes, 0, count - 1);
-        }
         protected override byte[] ReadBytes(int segment, int wordOffset, int count)
         {
             byte[] arr = new byte[count];

@@ -8,13 +8,45 @@ namespace CapnProto
 {
     abstract public partial class CapnProtoReader : IDisposable
     {
-
+        public override string ToString()
+        {
+            return GetType().Name;
+        }
+        protected virtual void OnInitialize()
+        {
+            OnChangeSegment(0, firstSegment);
+        }
+        protected virtual void Reset(bool recycling)
+        {
+            context = null;
+            if(recycling)
+            {
+                segmentCount = 0;
+                underlyingBaseOffset = 0;
+            }
+            else
+            {
+                otherSegments = null;
+            }
+        }
+        protected virtual void OnDispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Reset(false);
+            }
+        }
+        protected void Init(object context)
+        {
+            this.context = context;
+        }
         public void Crawl(TextWriter output)
         {
             int count = SegmentCount;
             if(count == 0)
             {
-                count = ReadSegmentsHeader();
+                ReadSegmentsHeader();
+                count = SegmentCount;
             }
             output.WriteLine("segments: {0}", count);
             for(int i = 0;i < count; i++)
@@ -156,20 +188,35 @@ namespace CapnProto
 
         protected const int ScratchLengthBytes = 64, ScratchLengthWords = ScratchLengthBytes / 8; // must be at least 8
         protected readonly byte[] Scratch = new byte[ScratchLengthBytes];
+
+
+        public static CapnProtoReader Create(byte[] source, object context = null, int offset = 0, int count = -1)
+        {
+            return CapnProtoBlobReader.Create(source, offset, count, context);
+        }
         public static CapnProtoReader Create(Stream source, object context = null, bool leaveOpen = false)
         {
+            if (source == null) throw new ArgumentNullException("source");
+            if (source is MemoryStream)
+            {
+                var ms = (MemoryStream)source;
+                // unfortunately, we can't access ms._origin, so we can't be sure what
+                // region the caller wants to use - unless we can prove that they want
+                // all of it
+                var buffer = ms.GetBuffer();
+                if(buffer.Length == (int)ms.Length)
+                    return Create(buffer, context, 0, buffer.Length);
+            }
             return new CapnProtoStreamReader(source, context, leaveOpen);
         }
 
-        protected CapnProtoReader(object context)
-        {
-            this.context = context;
-
-        }
+        protected CapnProtoReader() { }
 
         private static readonly bool isLittleEndian = BitConverter.IsLittleEndian;
-
-        public virtual void Dispose() { context = null; }
+        public void Dispose()
+        {
+            OnDispose(true);
+        }
 
         private object context;
         public object Context { get { return context; } }
@@ -334,16 +381,12 @@ namespace CapnProto
 
         protected abstract void OnChangeSegment(int index, SegmentRange range);
 
-        private int segment;
+        private int segment, segmentCount;
         public int Segment { get { return segment; } }
 
         public int SegmentCount
         {
-            get
-            {
-                if (otherSegments != null && otherSegments.Length != 0) return otherSegments.Length + 1;
-                return firstSegment.Length == 0 ? 0 : 1;
-            }
+            get { return segmentCount; }
         }
         public void ChangeSegment(int segment)
         {
@@ -410,23 +453,33 @@ namespace CapnProto
             return new InvalidOperationException("Expected nul-terminated string");
         }
 
-        protected abstract string ReadString(int segment, int wordOffset, int count);
+        protected virtual string ReadString(int segment, int wordOffset, int count)
+        {
+            // this is a terrible implementation
+            var bytes = ReadBytes(segment, wordOffset, count);
+            if (bytes[count - 1] != 0) throw ExpectedNullTerminatedString();
+            return Encoding.UTF8.GetString(bytes, 0, count - 1);
+        }
         protected abstract byte[] ReadBytes(int segment, int wordOffset, int count);
 
         private SegmentRange firstSegment;
         private SegmentRange[] otherSegments;
 
-        public void SetSegments(SegmentRange range)
+        public void SetSegments(SegmentRange range, long baseOffset = 0)
         {
             firstSegment = range;
             otherSegments = null;
+            underlyingBaseOffset = baseOffset;
+            segmentCount = 1;
+            OnInitialize();
         }
-        public void SetSegments(SegmentRange[] ranges)
+        public void SetSegments(SegmentRange[] ranges, long baseOffset = 0)
         {
             if (ranges == null || ranges.Length == 0)
             {
                 firstSegment = default(SegmentRange);
                 otherSegments = null;
+                segmentCount = 0;
             } else
             {
                 firstSegment = ranges[0];
@@ -439,7 +492,10 @@ namespace CapnProto
                     Array.Resize(ref otherSegments, ranges.Length - 1);
                     Array.Copy(ranges, 1, otherSegments, 0, ranges.Length - 1);
                 }
+                segmentCount = ranges.Length;
             }
+            underlyingBaseOffset = baseOffset;
+            OnInitialize();
         }
         private long underlyingBaseOffset;
         public long UnderlyingBaseOffset { get { return underlyingBaseOffset; } }
@@ -451,7 +507,7 @@ namespace CapnProto
             if(TryReadWordDirect(byteOffset, out word)) return word;
             throw new EndOfStreamException();
         }
-        public int ReadSegmentsHeader()
+        public bool ReadSegmentsHeader()
         {
             long baseOffset;
             int currentSegments = SegmentCount;
@@ -467,7 +523,7 @@ namespace CapnProto
             ulong word;
             if (!TryReadWordDirect(baseOffset, out word))
             {
-                return 0;
+                return false;
             }
             baseOffset += 8;
             int additionalSegments = (int)word;
@@ -475,6 +531,8 @@ namespace CapnProto
             var firstSegment = new SegmentRange(0, (int)(word >> 32));
             var otherSegments = additionalSegments == 0 ? null : new SegmentRange[additionalSegments];
             int segmentOffset = firstSegment.Length;
+            if (segmentOffset == 0)
+                throw new InvalidOperationException("First segment cannot be empty");
 
             if (additionalSegments != 0)
             {
@@ -502,13 +560,14 @@ namespace CapnProto
             }
 
             // all done successfully: update the fields
+            this.segmentCount = additionalSegments + 1;
             this.firstSegment = firstSegment;
             this.otherSegments = otherSegments;
             this.underlyingBaseOffset = baseOffset;
 
             // and move to the data
-            OnChangeSegment(0, firstSegment);
-            return additionalSegments + 1;
+            OnInitialize();
+            return true;
         }
         public struct SegmentRange
         {
@@ -576,10 +635,14 @@ namespace CapnProto
 
         public SegmentRange GetSegment(int index)
         {
-            if (index == 0) return firstSegment;
-            if (index > 0 && otherSegments != null && index <= otherSegments.Length)
-                return otherSegments[index - 1];
-            throw new ArgumentOutOfRangeException("index");
+            if (index >= 0 && index < segmentCount)
+            {
+                if (index == 0) return firstSegment;
+
+                if (index > 0 && otherSegments != null && index <= otherSegments.Length)
+                    return otherSegments[index - 1];
+            }
+            throw new ArgumentOutOfRangeException("index");            
         }
     }
 }
