@@ -9,6 +9,27 @@ namespace CapnProto
         private System.IO.Stream source;
         private readonly bool leaveOpen;
 
+        protected override bool TryReadWordDirect(long byteOffset, out ulong word)
+        {
+            var buffer = Scratch;
+            int count = 8, read, offset = 0;
+            source.Position = byteOffset;
+            while((read = source.Read(buffer, offset, count)) > 0)
+            {
+                count -= read;
+                offset += read;
+            }
+            if (count == 0)
+            {
+                word = BitConverter.ToUInt64(buffer, 0);
+                return true;
+            }
+            else
+            {
+                word = 0;
+                return false;
+            }
+        }
         public CapnProtoStreamReader(Stream source, object context, bool leaveOpen) : base(context)
         {
             if (source == null) throw new ArgumentNullException("source");
@@ -30,7 +51,7 @@ namespace CapnProto
 
         protected override void OnChangeSegment(int segment, SegmentRange range)
         {
-            currentSegmentRoot = range.Offset;
+            segmentStart = UnderlyingBaseOffset + (8 * range.Offset);
         }
 
         protected override string ReadString(int segment, int wordOffset, int count)
@@ -54,7 +75,7 @@ namespace CapnProto
             {
                 ChangeSegment(segment);
             }
-            source.Position = checked((currentSegmentRoot + wordOffset) * 8);
+            source.Position = checked(UnderlyingBaseOffset + (wordOffset * 8));
             int read;
 
             if ((read = source.Read(buffer, bufferOffset, count)) == count) return; // got it all first try; nice
@@ -77,6 +98,6 @@ namespace CapnProto
             CopyBytes(segment, wordOffset, buffer, bufferOffset, checked(wordCount * 8));
         }
 
-        int currentSegmentRoot;
+        long segmentStart;
     }
 }

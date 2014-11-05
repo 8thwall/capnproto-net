@@ -341,7 +341,7 @@ namespace CapnProto
         {
             get
             {
-                if (otherSegments != null) return otherSegments.Length + 1;
+                if (otherSegments != null && otherSegments.Length != 0) return otherSegments.Length + 1;
                 return firstSegment.Length == 0 ? 0 : 1;
             }
         }
@@ -441,23 +441,48 @@ namespace CapnProto
                 }
             }
         }
+        private long underlyingBaseOffset;
+        public long UnderlyingBaseOffset { get { return underlyingBaseOffset; } }
+
+        protected abstract bool TryReadWordDirect(long byteOffset, out ulong word);
+        private ulong ReadWordDirect(long byteOffset)
+        {
+            ulong word;
+            if(TryReadWordDirect(byteOffset, out word)) return word;
+            throw new EndOfStreamException();
+        }
         public int ReadSegmentsHeader()
         {
-            int offset = 0;
-            var word = ReadWord(0, offset++);
+            long baseOffset;
+            int currentSegments = SegmentCount;
+            if(currentSegments == 0)
+            {
+                baseOffset = underlyingBaseOffset;
+            } else
+            {
+                var last = GetSegment(currentSegments - 1);
+                baseOffset = underlyingBaseOffset + 8 * (last.Offset + last.Length);
+            }
+
+            ulong word;
+            if (!TryReadWordDirect(baseOffset, out word))
+            {
+                return 0;
+            }
+            baseOffset += 8;
             int additionalSegments = (int)word;
 
-            int segmentOffset = 1 + (additionalSegments / 2);
-            if ((additionalSegments % 2) != 0) segmentOffset++;
-            firstSegment = new SegmentRange(segmentOffset, (int)(word >> 32));
-            segmentOffset += firstSegment.Length;
+            var firstSegment = new SegmentRange(0, (int)(word >> 32));
+            var otherSegments = additionalSegments == 0 ? null : new SegmentRange[additionalSegments];
+            int segmentOffset = firstSegment.Length;
+
             if (additionalSegments != 0)
             {
-                otherSegments = new SegmentRange[additionalSegments];
                 int index = 0;
                 for (int i = 0; i < additionalSegments / 2; i++)
                 {
-                    word = ReadWord(0, offset++);
+                    word = ReadWordDirect(baseOffset);
+                    baseOffset += 8;
                     var range = new SegmentRange(segmentOffset, (int)word);
                     otherSegments[index++] = range;
                     segmentOffset += range.Length;
@@ -468,12 +493,20 @@ namespace CapnProto
 
                 if ((additionalSegments % 2) != 0)
                 {
-                    word = ReadWord(0, offset++);
+                    word = ReadWordDirect(baseOffset);
+                    baseOffset += 8;
                     var range = new SegmentRange(segmentOffset, (int)word);
                     otherSegments[index] = range;
-                    segmentOffset += range.Length;
+                    segmentOffset += range.Length; // don't really need this, since last segment!
                 }
             }
+
+            // all done successfully: update the fields
+            this.firstSegment = firstSegment;
+            this.otherSegments = otherSegments;
+            this.underlyingBaseOffset = baseOffset;
+
+            // and move to the data
             OnChangeSegment(0, firstSegment);
             return additionalSegments + 1;
         }
