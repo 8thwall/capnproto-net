@@ -46,6 +46,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CapnProtoBlobReader.cs">
+      <DependentUpon>CapnProtoRawMemoryReader.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CapnProtoMemoryMappedFileReader.cs">
+      <DependentUpon>CapnProtoRawMemoryReader.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CapnProtoRawMemoryReader.cs">
       <DependentUpon>CapnProtoReader.cs</DependentUpon>
     </Compile>
     <Compile Include="CapnProtoReader.cs" />

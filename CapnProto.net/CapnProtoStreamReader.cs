@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 namespace CapnProto
 {
-    internal class CapnProtoStreamReader : CapnProtoReader
+    internal sealed class CapnProtoStreamReader : CapnProtoReader
     {
         private System.IO.Stream source;
         private bool leaveOpen;
@@ -35,22 +35,15 @@ namespace CapnProto
             }
         }
 
-        public static CapnProtoStreamReader Create(Stream source, object context, bool leaveOpen)
+        public static new CapnProtoStreamReader Create(Stream source, object context, bool leaveOpen)
         {
             if (source == null) throw new ArgumentNullException("source");
 
-            var obj = Cache<CapnProtoStreamReader>.Pop();
-            if(obj != null)
-            {
-                obj.Init(source, context, leaveOpen);
-                return obj;
-            }
-            return new CapnProtoStreamReader(source, context, leaveOpen);
+            var obj = Cache<CapnProtoStreamReader>.Pop() ?? new CapnProtoStreamReader();
+            obj.Init(source, context, leaveOpen);
+            return obj;
         }
-        private CapnProtoStreamReader(Stream source, object context, bool leaveOpen)
-        {
-            Init(source, context, leaveOpen);
-        }
+        private CapnProtoStreamReader() { }
         protected override void Reset(bool recycling)
         {
             if(source != null)

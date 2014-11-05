@@ -229,6 +229,10 @@ namespace CapnProto
         protected readonly byte[] Scratch = new byte[ScratchLengthBytes];
 
 
+        public static CapnProtoReader Create(string path, object context = null, long offset = 0, long count = -1)
+        {
+            return CapnProtoMemoryMappedFileReader.Create(path, context, offset, count);
+        }
         public static CapnProtoReader Create(byte[] source, object context = null, int offset = 0, int count = -1)
         {
             return CapnProtoBlobReader.Create(source, offset, count, context);
@@ -259,6 +263,7 @@ namespace CapnProto
 
         protected CapnProtoReader() { }
 
+        protected static readonly byte[] NilBytes = new byte[0];
         private static readonly bool isLittleEndian = BitConverter.IsLittleEndian;
         public void Dispose()
         {
