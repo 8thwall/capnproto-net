@@ -27,5 +27,7 @@ namespace CapnProto
         {
             get { return ((ulong)0xFFFF) << ByteIndex; }
         }
+        public ushort Value { get { return value; } }
+        public int Offset { get { return (int)offset; } }
     }
 }

@@ -137,7 +137,7 @@ namespace CapnProto.Take2
 
         private ulong GetDataWord(int index)
         {
-            if (index < 0) throw new ArgumentOutOfRangeException("index");
+            if (index < 0) return 0;
             Payload ptr;
             Dereference(out ptr);
             uint rhs = unchecked((uint)(ptr.Header >> 32));
@@ -146,7 +146,7 @@ namespace CapnProto.Take2
         }
         public Pointer GetPointer(int index)
         {
-            if (index < 0) throw new ArgumentOutOfRangeException("index");
+            if (index < 0) return default(Pointer);
             Payload ptr;
             Dereference(out ptr);
             uint rhs = unchecked((uint)(ptr.Header >> 32));
@@ -156,5 +156,10 @@ namespace CapnProto.Take2
         }
 
         public bool IsValid { get { return segment != null; } }
+
+        public Pointer Allocate(int dataWords, int pointers)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

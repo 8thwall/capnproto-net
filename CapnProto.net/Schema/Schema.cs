@@ -409,49 +409,52 @@ namespace CapnProto.Schema
                 }
             }
 
-            writer.BeginClass(true, false, writer.Serializer, typeof(TypeModel));
-
-            List<Node> generateSerializers = new List<Node>(this.nodes.Count);
-            List<string> fieldNames = new List<string>();
-            var uniques = new HashSet<ulong>();
-            foreach (var node in this.nodes)
+            if (writer.NeedsSerializer)
             {
-                if (!uniques.Add(node.id))
+                writer.BeginClass(true, false, writer.Serializer, typeof(TypeModel));
+
+                List<Node> generateSerializers = new List<Node>(this.nodes.Count);
+                List<string> fieldNames = new List<string>();
+                var uniques = new HashSet<ulong>();
+                foreach (var node in this.nodes)
                 {
-                    throw new InvalidOperationException("Duplicate id: " + node.id + " / " + node.UniqueName() + " on " + node.displayName);
+                    if (!uniques.Add(node.id))
+                    {
+                        throw new InvalidOperationException("Duplicate id: " + node.id + " / " + node.UniqueName() + " on " + node.displayName);
+                    }
+                    if (node.Union == Node.Unions.@struct && !node.IsGroup())
+                    {
+                        generateSerializers.Add(node);
+                        fieldNames.Add(CodeWriter.PrivatePrefix + "f_" + node.UniqueName());
+                    }
                 }
-                if (node.Union == Node.Unions.@struct && !node.IsGroup())
+
+                writer.DeclareFields(fieldNames, typeof(ITypeSerializer));
+
+                var method = typeof(TypeModel).GetMethod("GetSerializer", getSerializerSignature);
+                writer.BeginOverride(method);
+
+                foreach (var node in generateSerializers)
                 {
-                    generateSerializers.Add(node);
-                    fieldNames.Add(CodeWriter.PrivatePrefix + "f_" + node.UniqueName());
+                    writer.WriteSerializerTest(CodeWriter.PrivatePrefix + "f_" + node.UniqueName(), node, CodeWriter.PrivatePrefix + "s_" + node.UniqueName());
                 }
+                writer.CallBase(method);
+                writer.EndOverride();
+
+                foreach (var node in generateSerializers)
+                {
+                    writer.WriteCustomSerializerClass(node, CodeWriter.PrivatePrefix + "s_" + node.UniqueName(), node.CustomSerializerName());
+                }
+
+                writer.BeginClass(false, true, BaseTypeName, null);
+                foreach (var node in generateSerializers)
+                {
+                    writer.WriteCustomReaderMethod(node);
+                }
+                writer.EndClass();
+
+                writer.EndClass();
             }
-
-            writer.DeclareFields(fieldNames, typeof(ITypeSerializer));
-
-            var method = typeof(TypeModel).GetMethod("GetSerializer", getSerializerSignature);
-            writer.BeginOverride(method);
-
-            foreach (var node in generateSerializers)
-            {
-                writer.WriteSerializerTest(CodeWriter.PrivatePrefix + "f_" + node.UniqueName(), node, CodeWriter.PrivatePrefix + "s_" + node.UniqueName());
-            }
-            writer.CallBase(method);
-            writer.EndOverride();
-
-            foreach (var node in generateSerializers)
-            {
-                writer.WriteCustomSerializerClass(node, CodeWriter.PrivatePrefix + "s_" + node.UniqueName(), node.CustomSerializerName());
-            }
-
-            writer.BeginClass(false, true, BaseTypeName, null);
-            foreach (var node in generateSerializers)
-            {
-                writer.WriteCustomReaderMethod(node);
-            }
-            writer.EndClass();
-
-            writer.EndClass();
             writer.EndNamespace().EndFile();
         }
 

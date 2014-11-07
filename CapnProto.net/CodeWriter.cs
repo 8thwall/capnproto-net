@@ -9,6 +9,7 @@ namespace CapnProto
     public abstract class CodeWriter
     {
 
+        public abstract bool NeedsSerializer { get; }
         public const string PrivatePrefix = "ѧ_";
 
         private TextWriter destination;
@@ -43,6 +44,7 @@ namespace CapnProto
             return null;
         }
         public abstract CodeWriter WriteError(string message);
+        public abstract CodeWriter WriteWarning(string message);
         public Schema.Node Lookup(ulong? id)
         {
             return id == null ? null : Lookup(id.Value);
@@ -94,6 +96,16 @@ namespace CapnProto
 
         public abstract string Format(Schema.Type type, bool nullable = false);
 
+        public virtual CodeWriter WriteLiteral(sbyte value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(byte value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(short value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(ushort value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(int value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(uint value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(long value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(ulong value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(float value) { return Write(value); }
+        public virtual CodeWriter WriteLiteral(double value) { return Write(value); }
         public virtual CodeWriter Write(uint value)
         {
             return Write(value.ToString(CultureInfo.InvariantCulture));
@@ -259,7 +271,7 @@ namespace CapnProto
                         {
                             WriteNode(found, union);
                         }
-                        else WriteError("not found: " + child.id + " / " + child.name);
+                        else WriteWarning("not found: " + child.id + " / " + child.name);
                     }
                 }
             }
