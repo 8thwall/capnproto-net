@@ -80,15 +80,16 @@ namespace CapnProto.Take2
             segments[SegmentCount++] = segment;
         }
 
-        internal ulong Allocate(int startSegment, int size)
+        internal int Allocate(ref int segment, int size)
         {
             if (size <= 0) throw new ArgumentOutOfRangeException("size");
-            for(int i = startSegment ; i < SegmentCount ; i++)
+            for(int i = segment; i < SegmentCount ; i++)
             {
-                uint index;
+                int index;
                 if(this[i].TryAllocate(size, out index))
                 {
-                    return (((ulong)i) << 32) | index;
+                    segment = i;
+                    return index;
                 }
             }
             throw new OutOfMemoryException("Unable to allocate block");

@@ -89,11 +89,10 @@ namespace CapnProto.Take2
             return true;
         }
 
-        private class BufferSegment : ISegment
+        private class BufferSegment : Segment
         {
             
             private byte[] buffer;
-            private Message message;
             private int offset, wordCount, index, spaceWords, writeIndex;
             
             public static BufferSegment Create()
@@ -108,38 +107,37 @@ namespace CapnProto.Take2
                 this.wordCount = wordCount;
                 this.writeIndex = writeIndex;
             }
-            void ISegment.Init(Message message, int index)
+            public override unsafe ulong this[int index]
             {
-                this.message = message;
-                this.index = index;
+                get {
+                    fixed (byte* ptr = &buffer[offset])
+                    {
+                        return ((ulong*)ptr)[index];
+                    }
+                }
+                set
+                {
+                    fixed(byte* ptr = &buffer[offset])
+                    {
+                        ((ulong*)ptr)[index] = value;
+                    }
+                }
             }
 
-            public int Index { get { return index; } }
-
-            public Message Message { get { return message; } }
-
-            public ulong this[int index]
-            {
-                get { return BitConverter.ToUInt64(buffer, offset + (index * 8)); }
-            }
-
-            void IRecyclable.Reset(bool recycling)
+            public override void Reset(bool recycling)
             {
                 buffer = null;
-                message = null;
             }
-
-
-            bool ISegment.TryAllocate(int size, out uint index)
+            public override bool TryAllocate(int size, out int index)
             {
                 int space = wordCount - writeIndex;
                 if(space >= size)
                 {
-                    index = (uint)writeIndex;
+                    index = writeIndex;
                     writeIndex += size;
                     return true;
                 }
-                index = uint.MaxValue;
+                index = int.MinValue;
                 return false;
             }
         }

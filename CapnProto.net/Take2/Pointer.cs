@@ -5,15 +5,31 @@ namespace CapnProto.Take2
 {
     public struct Pointer
     {
-        internal Pointer(ISegment segment, int wordIndex, int aux)
+        internal Pointer(ISegment segment, int headerIndex, int listIndex)
         {
             this.segment = segment;
-            this.wordIndex = wordIndex;
-            this.aux = aux;
+            this.header = segment[headerIndex];
+            this.listIndex = listIndex;
+            if ((header & 2) == 0)
+            {
+                // object header; offset is (signed) bits 3-31
+                this.start = headerIndex + 1 + (unchecked((int)(uint)header) >> 2);
+            }
+            else
+            {
+                this.start = int.MinValue;
+            }            
+        }
+        private Pointer(ISegment segment, ulong header, int start, int listIndex)
+        {
+            this.segment = segment;
+            this.header = header;
+            this.start = start;
+            this.listIndex = listIndex;
         }
         private readonly ISegment segment;
-        private readonly int wordIndex;
-        private readonly int aux;
+        private readonly ulong header;
+        private readonly int start, listIndex;
         // first 2 LSB types are meaning; 01 for list-index; remaining bits are value
 
         public bool GetBoolean(int index) {
@@ -76,19 +92,18 @@ namespace CapnProto.Take2
             ulong val = GetDataWord(index);
             return *(double*)(&val);
         }
-        private void Dereference(out Payload payload)
+        private Pointer Dereference()
         {
-            var segment = this.segment;
-            int wordIndex = this.wordIndex;
+            
+            var segment = this.segment;            
             if (segment == null) throw new NullReferenceException("Cannot dereference a nil pointer");
-
-            var header = segment[wordIndex++];
+            var header = this.header;
+            int wordIndex;
             switch (header & 3)
             {
                 case 0: // struct-pointer
                 case 1: // list-pointer
-                    // signed, hence want to preserve the MSB in the nibble
-                    break;
+                    return this;
                 case 2: // far-pointer
                     bool isFar = (header & 4) != 0;
                     // unsigned
@@ -123,55 +138,50 @@ namespace CapnProto.Take2
                     throw new InvalidOperationException("Cannot deference a capability pointer");
             }
             int offset = unchecked(((int)header & ~3) >> 2);
-            payload.Segment = segment;
-            payload.DataOffset = wordIndex + offset;
-            payload.Header = header;
-        }
-        private struct Payload
-        {
-            public ISegment Segment;
-            public int DataOffset;
-            public ulong Header;
-
+            return new Pointer(segment, header, wordIndex + offset, listIndex);
         }
 
         private ulong GetDataWord(int index)
         {
             if (index < 0) return 0;
-            Payload ptr;
-            Dereference(out ptr);
-            uint rhs = unchecked((uint)(ptr.Header >> 32));
+            if ((header & 2) != 0) return Dereference().GetDataWord(index);
+
+            uint rhs = unchecked((uint)(header >> 32));
             int count = unchecked((int)(rhs & 0xFFFF));
-            return index < count ? ptr.Segment[ptr.DataOffset + index] : 0;
+            return index < count ? segment[start + index] : 0;
         }
         public Pointer GetPointer(int index)
         {
             if (index < 0) return default(Pointer);
-            Payload ptr;
-            Dereference(out ptr);
-            uint rhs = unchecked((uint)(ptr.Header >> 32));
+            if ((header & 2) != 0) return Dereference().GetPointer(index);
+
+            uint rhs = unchecked((uint)(header >> 32));
             int count = unchecked((int)(rhs >> 16));
             if (index >= count) return default(Pointer);
-            return new Pointer(ptr.Segment, ptr.DataOffset + unchecked((int)(rhs & 0xFFFF)) + index, 0);
+            return new Pointer(segment, start + unchecked((int)(rhs & 0xFFFF)) + index, 0);
         }
 
         public bool IsValid { get { return segment != null; } }
 
-        public Pointer Allocate(/*uint headerIndex, */ uint dataWords, uint pointers)
+        public Pointer Allocate(int dataWords, int pointers)
         {
-            //uint offset;
-            //ulong header = (((ulong)dataWords) << 32) | (((ulong)pointers) << 48);
-
-            //if (segment.TryAllocate(dataWords + pointers, out offset))
-            //{ // in-segment pointer
-            //    int delta = (int)offset - (int)(headerIndex + 1);
-            //    header |= unchecked((uint)(delta << 2));
-            //}
-            //else
-            //{
-            //    // far pointer
-            //    ulong location = segment.Message.Allocate(segment.Index + 1, dataWords + pointers + 1);
-            //}
+            ulong header = (checked((ulong)dataWords) << 32) | (checked((ulong)pointers) << 48);
+            int start, size = dataWords + pointers;
+            if (segment.TryAllocate(size, out start))
+            { // in-segment pointer
+                return new Pointer(segment, header, start, 0);
+            }
+            else
+            {
+                // far pointer
+                int segIndex = segment.Index + 1;
+                var msg = segment.Message;
+                start = msg.Allocate(ref segIndex, size + 1);
+                msg[segIndex][start] = header;
+                uint lhs = unchecked((uint)((start << 3) | 2)), rhs = unchecked((uint)segIndex);
+                header = (ulong)lhs | (((ulong)rhs) << 32);
+                return new Pointer(segment, header, 0, 0);
+            }
             throw new NotImplementedException();
             
             
