@@ -66,6 +66,17 @@
     <Compile Include="PointerType.cs" />
     <Compile Include="Schema\Schema.cs" />
     <Compile Include="Schema\Schema.designer.cs" />
+    <Compile Include="Take2\AnyPointer.cs" />
+    <Compile Include="Take2\BufferSegmentFactory.cs" />
+    <Compile Include="Take2\CapnProtoSerializer.cs" />
+    <Compile Include="Take2\ISegmentFactoryState.cs" />
+    <Compile Include="Take2\Data.cs" />
+    <Compile Include="Take2\ISegment.cs" />
+    <Compile Include="Take2\ISegmentFactory.cs" />
+    <Compile Include="Take2\FixedSizeList.cs" />
+    <Compile Include="Take2\Message.cs" />
+    <Compile Include="Take2\Pointer.cs" />
+    <Compile Include="Take2\Text.cs" />
     <Compile Include="TypeSerializer.cs" />
     <Compile Include="CapnProtoStreamReader.cs">
       <DependentUpon>CapnProtoReader.cs</DependentUpon>

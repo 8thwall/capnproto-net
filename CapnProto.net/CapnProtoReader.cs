@@ -6,47 +6,52 @@ using System.Text;
 
 namespace CapnProto
 {
-    abstract public partial class CapnProtoReader : IDisposable
+    public interface IRecyclable
     {
+        void Reset(bool recycling);
+    }
+    internal static class Cache<T> where T : class, IRecyclable
+    {
+        [ThreadStatic]
+        private static T recycled;
 
-        protected static class Cache<T> where T : CapnProtoReader
+        public static T Pop()
         {
-            [ThreadStatic]
-            private static T recycled;
-
-            public static T Pop()
+            var tmp = recycled;
+            if (tmp != null)
             {
-                var tmp = recycled;
-                if(tmp != null)
-                {
-                    recycled = null;
-                    GC.ReRegisterForFinalize(tmp);
-                    return tmp;
-                }
-                return null;
+                recycled = null;
+                GC.ReRegisterForFinalize(tmp);
+                return tmp;
             }
+            return null;
+        }
 
-            public static void Push(T obj)
+        public static void Push(T obj)
+        {
+            if (obj != null)
             {
-                if(obj != null)
+                // note: don't want to add GC.SuppressFinalize
+                // to Reset, in case Reset is called independently
+                // of lifetime management
+                if (recycled == null)
                 {
-                    // note: don't want to add GC.SuppressFinalize
-                    // to Reset, in case Reset is called independently
-                    // of lifetime management
-                    if (recycled == null)
-                    {
-                        obj.Reset(true);
-                        GC.SuppressFinalize(obj);
-                        recycled = obj;
-                    }
-                    else
-                    {
-                        obj.Reset(false);
-                        GC.SuppressFinalize(obj);
-                    }
+                    obj.Reset(true);
+                    GC.SuppressFinalize(obj);
+                    recycled = obj;
+                }
+                else
+                {
+                    obj.Reset(false);
+                    GC.SuppressFinalize(obj);
                 }
             }
         }
+    }
+    abstract public partial class CapnProtoReader : IDisposable, IRecyclable
+    {
+
+        
         public override string ToString()
         {
             return GetType().Name;
@@ -55,6 +60,7 @@ namespace CapnProto
         {
             OnChangeSegment(0, firstSegment);
         }
+        void IRecyclable.Reset(bool recycling) { Reset(recycling); }
         protected virtual void Reset(bool recycling)
         {
             context = null;
@@ -229,10 +235,10 @@ namespace CapnProto
         protected readonly byte[] Scratch = new byte[ScratchLengthBytes];
 
 
-        public static CapnProtoReader Create(string path, object context = null, long offset = 0, long count = -1)
-        {
-            return CapnProtoMemoryMappedFileReader.Create(path, context, offset, count);
-        }
+        //public static CapnProtoReader Create(string path, object context = null, long offset = 0, long count = -1)
+        //{
+        //    return CapnProtoMemoryMappedFileReader.Create(path, context, offset, count);
+        //}
         public static CapnProtoReader Create(byte[] source, object context = null, int offset = 0, int count = -1)
         {
             return CapnProtoBlobReader.Create(source, offset, count, context);
