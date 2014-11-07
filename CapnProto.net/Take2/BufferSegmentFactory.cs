@@ -78,7 +78,7 @@ namespace CapnProto.Take2
                 int len = i == 0 ? len0 : ctx.ReadInt32();
 
                 var segment = (BufferSegment)message.ReuseExistingSegment() ?? BufferSegment.Create();
-                segment.Init(buffer, origin, len);
+                segment.Init(buffer, origin, len, len);
                 message.AddSegment(segment);
                 origin += len * 8;
                 totalWords += len;
@@ -91,19 +91,22 @@ namespace CapnProto.Take2
 
         private class BufferSegment : ISegment
         {
+            
             private byte[] buffer;
             private Message message;
-            private int offset, wordCount, index;
+            private int offset, wordCount, index, spaceWords, writeIndex;
+            
             public static BufferSegment Create()
             {
                 return new BufferSegment();
             }
             private BufferSegment() { }
-            public void Init(byte[] buffer, int offset, int wordCount)
+            public void Init(byte[] buffer, int offset, int wordCount, int writeIndex)
             {
                 this.buffer = buffer;
                 this.offset = offset;
                 this.wordCount = wordCount;
+                this.writeIndex = writeIndex;
             }
             void ISegment.Init(Message message, int index)
             {
@@ -124,6 +127,20 @@ namespace CapnProto.Take2
             {
                 buffer = null;
                 message = null;
+            }
+
+
+            bool ISegment.TryAllocate(int size, out uint index)
+            {
+                int space = wordCount - writeIndex;
+                if(space >= size)
+                {
+                    index = (uint)writeIndex;
+                    writeIndex += size;
+                    return true;
+                }
+                index = uint.MaxValue;
+                return false;
             }
         }
     }

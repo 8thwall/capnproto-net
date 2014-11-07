@@ -13,7 +13,7 @@ namespace CapnProto.Take2
             return msg;
         }
 
-        public AnyPointer Root
+        public Pointer Root
         {
             get { return new Pointer(segments[0], 0, 0); }
         }
@@ -78,6 +78,20 @@ namespace CapnProto.Take2
             }
             segment.Init(this, SegmentCount);
             segments[SegmentCount++] = segment;
+        }
+
+        internal ulong Allocate(int startSegment, int size)
+        {
+            if (size <= 0) throw new ArgumentOutOfRangeException("size");
+            for(int i = startSegment ; i < SegmentCount ; i++)
+            {
+                uint index;
+                if(this[i].TryAllocate(size, out index))
+                {
+                    return (((ulong)i) << 32) | index;
+                }
+            }
+            throw new OutOfMemoryException("Unable to allocate block");
         }
     }
 }

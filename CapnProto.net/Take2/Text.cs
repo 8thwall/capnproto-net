@@ -9,7 +9,6 @@ namespace CapnProto.Take2
         private readonly Pointer pointer;
         private Text(Pointer pointer){ this.pointer = pointer; }
         public static implicit operator Text(Pointer pointer) { return new Text(pointer); }
-        public static implicit operator Text(AnyPointer pointer) { return new Text((Pointer)pointer); }
         public override string ToString()
         {
             throw new NotImplementedException();

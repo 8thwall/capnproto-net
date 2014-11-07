@@ -5,15 +5,15 @@ namespace CapnProto.Take2
 {
     public struct Pointer
     {
-        internal Pointer(ISegment segment, int wordIndex, int auxIndex)
+        internal Pointer(ISegment segment, int wordIndex, int aux)
         {
             this.segment = segment;
             this.wordIndex = wordIndex;
-            this.auxIndex = auxIndex;
+            this.aux = aux;
         }
         private readonly ISegment segment;
         private readonly int wordIndex;
-        private readonly int auxIndex;
+        private readonly int aux;
         // first 2 LSB types are meaning; 01 for list-index; remaining bits are value
 
         public bool GetBoolean(int index) {
@@ -157,9 +157,24 @@ namespace CapnProto.Take2
 
         public bool IsValid { get { return segment != null; } }
 
-        public Pointer Allocate(int dataWords, int pointers)
+        public Pointer Allocate(/*uint headerIndex, */ uint dataWords, uint pointers)
         {
+            //uint offset;
+            //ulong header = (((ulong)dataWords) << 32) | (((ulong)pointers) << 48);
+
+            //if (segment.TryAllocate(dataWords + pointers, out offset))
+            //{ // in-segment pointer
+            //    int delta = (int)offset - (int)(headerIndex + 1);
+            //    header |= unchecked((uint)(delta << 2));
+            //}
+            //else
+            //{
+            //    // far pointer
+            //    ulong location = segment.Message.Allocate(segment.Index + 1, dataWords + pointers + 1);
+            //}
             throw new NotImplementedException();
+            
+            
         }
     }
 }

@@ -67,7 +67,6 @@
     <Compile Include="PointerType.cs" />
     <Compile Include="Schema\Schema.cs" />
     <Compile Include="Schema\Schema.designer.cs" />
-    <Compile Include="Take2\AnyPointer.cs" />
     <Compile Include="Take2\BufferSegmentFactory.cs" />
     <Compile Include="Take2\CapnProtoSerializer.cs" />
     <Compile Include="Take2\ISegmentFactoryState.cs" />

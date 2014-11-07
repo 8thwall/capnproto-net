@@ -38,6 +38,10 @@ namespace CapnProto
         {
             throw new NotSupportedException();
         }
+        public override CodeWriter WriteCustomReaderMethod(Node node)
+        {
+            throw new NotSupportedException();
+        }
         static string Escape(string name)
         {
             if (name == null) return null;
@@ -159,14 +163,13 @@ namespace CapnProto
             Indent();
             WriteLine().Write("private readonly ").Write(typeof(Pointer)).Write(" ").Write(PointerName).Write(";");
             WriteLine().Write("private ").Write(localName).Write("(").Write(typeof(Pointer)).Write(" pointer){ this.").Write(PointerName).Write(" = pointer; }");
-            WriteLine().Write("public static implicit operator ").Write(fullName).Write("(").Write(typeof(Pointer)).Write(" pointer) { return new ").Write(fullName).Write("(pointer); }");
-            WriteLine().Write("public static implicit operator ").Write(fullName).Write("(").Write(typeof(AnyPointer)).Write(" pointer) { return new ").Write(fullName).Write("((").Write(typeof(Pointer)).Write(")pointer); }");
+            WriteLine().Write("public static explicit operator ").Write(fullName).Write("(").Write(typeof(Pointer)).Write(" pointer) { return new ").Write(fullName).Write("(pointer); }");
             WriteLine().Write("public static implicit operator ").Write(typeof(Pointer)).Write(" (").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write("; }");
             WriteLine().Write("public static bool operator true(").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write(".IsValid; }");
             WriteLine().Write("public static bool operator false(").Write(fullName).Write(" obj) { return !obj.").Write(PointerName).Write(".IsValid; }");
             if (node.Union == Node.Unions.@struct)
             {
-                WriteLine().Write("public ").Write(fullName).Write(" Create(").Write(typeof(Pointer)).Write(" parent) { return parent.Allocate(")
+                WriteLine().Write("public ").Write(fullName).Write(" Create(").Write(typeof(Pointer)).Write(" parent) { return (").Write(fullName).Write(")parent.Allocate(")
                     .Write(node.@struct.dataWordCount).Write(", ").Write(node.@struct.pointerCount).Write("); }");
             }
             return this;
@@ -180,44 +183,7 @@ namespace CapnProto
                 tmp.Push(item);
             return tmp;
         }
-        private void WriteBlit(Schema.Node node)
-        {
-            WriteLine().Write("unsafe void ").Write(typeof(IBlittable)).Write(".Deserialize(int segment, int origin, ").Write(typeof(DeserializationContext)).Write(" ctx, ulong pointer)");
-            Indent();
-            int bodyWords = 0, pointerWords = 0;
-            Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
-            var ptrFields = new SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>>();
-            //List<Schema.Field> lists = new List<Schema.Field>();
-            var union = new Stack<UnionStub>();
-            CascadePointers(this, node, ptrFields, union);
-            int alloc = Math.Max(bodyWords, pointerWords);
-            if (alloc != 0)
-            {
-                WriteLine().Write("ulong* raw = stackalloc ulong[").Write(alloc).Write("];");
-                if (bodyWords != 0)
-                {
-                    WriteLine().Write("ctx.Reader.ReadData(segment, origin, pointer, raw, ").Write(bodyWords).Write(");");
-                    for (int i = 0; i < bodyWords; i++)
-                    {
-                        WriteLine().Write(DataPrefix).Write(i).Write(" = raw[").Write(i).Write("];");
-                    }
-                }
-                if (pointerWords != 0)
-                {
-                    WriteBlitPointers(node, pointerWords, ptrFields); //, lists);
-                }
-            }
-            Outdent();
-            //int listIndex = 0;
-            //foreach (var listField in lists)
-            //{
-            //    WriteLine().Write("static object ").Write(ListMethodName(listIndex++)).Write("(int segment, int origin, ")
-            //        .Write(typeof(CapnProto.DeserializationContext)).Write(" ctx, ulong pointer)");
-            //    Indent();
-            //    WriteListImpl(listField, false);
-            //    Outdent();
-            //}
-        }
+        
 
         void WriteListImpl(Schema.Field field)
         {
@@ -304,90 +270,6 @@ namespace CapnProto
                 }
             }
         }
-
-        private void WriteBlitPointers(Schema.Node node, int pointerWords, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields) //, List<Schema.Field> lists)
-        {
-            WriteLine().Write("origin = ctx.Reader.ReadPointers(segment, origin, pointer, raw, ").Write(pointerWords).Write(");");
-            foreach (var pair in ptrFields)
-            {
-                WriteLine().Write("if (raw[").Write(pair.Key).Write("] != 0)");
-                Indent();
-                foreach (var tuple in pair.Value)
-                {
-                    var declaring = tuple.Item1;
-                    var field = tuple.Item2;
-                    var union = tuple.Item3;
-                    if (field.slot.type == null) continue;
-                    Schema.Node found = null;
-                    if (field.slot.type.Union == Schema.Type.Unions.@struct)
-                    {
-                        found = Lookup(field.slot.type.@struct.typeId);
-                        if (found == null || found.Union != Schema.Node.Unions.@struct)
-                        {
-                            WriteLine().Write("#warning not found: ").Write(field.slot.type.@struct.typeId);
-                            continue;
-                        }
-
-                        if (found.IsGroup()) continue; // group data is included separately at the correct locations
-                    }
-                    WriteLine().Write("// ").Write(declaring.displayName).Write(".").Write(field.name).WriteLine();
-                    if (union.Count != 0)
-                    {
-                        Write("if (");
-                        WriteUnionTest(union);
-                        Write(") ");
-                    }
-                    Write("this." + PointerPrefix).Write(pair.Key).Write(" = ");
-                    switch (field.slot.type.Union)
-                    {
-                        case Schema.Type.Unions.text:
-
-                            Write("ctx.Reader.ReadStringFromPointer(segment, origin + ").Write(field.slot.offset + 1);
-                            Write(", raw[").Write(field.slot.offset).Write("]);");
-                            break;
-                        case Schema.Type.Unions.data:
-
-                            Write("ctx.Reader.ReadBytesFromPointer(segment, origin + ").Write(field.slot.offset + 1);
-                            Write(", raw[").Write(field.slot.offset).Write("]);");
-                            break;
-                        case Schema.Type.Unions.@struct:
-                            if (found != null)
-                            {
-                                Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
-                                    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
-                                    .Write(found.CustomSerializerName()).Write("(segment, origin + ").Write(field.slot.offset + 1);
-                                Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
-                            }
-                            break;
-                        case Schema.Type.Unions.list:
-                            WriteListImpl(field);
-                            //if (!WriteListImpl(field, true))
-                            //{
-                            //    //Write("global::").Write(Namespace).Write(".").Write(Escape(Serializer)).Write(".")
-                            //    //    .Write(Schema.CodeGeneratorRequest.BaseTypeName).Write(".")
-                            //    Write(ListMethodName(lists.Count))
-                            //    .Write("(segment, origin");
-                            //    lists.Add(field);
-                            //    if (field.slot.offset != 0) Write(" + ").Write(field.slot.offset);
-                            //    Write(", ctx, raw[").Write(field.slot.offset).Write("]);");
-                            //}
-                            break;
-                        case Schema.Type.Unions.anyPointer:
-                            Write("null;").WriteLine().Write("#warning any-pointer not yet implemented");
-                            break;
-                        default:
-                            Write("null;").WriteLine().Write("#warning unexpected type: " + field.slot.type.Union);
-                            break;
-                    }
-                }
-                Outdent();
-            }
-        }
-        private static string ListMethodName(int index)
-        {
-            return CodeWriter.PrivatePrefix + "l_" + index.ToString(CultureInfo.InvariantCulture);
-        }
-        const string Ctor = PrivatePrefix + "ctor";
 
 
         static readonly char[] period = { '.' };
@@ -619,47 +501,6 @@ namespace CapnProto
             {
                 return LocalName(name);
             }
-        }
-        public override CodeWriter WriteCustomReaderMethod(Schema.Node node)
-        {
-            var fqn = FullyQualifiedName(node);
-            WriteLine().Write("internal static ").Write(fqn).Write(" ").Write(node.CustomSerializerName()).Write("(int segment, int origin, ").Write(typeof(DeserializationContext)).Write(" ctx, ulong pointer)");
-            Indent();
-            WriteLine().Write("var obj = ").Write(fqn).Write("." + Ctor + "();");
-            WriteLine(false).Write("#pragma warning disable 0618");
-            WriteLine().Write(typeof(TypeSerializer)).Write(".Deserialize<").Write(fqn).Write(">(ref obj, segment, origin, ctx, pointer);");
-            WriteLine(false).Write("#pragma warning restore 0618");
-            WriteLine().Write("return obj;");
-
-            //foreach (var field in node.@struct.fields)
-            //{
-            //    var slot = field.slot;
-            //    if (slot == null || slot.type == null) continue;
-            //    int len = slot.type.GetFieldLength();
-            //    WriteLine().Write("// ");
-            //    var ord = field.ordinal;
-            //    if (ord != null && ord.@implicit == null)
-            //    {
-            //        Write("@").Write(ord.@explicit).Write(" ");
-            //    }
-            //    Write(field.name).Write(": ");
-            //    switch (len)
-            //    {
-            //        case 0:
-            //            Write("nothing to do");
-            //            break;
-            //        case -1:
-            //            Write("pointer ").Write(slot.offset);
-            //            break;
-            //        default:
-            //            int start = checked(len * (int)slot.offset);
-            //            Write("bit ").Write(start).Write(" (word ").Write(start / 64).Write(" shift ").Write(start % 64).Write(")");
-            //            break;
-            //    }
-            //}
-            //WriteLine().Write("throw new global::System.NotImplementedException();");
-
-            return EndMethod();
         }
 
         public override string Format(Schema.Type type, bool nullable = false)
@@ -900,7 +741,7 @@ namespace CapnProto
             if (len == Schema.Type.LEN_POINTER)
             {
                 // note: groups already handled
-                WriteLine().Write("return this.").Write(PointerName).Write(".GetPointer(");
+                WriteLine().Write("return (").Write(Format(slot.type)).Write(")this.").Write(PointerName).Write(".GetPointer(");
                 WriteFieldOffset(slot.offset, union);
                 Write(");");
             }
