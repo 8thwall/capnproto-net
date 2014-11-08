@@ -4,6 +4,8 @@ namespace CapnProto.Take2
     public interface ISegmentFactory
     {
 
-        bool ReadNext(object state, Message message);
+        bool ReadNext(Message message);
+
+        ISegment TryAllocate(Message message, int size);
     }
 }

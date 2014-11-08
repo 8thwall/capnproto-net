@@ -6,10 +6,11 @@ namespace CapnProto.Take2
     {
         private Message() { }
 
-        public static Message Create(object state, ISegmentFactory segmentFactory)
+        public object FactoryState { get { return factoryState; } }
+        public static Message Create(object factoryState, ISegmentFactory segmentFactory)
         {
             var msg = Cache<Message>.Pop() ?? new Message();
-            msg.Init(state, segmentFactory);
+            msg.Init(factoryState, segmentFactory);
             return msg;
         }
 
@@ -18,16 +19,16 @@ namespace CapnProto.Take2
             get { return new Pointer(segments[0], 0, 0); }
         }
 
-        private void Init(object state, ISegmentFactory segmentFactory)
+        private void Init(object factoryState, ISegmentFactory segmentFactory)
         {
             SegmentCount = 0;
-            this.state = state;
+            this.factoryState = factoryState;
             this.segmentFactory = segmentFactory;            
         }
 
         void IRecyclable.Reset(bool recycling)
         {
-            this.state = null;
+            this.factoryState = null;
             this.segmentFactory = null;
         }
         public void Dispose()
@@ -35,13 +36,13 @@ namespace CapnProto.Take2
             Cache<Message>.Push(this);
         }
         private ISegmentFactory segmentFactory;
-        private object state;
+        private object factoryState;
 
         public int SegmentCount { get; private set; }
 
         public ISegment this[int index] { get { throw new NotImplementedException(); } }
 
-        public bool ReadNext() { return segmentFactory.ReadNext(state, this); }
+        public bool ReadNext() { return segmentFactory.ReadNext(this); }
 
         private ISegment[] segments;
         internal void ResetSegments(int max)
@@ -91,6 +92,12 @@ namespace CapnProto.Take2
                     segment = i;
                     return index;
                 }
+            }
+            ISegment seg = segmentFactory.TryAllocate(this, size);
+            if (seg != null)
+            {
+                segment = seg.Index;
+                return 0; // start at the start, then
             }
             throw new OutOfMemoryException("Unable to allocate block");
         }
