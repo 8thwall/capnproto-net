@@ -172,7 +172,10 @@ namespace CapnProto.Take2
                 {
                     index = activeWords;
                     activeWords += words;
-                    Console.WriteLine("Allocating {0} words at [{1}:{2}-{3}]", words, Index, index, index + words - 1);
+#if VERBOSE
+                    System.Diagnostics.Debug.WriteLine(string.Format(
+                        "Allocating {0} words at [{1}:{2}-{3}]", words, Index, index, index + words - 1));
+#endif
                     return true;
                 }
                 index = int.MinValue;

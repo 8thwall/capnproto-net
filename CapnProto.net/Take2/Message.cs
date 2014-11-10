@@ -172,19 +172,31 @@ namespace CapnProto.Take2
             segments[SegmentCount++] = segment;
         }
 
-        internal int Allocate(ref int segment, int size)
+        internal int Allocate(ref ISegment segment, ref bool plusHeader, int size)
         {
             if (size <= 0) throw new ArgumentOutOfRangeException("size");
-            for (int i = segment; i < SegmentCount; i++)
+            int count = SegmentCount;
+            for (int i = (segment == null ? 0 : (segment.Index + 1)); i < count; i++)
             {
                 int index;
-                if (this[i].TryAllocate(size, out index))
+                var tmp = this[i];
+                if(plusHeader)
                 {
-                    segment = i;
+                    if(tmp.TryAllocate(size + 1, out index))
+                    {
+                        segment = tmp;
+                        return index;
+                    }
+                    plusHeader = false;
+                }
+                if (tmp.TryAllocate(size, out index))
+                {
+                    segment = tmp;
                     return index;
                 }
             }
-            ISegment seg = CreateSegment(size);
+            // no existing segments can fit it
+            segment = CreateSegment(plusHeader ? (size + 1) : size);
             return 0; // start at the start, then
         }
 

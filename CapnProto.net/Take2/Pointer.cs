@@ -221,7 +221,6 @@ namespace CapnProto.Take2
 
         // far:
         //  startAndType: LSB[type:2][double-far:1][start:29]MSB
-        //  aux: LSB[segment:32]MSB
 
         // capability:
         //  startAndType: LSB[type:2][padding:30]MSB
@@ -230,51 +229,90 @@ namespace CapnProto.Take2
 
         public bool GetBoolean(int index)
         {
-            ulong word = GetDataWord(index >> 3);
-            int shift = index % 8;
+            ulong word = GetDataWord(index >> 6);
+            int shift = index & 63;
             return (word >> shift) != 0;
+        }
+        public void SetBoolean(int index, bool value)
+        {
+            int shift = index & 63;
+            SetDataWord(index >> 6, value ? ((ulong)1 << shift) : (ulong)0, (ulong)1 << shift);
         }
         public byte GetByte(int index)
         {
             ulong word = GetDataWord(index >> 3);
-            int shift = (index % 8) << 3; // 1 => 8, 2 => 16, 3 => 32, ...
+            int shift = (index & 7) << 3; // 1 => 8, 2 => 16, 3 => 32, ...
             return unchecked((byte)(word >> shift));
         }
         public sbyte GetSByte(int index)
         {
             ulong word = GetDataWord(index >> 3);
-            int shift = (index % 8) << 3; // 0 => 0, 1 => 8, 2 => 16, 3 => 32, ...
+            int shift = (index & 7) << 3; // 0 => 0, 1 => 8, 2 => 16, 3 => 32, ...
             return unchecked((sbyte)(word >> shift));
+        }
+        public void SetSByte(int index, sbyte value)
+        {
+            int shift = (index & 7) << 3; // 0 => 0, 1 => 8, 2 => 16, 3 => 32, ...
+            SetDataWord(index >> 3, unchecked((ulong)value) << shift, (ulong)0xFF << shift);
+        }
+        public void SetByte(int index, byte value)
+        {
+            int shift = (index & 7) << 3; // 0 => 0, 1 => 8, 2 => 16, 3 => 32, ...
+            SetDataWord(index >> 3, unchecked((ulong)value) << shift, (ulong)0xFF << shift);
         }
         public short GetInt16(int index)
         {
-            ulong word = GetDataWord(index >> 3);
-            int shift = (index % 8) << 4; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
+            ulong word = GetDataWord(index >> 2);
+            int shift = (index & 3) << 4; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
             return unchecked((short)(word >> shift));
         }
         public ushort GetUInt16(int index)
         {
-            ulong word = GetDataWord(index >> 3);
-            int shift = (index % 8) << 4; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
+            ulong word = GetDataWord(index >> 2);
+            int shift = (index & 3) << 4; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
             return unchecked((ushort)(word >> shift));
         }
 
         public void SetUInt16(int index, ushort value)
         {
-            int shift = (index % 8) << 4; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
-            SetDataWord(index >> 3, ((ulong)value) << shift, (ulong)0xFFFF << shift);
+            int shift = (index & 3) << 4; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
+            SetDataWord(index >> 2, unchecked((ulong)value) << shift, (ulong)0xFFFF << shift);
+        }
+        public void SetInt16(int index, short value)
+        {
+            int shift = (index & 3) << 4; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
+            SetDataWord(index >> 2, unchecked((ulong)value) << shift, (ulong)0xFFFF << shift);
         }
         public int GetInt32(int index)
         {
-            ulong word = GetDataWord(index >> 3);
-            int shift = (index % 8) << 5; // 0 => 0, 1 => 32
+            ulong word = GetDataWord(index >> 1);
+            int shift = (index & 1) << 5; // 0 => 0, 1 => 32
             return unchecked((int)(word >> shift));
         }
         public uint GetUInt32(int index)
         {
-            ulong word = GetDataWord(index >> 3);
-            int shift = (index % 8) << 5; // 0 => 0, 1 => 32
+            ulong word = GetDataWord(index >> 1);
+            int shift = (index & 1) << 5; // 0 => 0, 1 => 32
             return unchecked((uint)(word >> shift));
+        }
+        public void SetUInt32(int index, uint value)
+        {
+            int shift = (index & 1) << 5; // 0 => 0, 1 => 32
+            SetDataWord(index >> 1, unchecked((ulong)value) << shift, (ulong)0xFFFF << shift);
+        }
+        public void SetInt32(int index, int value)
+        {
+            int shift = (index & 1) << 5; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
+            SetDataWord(index >> 1, unchecked((ulong)value) << shift, (ulong)0xFFFF << shift);
+        }
+        
+        public void SetUInt64(int index, ulong value)
+        {
+            SetDataWord(index, value, ~(ulong)0);
+        }
+        public void SetInt64(int index, long value)
+        {
+            SetDataWord(index, unchecked((ulong)value), ~(ulong)0);
         }
         public long GetInt64(int index)
         {
@@ -285,19 +323,24 @@ namespace CapnProto.Take2
         {
             return GetDataWord(index);
         }
-        public void SetUInt64(int index, ulong value)
-        {
-            SetDataWord(index, value, ~(ulong)0);
-        }
         public unsafe float GetSingle(int index)
         {
             uint val = GetUInt32(index);
             return *(float*)(&val);
         }
+        public unsafe void SetSingle(int index, float value)
+        {
+            SetUInt32(index, *(uint*)(&value));
+        }
         public unsafe double GetDouble(int index)
         {
             ulong val = GetDataWord(index);
             return *(double*)(&val);
+        }
+
+        public unsafe void SetDouble(int index, double value)
+        {
+            SetDouble(index, *(ulong*)(&value));
         }
         private Pointer Dereference()
         {
@@ -517,12 +560,22 @@ namespace CapnProto.Take2
                     return new Pointer(segment, (uint)(start << 3) | (type & 7), dataAndWords, aux);
                 }
                 else
-                {   // far pointer
-                    int segIndex = segment.Index + 1;
+                {   // far pointer; will need the data and a header; ideally, in the same block
+                    bool plusHeader = true;
                     var msg = segment.Message;
-                    start = msg.Allocate(ref segIndex, words + 1); // leave an extra space for the header
-                    msg[segIndex][start] = (ulong)(type & 3) | (((ulong)rhs) << 32); // zero offset, since data immediately follows header
-                    return new Pointer(segment, (uint)(start << 3) | Type.FarSingle, 0, (uint)segIndex);
+                    start = msg.Allocate(ref segment, ref plusHeader, words);
+                    if(plusHeader)
+                    {
+                        // the header and data fit together
+                        segment[start] = (ulong)(type & 3) | (((ulong)rhs) << 32); // zero offset, since data immediately follows header
+                        return new Pointer(segment, (uint)(start << 3) | Type.FarSingle, 0, 0);
+                    }
+                    uint dataSegmentIndex = (uint)segment.Index;
+                    // double-far landing pad is 2 bytes; note we know that plusHeader is false here
+                    int headerStart = msg.Allocate(ref segment, ref plusHeader, 2);
+                    segment[headerStart] = (uint)(start << 3) | Type.FarSingle | (((ulong)dataSegmentIndex) << 32);
+                    segment[headerStart + 1] = (ulong)(type & 3) | (((ulong)rhs) << 32);
+                    return new Pointer(segment, (uint)(headerStart << 3) | Type.FarDouble, 0, 0);                    
                 }
             }
         }
