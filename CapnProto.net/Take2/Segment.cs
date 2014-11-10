@@ -15,6 +15,7 @@ namespace CapnProto.Take2
         }
 
         public abstract ulong this[int index] { get; set; }
+        public abstract int Length { get; }
 
         public void Init(Message message, int index)
         {
@@ -31,6 +32,12 @@ namespace CapnProto.Take2
         public virtual void Reset(bool recycling)
         {
             message = null;
+        }
+
+
+        public virtual void SetValue(int index, ulong value, ulong mask)
+        {
+            this[index] = (value & mask) | (this[index] & ~mask);
         }
     }
 }

@@ -77,6 +77,7 @@
     <Compile Include="Take2\Message.cs" />
     <Compile Include="Take2\Pointer.cs" />
     <Compile Include="Take2\Segment.cs" />
+    <Compile Include="Take2\Segments.cs" />
     <Compile Include="Take2\Text.cs" />
     <Compile Include="TypeSerializer.cs" />
     <Compile Include="CapnProtoStreamReader.cs">

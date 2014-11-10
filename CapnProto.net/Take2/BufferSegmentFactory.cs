@@ -10,60 +10,64 @@ namespace CapnProto.Take2
         public static BufferSegmentFactory Instance { get { return instance; }}
         private class BufferState : ISegmentFactoryState
         {
-            private int segmentSize;
-            private int offset;
-            private int count;
+            private int segmentWords;
+            private int offsetBytes;
+            private int remainingWords;
             private byte[] buffer;
 
-            public void Consume(int count)
+            public void ConsumeWords(int words)
             {
-                if (count < 0) throw new ArgumentOutOfRangeException("count");
-                if (count > this.count) throw new EndOfStreamException();
-                this.offset += count;
-                this.count -= count;
+                if (words < 0) throw new ArgumentOutOfRangeException("count");
+                if (words > this.remainingWords) throw new EndOfStreamException();
+                this.offsetBytes += words << 3;
+                this.remainingWords -= words;
             }
             public BufferState() {}
 
-            public void Init(byte[] buffer, int offset, int count, int segmentSize)
+            public void Init(byte[] buffer, int offsetBytes, int bytes, int segmentWords)
             {
-                this.segmentSize = segmentSize;
+                this.segmentWords = segmentWords;
                 this.buffer = buffer;
-                this.offset = offset;
-                this.count = count;
+                this.offsetBytes = offsetBytes;
+                this.remainingWords = bytes >> 3;
             }
 
-            public int ReadInt32()
+            private unsafe ulong ReadUInt64()
             {
-                if (this.count < 4) throw new EndOfStreamException();
-                var result = BitConverter.ToInt32(buffer, offset);
-                offset += 4;
-                count -= 4;
+                if (this.remainingWords < 1) throw new EndOfStreamException();
+                ulong result;
+                fixed (byte* ptr = &buffer[offsetBytes])
+                {
+                    result = *((ulong*)ptr);
+                }
+                offsetBytes += 8;
+                remainingWords--;
                 return result;
             }
-            internal BufferSegment TryAllocate(Message message, int size)
+            internal BufferSegment TryAllocate(Message message, int words)
             {
                 BufferSegment segment = null;
-                if (count >= size)
+                if (remainingWords >= words)
                 {
                     // definitely have enough
-                    if (segmentSize > size)
+                    if (segmentWords > words)
                     {
-                        size = segmentSize; // allocate an entire segment
-                        if (size > count) size = count; // unless that makes us too big
+                        words = segmentWords; // allocate an entire segment
+                        if (words > remainingWords) words = remainingWords; // unless that makes us too big
                     }
                     segment = (BufferSegment)message.ReuseExistingSegment() ?? BufferSegment.Create();
-                    segment.Init(buffer, offset, size, 0);
-                    Consume(size);
+                    segment.Init(buffer, offsetBytes, words, 0);
+                    ConsumeWords(words);
                     message.AddSegment(segment);
                 }
                 return segment;
             }
             internal bool ReadNext(Message message)
             {
-                if (count == 0) return false;
+                if (remainingWords == 0) return false;
 
-                int segments = ReadInt32() + 1;
-                int len0 = ReadInt32();
+                ulong word = ReadUInt64();
+                int segments = (int)(uint)(word) + 1;
                 // layout is:
                 // [count-1][len0]
                 // [len1][len2]
@@ -71,24 +75,31 @@ namespace CapnProto.Take2
                 // ...
                 // [lenN][padding]
                 // so: we can use count/2 as a sneaky way of knowing how many extra words to expect
-
-                int origin = offset + 8 * (segments / 2);
+                int origin = offsetBytes + 8 * (segments / 2);
                 message.ResetSegments(segments);
                 var buffer = this.buffer;
-                int totalWords = 0;
-                for (int i = 0; i < segments; i++)
-                {
-                    int len = i == 0 ? len0 : ReadInt32();
 
+                int totalWords = 0;
+                for(int i = 0 ; i < segments; i++)
+                {
+                    if((i % 2) == 0) {
+                        word >>= 32;
+                    } else{
+                        word = ReadUInt64();
+                    }
                     var segment = (BufferSegment)message.ReuseExistingSegment() ?? BufferSegment.Create();
+                    int len = (int)(uint)(word);
                     segment.Init(buffer, origin, len, len);
                     message.AddSegment(segment);
-                    origin += len * 8;
+                    origin += (len << 3);
                     totalWords += len;
                 }
                 // move the base offset past the data
-                // note: if we have an even number of segments, then we need to move past the padding too
-                Consume((8 * totalWords) + ((segments % 2) == 0 ? 4 : 0));
+                ConsumeWords(totalWords);
+                if(origin != offsetBytes)
+                {
+                    throw new InvalidOperationException(string.Format("offset mismatch; craziness; {0} vs {1}", offsetBytes, origin));
+                }
                 return true;
             }
         }
@@ -102,16 +113,16 @@ namespace CapnProto.Take2
             return ((BufferState)message.FactoryState).ReadNext(message);
         }
 
-        public static ISegmentFactoryState Initialize(byte[] buffer, int offset = 0, int count = -1, int segmentSize = 1024)
+        public static ISegmentFactoryState Initialize(byte[] buffer, int offset = 0, int count = -1, int segmentWords = 1024)
         {
             if (buffer == null) throw new ArgumentNullException();
-            if (segmentSize <= 0) throw new ArgumentOutOfRangeException("segmentSize");
+            if (segmentWords <= 0) throw new ArgumentOutOfRangeException("segmentWords");
             if (offset < 0 || offset >= buffer.Length) throw new ArgumentOutOfRangeException("offset");
             if (count < 0) { count = buffer.Length - offset; }
             else if (offset + count >= buffer.Length) throw new ArgumentOutOfRangeException("count");
 
             var state = new BufferState();
-            state.Init(buffer, offset, count, segmentSize);
+            state.Init(buffer, offset, count, segmentWords);
             return state;
         }
 
@@ -119,19 +130,19 @@ namespace CapnProto.Take2
         {
             
             private byte[] buffer;
-            private int offset, wordCount, writeIndex;
+            private int offset, capacityWords, activeWords;
             
             public static BufferSegment Create()
             {
                 return new BufferSegment();
             }
             private BufferSegment() { }
-            public void Init(byte[] buffer, int offset, int wordCount, int writeIndex)
+            public void Init(byte[] buffer, int offset, int capacityWords, int activeWords)
             {
                 this.buffer = buffer;
                 this.offset = offset;
-                this.wordCount = wordCount;
-                this.writeIndex = writeIndex;
+                this.capacityWords = capacityWords;
+                this.activeWords = activeWords;
             }
             public override unsafe ulong this[int index]
             {
@@ -154,17 +165,22 @@ namespace CapnProto.Take2
             {
                 buffer = null;
             }
-            public override bool TryAllocate(int size, out int index)
+            public override bool TryAllocate(int words, out int index)
             {
-                int space = wordCount - writeIndex;
-                if(space >= size)
+                int space = capacityWords - activeWords;
+                if(space >= words)
                 {
-                    index = writeIndex;
-                    writeIndex += size;
+                    index = activeWords;
+                    activeWords += words;
+                    Console.WriteLine("Allocating {0} words at [{1}:{2}-{3}]", words, Index, index, index + words - 1);
                     return true;
                 }
                 index = int.MinValue;
                 return false;
+            }
+            public override int Length
+            {
+                get { return activeWords; }
             }
         }
     }

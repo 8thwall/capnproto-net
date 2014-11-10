@@ -6,6 +6,6 @@ namespace CapnProto.Take2
 
         bool ReadNext(Message message);
 
-        ISegment TryAllocate(Message message, int size);
+        ISegment TryAllocate(Message message, int words);
     }
 }
