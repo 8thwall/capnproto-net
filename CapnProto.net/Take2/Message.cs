@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.IO;
 namespace CapnProto.Take2
 {
     public sealed class Message : IDisposable, IRecyclable, ISegment, IEnumerable<ISegment>
@@ -8,11 +9,10 @@ namespace CapnProto.Take2
         public const int WordLength = 8;
         private Message() { }
 
-        public object FactoryState { get { return factoryState; } }
-        public static Message Create(object factoryState, ISegmentFactory segmentFactory)
+        public static Message Create(ISegmentFactory segmentFactory)
         {
             var msg = Cache<Message>.Pop() ?? new Message();
-            msg.Init(factoryState, segmentFactory);
+            msg.Init(segmentFactory);
             return msg;
         }
 
@@ -48,6 +48,9 @@ namespace CapnProto.Take2
             return this[0].TryAllocate(size, out index);
         }
         int ISegment.Length { get { return SegmentCount == 0 ? 0 : this[0].Length; } }
+
+        int ISegment.WriteString(int index, string value, int bytes) { return this[0].WriteString(index, value, bytes); }
+        string ISegment.ReadString(int index, int bytes) { return this[0].ReadString(index, bytes); }
 
         public override string ToString()
         {
@@ -89,9 +92,10 @@ namespace CapnProto.Take2
             {
                 if (SegmentCount == 0)
                 {
-                    return new Pointer(this, 0);
+                    return new Pointer(this, 0, 0);
                 }
-                return new Pointer(segments[0], 0);
+                var segment = segments[0];
+                return new Pointer(segment, 0, segment[0]);
             }
             set
             {
@@ -102,10 +106,9 @@ namespace CapnProto.Take2
             }
         }
 
-        private void Init(object factoryState, ISegmentFactory segmentFactory)
+        private void Init(ISegmentFactory segmentFactory)
         {
             SegmentCount = 0;
-            this.factoryState = factoryState;
             this.segmentFactory = segmentFactory;
         }
 
@@ -208,19 +211,134 @@ namespace CapnProto.Take2
             return seg;
         }
 
-        IEnumerator<ISegment> IEnumerable<ISegment>.GetEnumerator()
+        public IEnumerator<ISegment> GetEnumerator()
         {
-            return GetEnumerator();
+            int count = SegmentCount;
+            for (int i = 0; i < count; i++)
+                yield return this[i];
         }
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
-        private IEnumerator<ISegment> GetEnumerator()
+
+
+        public void Write(Stream destination)
+        {
+            if (destination == null) throw new ArgumentNullException("destination");
+            var buffer = GetWriteBuffer();
+            try
+            {
+                unchecked
+                {
+                    int bytes = WritePreamble(buffer);
+                    if (bytes == 0) return;
+                    destination.Write(buffer, 0, bytes);
+
+                    int wordsInBuffer = buffer.Length >> 3;
+                    foreach (var segment in this)
+                    {
+                        int words, offset = 0;
+                        while ((words = WriteSegment(buffer, segment, offset)) != 0)
+                        {
+                            destination.Write(buffer, 0, words << 3);
+                            offset += words;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                FinishedWithWriteBuffer(buffer);
+            }
+        }
+        public async void WriteAsync(Stream destination)
+        {
+            if (destination == null) throw new ArgumentNullException("destination");
+            var buffer = GetWriteBuffer();
+            try
+            {
+                unchecked
+                {
+                    int bytes = WritePreamble(buffer);
+                    if (bytes == 0) return;
+                    await destination.WriteAsync(buffer, 0, bytes).ConfigureAwait(false);
+
+                    int wordsInBuffer = buffer.Length >> 3;
+                    foreach (var segment in this)
+                    {
+                        int words, offset = 0;
+                        while ((words = WriteSegment(buffer, segment, offset)) != 0)
+                        {
+                            await destination.WriteAsync(buffer, 0, words << 3).ConfigureAwait(false);
+                            offset += words;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                FinishedWithWriteBuffer(buffer);
+            }
+        }
+
+        private unsafe int WritePreamble(byte[] buffer)
         {
             int count = SegmentCount;
-            for (int i = 0; i < count; i++)
-                yield return this[i];
-        }        
+            if (count == 0) return 0;
+            if ((count << 2) > buffer.Length)
+                throw new InvalidOperationException("Not enough space in the buffer to write segment headers");
+            int outputIndex = 0;
+            fixed (byte* ptr = buffer)
+            {
+                int* headers = (int*)ptr;
+                headers[outputIndex++] = count - 1;
+                for (int i = 0; i < count; i++)
+                    headers[outputIndex++] = this[i].Length;
+                if ((count % 2) == 0) // need to add padding
+                    headers[outputIndex++] = 0;
+            }
+            return outputIndex << 2;
+        }
+        private unsafe int WriteSegment(byte[] buffer, ISegment segment, int wordOffset)
+        {
+            int wordsInBuffer = buffer.Length >> 3;
+            ISegmentIO io = segment as ISegmentIO;
+            if(io != null)
+            {
+                return io.CopyOut(buffer, 0, wordOffset, wordsInBuffer);
+            }
+            int wordsToWrite = Math.Min(segment.Length - wordOffset, wordsInBuffer);
+            // do it the hard way...
+            fixed (byte* ptr = buffer)
+            {
+                ulong* typed = (ulong*)ptr;
+                for (int i = 0; i < wordsToWrite; i++)
+                {
+                    typed[i] = segment[wordOffset++];
+                }
+            }
+            return wordsToWrite;
+
+        }
+
+        [ThreadStatic]
+        static byte[] pooledBuffer;
+        private static byte[] GetWriteBuffer()
+        {
+            var buffer = pooledBuffer ?? new byte[WRITE_BUFFER_SIZE];
+            pooledBuffer = null;
+            return buffer;
+        }
+        private const int WRITE_BUFFER_SIZE = 1024 * 8;
+        private static void FinishedWithWriteBuffer(byte[] buffer)
+        {
+            // make it available again
+            if (pooledBuffer == null && buffer != null && buffer.Length == WRITE_BUFFER_SIZE)
+            {
+                Array.Clear(buffer, 0, buffer.Length);
+                pooledBuffer = buffer;
+            }
+        }
     }
 }

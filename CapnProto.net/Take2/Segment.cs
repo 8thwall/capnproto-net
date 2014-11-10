@@ -1,8 +1,10 @@
 ﻿
+using System.Text;
 namespace CapnProto.Take2
 {
     public abstract class Segment : ISegment
     {
+        protected static readonly Encoding Encoding = new UTF8Encoding(false);
         public int Index
         {
             get { return index; }
@@ -39,5 +41,7 @@ namespace CapnProto.Take2
         {
             this[index] = (value & mask) | (this[index] & ~mask);
         }
+        public abstract int WriteString(int index, string value, int bytes);
+        public abstract string ReadString(int index, int bytes);
     }
 }

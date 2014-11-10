@@ -167,6 +167,7 @@ namespace CapnProto
             WriteLine().Write("public static implicit operator ").Write(typeof(Pointer)).Write(" (").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write("; }");
             WriteLine().Write("public static bool operator true(").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write(".IsValid; }");
             WriteLine().Write("public static bool operator false(").Write(fullName).Write(" obj) { return !obj.").Write(PointerName).Write(".IsValid; }");
+            WriteLine().Write("public ").Write(fullName).Write(" Dereference() { return (").Write(fullName).Write(")this.").Write(PointerName).Write(".Dereference(); }");
             if (node.Union == Node.Unions.@struct)
             {
                 if (node.@struct.discriminantCount != 0)

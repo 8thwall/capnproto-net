@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Runtime.CompilerServices;
+using System.Text;
 namespace CapnProto.Take2
 {
     public struct Pointer : IEquatable<Pointer>, IComparable<Pointer>
@@ -76,11 +77,11 @@ namespace CapnProto.Take2
                 return delta;
             }
         }
-        internal Pointer(ISegment segment, int headerIndex)
+        private Pointer(ISegment segment, int headerIndex) : this(segment, headerIndex, segment[headerIndex]) { }
+        internal Pointer(ISegment segment, int headerIndex, ulong header)
         {
             unchecked
             {
-                var header = segment[headerIndex];
                 if (header == 0)
                 {
                     // normally, this is considered a nil-pointer; we will special-case the root
@@ -342,53 +343,27 @@ namespace CapnProto.Take2
         {
             SetDouble(index, *(ulong*)(&value));
         }
-        private Pointer Dereference()
+        public Pointer Dereference()
         {
-            throw new NotImplementedException();
-            //var segment = this.segment;            
-            //if (segment == null) throw new NullReferenceException("Cannot dereference a nil pointer");
-            //var header = this.header;
-            //int wordIndex;
-            //switch (header & 3)
-            //{
-            //    case 0: // struct-pointer
-            //    case 1: // list-pointer
-            //        return this;
-            //    case 2: // far-pointer
-            //        bool isFar = (header & 4) != 0;
-            //        // unsigned
-            //        wordIndex = unchecked((int)(((uint)header) >> 3));
-            //        segment = segment.Message[checked((int)(header >> 32))];
-            //        header = segment[wordIndex++];
-            //        if (isFar)
-            //        {
-            //            if ((header & 3) != 2)
-            //                throw new InvalidDataException("Far-pointer failed to resolve to second far-pointer");
-            //            ulong tag = segment[wordIndex];
-            //            if (((uint)tag & ~3) != 0)
-            //                throw new InvalidDataException("Far-pointer expected zero offset");
-            //            wordIndex = unchecked((int)(((uint)header) >> 3));
-            //            segment = segment.Message[checked((int)(header >> 32))];
-            //            header = tag;
-            //        }
-            //        switch (header & 3)
-            //        {
-            //            case 0:
-            //            case 1:
-            //                break;
-            //            case 2:
-            //                throw new InvalidDataException("Far-pointer resolved to unexpected far-pointer");
-            //            case 3:
-            //            default:
-            //                throw new InvalidDataException("Far-pointer resolved to a capability pointer");
-            //        }
-            //        break;
-            //    case 3: // capability-pointer
-            //    default: // just to make the compiler happy
-            //        throw new InvalidOperationException("Cannot deference a capability pointer");
-            //}
-            //int offset = unchecked(((int)header & ~3) >> 2);
-            //return new Pointer(segment, header, wordIndex + offset);
+            unchecked
+            {
+                switch(startAndType & 7)
+                {
+                    case Type.FarSingle:
+                        // the start refers to the header of the data
+                        var ptr = new Pointer(segment, (int)startAndType >> 3);
+                        if ((ptr.startAndType & 2) != 0) throw new InvalidOperationException("Single-hop far-pointer should have resolved to a struct or list");
+                        return ptr;
+                    case Type.FarDouble:
+                        // the start refers to the double-word landing pad
+                        int start = (int)(startAndType >> 3);
+                        ulong innerHeader = segment[start++], dataHeader = segment[start];
+                        if ((innerHeader & 7) != 2) throw new InvalidOperationException("Double-hop far-pointer should have landed on a single-hop landing-pad");
+                        if ((dataHeader & 2) != 0) throw new InvalidOperationException("Double-hop far-pointer should have resolved to a struct or list");
+                        return new Pointer(segment.Message[(int)(innerHeader >> 32)], (int)(innerHeader >> 3), dataHeader);
+                }
+            }
+            return this;
         }
 
         const int MSB32 = 1 << 31;
@@ -479,7 +454,11 @@ namespace CapnProto.Take2
                             if (index < count) return new Pointer(segment, (int)(startAndType >> 3) + (int)(dataWordsAndPointers & 0xFFFF) + index);
                             break;
                         case Type.ListBasic:
-                            throw new NotImplementedException();
+                            if((aux & 3) == (uint)ElementSize.EightBytesPointer && index < (int)(aux >> 3))
+                            {
+                                return new Pointer(segment, (int)(startAndType >> 3) + index);
+                            }
+                            break;
                         case Type.FarSingle:
                         case Type.FarDouble:
                             return Dereference().GetPointer(index);
@@ -494,6 +473,8 @@ namespace CapnProto.Take2
                 return default(Pointer);
             }
         }
+
+
 
         public void SetPointer(int index, Pointer value)
         {
@@ -723,5 +704,50 @@ namespace CapnProto.Take2
                 throw SingleByteListExpected();
             }
         }
+        internal string ReadString()
+        {
+            if (segment == null) return null;
+            switch(startAndType & 7)
+            {
+                case Type.ListBasic:
+                    if ((aux & 3) == (uint)ElementSize.OneByte)
+                    {
+                        unchecked
+                        {
+                            return segment.ReadString((int)(startAndType >> 3), ((int)aux >> 3));
+                        }
+                    }
+                    break;
+                case Type.FarSingle:
+                case Type.FarDouble:
+                    return Dereference().ReadString();
+            }
+            throw SingleByteListExpected();
+        }
+        internal void WriteString(string value)
+        {
+            switch(startAndType & 7)
+            {
+                case Type.ListBasic:
+                    if ((aux & 3) == (uint)ElementSize.OneByte)
+                    {
+                        unchecked
+                        {
+                            int len = ((int)aux >> 3);
+                            int bytes = segment.WriteString((int)(startAndType >> 3), value, len);
+                            if (bytes != len - 1)
+                                throw new InvalidOperationException("String written with incorrect length");
+                            return;
+                        }
+                    }
+                    break;
+                case Type.FarSingle:
+                case Type.FarDouble:
+                    Dereference().WriteString(value);
+                    return;
+            }
+            throw SingleByteListExpected();
+        }
+
     }
 }
