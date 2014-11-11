@@ -349,5 +349,9 @@ namespace CapnProto.Take2
         {
             return StructAccessor<T>.Instance.Create(this.Root);
         }
+        public FixedSizeList<T> AllocateList<T>(int count)
+        {
+            return StructAccessor<T>.Instance.CreateList(this.Root, count);
+        }
     }
 }

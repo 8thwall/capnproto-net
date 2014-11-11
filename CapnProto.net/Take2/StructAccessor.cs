@@ -24,7 +24,15 @@ namespace CapnProto.Take2
                 case TypeCode.Single: tmp = new SingleStructAccessor(); break;
                 case TypeCode.Double: tmp = new DoubleStructAccessor(); break;
                 default:
-                    if (Attribute.IsDefined(typeof(T), typeof(GroupAttribute)))
+                    if(typeof(T) == typeof(Text))
+                    {
+                        tmp = new TextAccessor();
+                    }
+                    else if (typeof(T) == typeof(Data))
+                    {
+                        tmp = new DataAccessor();
+                    }
+                    else if (Attribute.IsDefined(typeof(T), typeof(GroupAttribute)))
                     {
                         tmp = new GroupStructAccessor<T>();
                     }
@@ -52,6 +60,39 @@ namespace CapnProto.Take2
         public abstract FixedSizeList<T> CreateList(Pointer pointer, int count);
         public abstract T Create(Pointer pointer);
     }
+    internal abstract class BasicPointerAccessor<T> : StructAccessor<T>
+    {
+        public override FixedSizeList<T> CreateList(Pointer pointer, int count)
+        {
+            return (FixedSizeList<T>)pointer.AllocateList(ElementSize.EightBytesPointer, count);
+        }
+        public override T Create(Pointer pointer)
+        {
+            throw new NotSupportedException("Cannot be created in this way: " + typeof(T).FullName);
+        }
+    }
+    internal class TextAccessor : BasicPointerAccessor<Text>
+    {
+        public override Text Get(Pointer pointer, int index)
+        {
+            return (Text)pointer.GetPointer(index);
+        }
+        public override void Set(Pointer pointer, int index, Text value)
+        {
+            pointer.SetPointer(index, value);
+        }
+    }
+    internal class DataAccessor : BasicPointerAccessor<Data>
+    {
+        public override Data Get(Pointer pointer, int index)
+        {
+            return (Data)pointer.GetPointer(index);
+        }
+        public override void Set(Pointer pointer, int index, Data value)
+        {
+            pointer.SetPointer(index, value);
+        }
+    }
     abstract class BasicTypeAccessor<T> : StructAccessor<T>
     {
         public override T Create(Pointer pointer)
@@ -63,55 +104,55 @@ namespace CapnProto.Take2
     {
         public override bool Get(Pointer pointer, int index) { return (pointer.GetDataWord(index) & 1) == 1; }
         public override void Set(Pointer pointer, int index, bool value) { pointer.SetDataWord(index, value ? (ulong)1 : (ulong)0, (ulong)0x01); }
-        public override FixedSizeList<bool> CreateList(Pointer pointer, int count) { return (FixedSizeList<bool>)pointer.Allocate(ElementSize.OneBit, count); }
+        public override FixedSizeList<bool> CreateList(Pointer pointer, int count) { return (FixedSizeList<bool>)pointer.AllocateList(ElementSize.OneBit, count); }
     }
     internal class ByteStructAccessor : BasicTypeAccessor<byte>
     {
         public override byte Get(Pointer pointer, int index) { return unchecked((byte)pointer.GetDataWord(index)); }
         public override void Set(Pointer pointer, int index, byte value) { pointer.SetDataWord(index, unchecked((ulong)value), (ulong)0xFF); }
-        public override FixedSizeList<byte> CreateList(Pointer pointer, int count) { return (FixedSizeList<byte>)pointer.Allocate(ElementSize.OneByte, count); }
+        public override FixedSizeList<byte> CreateList(Pointer pointer, int count) { return (FixedSizeList<byte>)pointer.AllocateList(ElementSize.OneByte, count); }
     }
     internal class SByteStructAccessor : BasicTypeAccessor<sbyte>
     {
         public override sbyte Get(Pointer pointer, int index) { return unchecked((sbyte)pointer.GetDataWord(index)); }
         public override void Set(Pointer pointer, int index, sbyte value) { pointer.SetDataWord(index, unchecked((ulong)value), (ulong)0xFF); }
-        public override FixedSizeList<sbyte> CreateList(Pointer pointer, int count) { return (FixedSizeList<sbyte>)pointer.Allocate(ElementSize.OneByte, count); }
+        public override FixedSizeList<sbyte> CreateList(Pointer pointer, int count) { return (FixedSizeList<sbyte>)pointer.AllocateList(ElementSize.OneByte, count); }
     }
     internal class UInt16StructAccessor : BasicTypeAccessor<ushort>
     {
         public override ushort Get(Pointer pointer, int index) { return unchecked((ushort)pointer.GetDataWord(index)); }
         public override void Set(Pointer pointer, int index, ushort value) { pointer.SetDataWord(index, unchecked((ulong)value), (ulong)0xFFFF); }
-        public override FixedSizeList<ushort> CreateList(Pointer pointer, int count) { return (FixedSizeList<ushort>)pointer.Allocate(ElementSize.TwoBytes, count); }
+        public override FixedSizeList<ushort> CreateList(Pointer pointer, int count) { return (FixedSizeList<ushort>)pointer.AllocateList(ElementSize.TwoBytes, count); }
     }
     internal class Int16StructAccessor : BasicTypeAccessor<short>
     {
         public override short Get(Pointer pointer, int index) { return unchecked((short)pointer.GetDataWord(index)); }
         public override void Set(Pointer pointer, int index, short value) { pointer.SetDataWord(index, unchecked((ulong)value), (ulong)0xFFFF); }
-        public override FixedSizeList<short> CreateList(Pointer pointer, int count) { return (FixedSizeList<short>)pointer.Allocate(ElementSize.TwoBytes, count); }
+        public override FixedSizeList<short> CreateList(Pointer pointer, int count) { return (FixedSizeList<short>)pointer.AllocateList(ElementSize.TwoBytes, count); }
     }
     internal class UInt32StructAccessor : BasicTypeAccessor<uint>
     {
         public override uint Get(Pointer pointer, int index) { return unchecked((uint)pointer.GetDataWord(index)); }
         public override void Set(Pointer pointer, int index, uint value) { pointer.SetDataWord(index, unchecked((ulong)value), (ulong)0xFFFFFFFF); }
-        public override FixedSizeList<uint> CreateList(Pointer pointer, int count) { return (FixedSizeList<uint>)pointer.Allocate(ElementSize.FourBytes, count); }
+        public override FixedSizeList<uint> CreateList(Pointer pointer, int count) { return (FixedSizeList<uint>)pointer.AllocateList(ElementSize.FourBytes, count); }
     }
     internal class Int32StructAccessor : BasicTypeAccessor<int>
     {
         public override int Get(Pointer pointer, int index) { return unchecked((int)pointer.GetDataWord(index)); }
         public override void Set(Pointer pointer, int index, int value) { pointer.SetDataWord(index, unchecked((ulong)value), (ulong)0xFFFFFFFF); }
-        public override FixedSizeList<int> CreateList(Pointer pointer, int count) { return (FixedSizeList<int>)pointer.Allocate(ElementSize.FourBytes, count); }
+        public override FixedSizeList<int> CreateList(Pointer pointer, int count) { return (FixedSizeList<int>)pointer.AllocateList(ElementSize.FourBytes, count); }
     }
     internal class UInt64StructAccessor : BasicTypeAccessor<ulong>
     {
         public override ulong Get(Pointer pointer, int index) { return pointer.GetDataWord(index); }
         public override void Set(Pointer pointer, int index, ulong value) { pointer.SetDataWord(index, value, ~(ulong)0); }
-        public override FixedSizeList<ulong> CreateList(Pointer pointer, int count) { return (FixedSizeList<ulong>)pointer.Allocate(ElementSize.EightBytesNonPointer, count); }
+        public override FixedSizeList<ulong> CreateList(Pointer pointer, int count) { return (FixedSizeList<ulong>)pointer.AllocateList(ElementSize.EightBytesNonPointer, count); }
     }
     internal class Int64StructAccessor : BasicTypeAccessor<long>
     {
         public override long Get(Pointer pointer, int index) { return unchecked((long)pointer.GetDataWord(index)); }
         public override void Set(Pointer pointer, int index, long value) { pointer.SetDataWord(index, unchecked((ulong)value), ~(ulong)0); }
-        public override FixedSizeList<long> CreateList(Pointer pointer, int count) { return (FixedSizeList<long>)pointer.Allocate(ElementSize.EightBytesNonPointer, count); }
+        public override FixedSizeList<long> CreateList(Pointer pointer, int count) { return (FixedSizeList<long>)pointer.AllocateList(ElementSize.EightBytesNonPointer, count); }
     }
 
     internal class SingleStructAccessor : BasicTypeAccessor<float>
@@ -125,7 +166,7 @@ namespace CapnProto.Take2
         {
             pointer.SetDataWord(index, unchecked((uint)*(uint*)&value), (ulong)0xFFFFFFFF);
         }
-        public override FixedSizeList<float> CreateList(Pointer pointer, int count) { return (FixedSizeList<float>)pointer.Allocate(ElementSize.FourBytes, count); }
+        public override FixedSizeList<float> CreateList(Pointer pointer, int count) { return (FixedSizeList<float>)pointer.AllocateList(ElementSize.FourBytes, count); }
     }
     internal class DoubleStructAccessor : BasicTypeAccessor<double>
     {
@@ -138,7 +179,7 @@ namespace CapnProto.Take2
         {
             pointer.SetDataWord(index, *(ulong*)(&value), ~(ulong)0);
         }
-        public override FixedSizeList<double> CreateList(Pointer pointer, int count) { return (FixedSizeList<double>)pointer.Allocate(ElementSize.EightBytesNonPointer, count); }
+        public override FixedSizeList<double> CreateList(Pointer pointer, int count) { return (FixedSizeList<double>)pointer.AllocateList(ElementSize.EightBytesNonPointer, count); }
     }
     internal abstract class FailStructAccessor<T> : StructAccessor<T>
     {
@@ -209,11 +250,11 @@ namespace CapnProto.Take2
         {
             if (elementSize == ElementSize.InlineComposite)
             {
-                return pointer.Allocate(dataWords, pointers, count);
+                return pointer.AllocateList(dataWords, pointers, count);
             }
             else
             {
-                return pointer.Allocate(elementSize, count);
+                return pointer.AllocateList(elementSize, count);
             }
         }
         protected Pointer CreateImpl(Pointer pointer)

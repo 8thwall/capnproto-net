@@ -167,25 +167,23 @@ namespace CapnProto.Take2
                         {
                             words = 0;
                         }
+                        else if ((aux & 7) == (uint)ElementSize.InlineComposite)
+                        {
+                            words = 1 + ((int)(dataWordsAndPointers & 0xFFFF) + (int)(dataWordsAndPointers >> 16)) * count;
+                        }
                         else
                         {
-                            switch ((ElementSize)(aux & 7))
-                            {
-
-                                case ElementSize.EightBytesNonPointer:
-                                case ElementSize.EightBytesPointer:
-                                    words = count;
-                                    break;
-                                default:
-                                    words = 0; // not yet calculated
-                                    break;
-                            }
+                            words = GetSpaceRequired((ElementSize)(aux & 7), count);
+                        }
+                        if(words == 0)
+                        {
+                            return string.Format("[{0}:{1}] nil list, {2}, {3} items",
+                                segment.Index, startAndType >> 3, (ElementSize)(aux & 7), aux >> 3);
                         }
                         return string.Format("[{0}:{1}-{2}] list, {3}, {4} items",
                                 segment.Index, startAndType >> 3, (startAndType >> 3) + words - 1, (ElementSize)(aux & 7), aux >> 3);
                     case Type.FarSingle:
-                        return string.Format("far to pad at [{0}:{1}]",
-                                segment.Index, aux, startAndType >> 3);
+                        return string.Format("far to pad at [{0}:{1}]", segment.Index, aux, startAndType >> 3);
                     case Type.Capability:
                         return string.Format("capability {0}", aux);
                     case Type.StructFragment:
@@ -556,7 +554,7 @@ namespace CapnProto.Take2
                             break;
                         case Type.ListBasic:
                             if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
-                            if ((aux & 3) == (uint)ElementSize.EightBytesPointer)
+                            if ((aux & 7) == (uint)ElementSize.EightBytesPointer)
                             {
                                 return new Pointer(segment, (int)(startAndType >> 3) + index);
                             }
@@ -651,7 +649,7 @@ namespace CapnProto.Take2
                             break;
                         case Type.ListBasic:
                             if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
-                            if ((aux & 3) == (uint)ElementSize.EightBytesPointer)
+                            if ((aux & 7) == (uint)ElementSize.EightBytesPointer)
                             {
                                 value.WriteHeader(segment, (int)(startAndType >> 3) + index);
                                 return;
@@ -737,7 +735,7 @@ namespace CapnProto.Take2
                 }
             }
         }
-        public Pointer Allocate(short dataWords, short pointers, int length)
+        public Pointer AllocateList(short dataWords, short pointers, int length)
         {
             unchecked
             {
@@ -772,7 +770,22 @@ namespace CapnProto.Take2
                     throw new InvalidOperationException();
             }
         }
-        public Pointer Allocate(ElementSize elementSize, int length)
+        static int GetSpaceRequired(ElementSize elementSize, int length)
+        {
+            switch (elementSize)
+            {
+                case ElementSize.ZeroByte: return 0;
+                case ElementSize.OneBit:return ((length - 1) >> 6) + 1;
+                case ElementSize.OneByte:return ((length - 1) >> 3) + 1;
+                case ElementSize.TwoBytes:return ((length - 1) >> 2) + 1;
+                case ElementSize.FourBytes: return ((length - 1) >> 1) + 1;
+                case ElementSize.EightBytesPointer: return length;
+                case ElementSize.EightBytesNonPointer: return length;
+                default:
+                    throw new ArgumentOutOfRangeException("elementSize");
+            }
+        }
+        public Pointer AllocateList(ElementSize elementSize, int length)
         {
             unchecked
             {
@@ -782,32 +795,21 @@ namespace CapnProto.Take2
                 switch (elementSize)
                 {
                     case ElementSize.ZeroByte:
-                        words = 0;
-                        break;
                     case ElementSize.OneBit:
-                        words = ((length - 1) >> 6) + 1;
-                        break;
                     case ElementSize.OneByte:
-                        words = ((length - 1) >> 3) + 1;
-                        break;
                     case ElementSize.TwoBytes:
-                        words = ((length - 1) >> 2) + 1;
-                        break;
                     case ElementSize.FourBytes:
-                        words = ((length - 1) >> 1) + 1;
+                    case ElementSize.EightBytesNonPointer:
+                        words = GetSpaceRequired(elementSize, length);
                         break;
                     case ElementSize.EightBytesPointer:
-                        words = length;
+                        words = GetSpaceRequired(elementSize, length);
                         dataAndWords = 1 << 16;
-                        break;
-                    case ElementSize.EightBytesNonPointer:
-                        words = length;
                         break;
                     case ElementSize.InlineComposite:
                         throw new InvalidOperationException("Composite lits should be allocated using the overload that accepts data word and pointer counts");
                     default:
                         throw new ArgumentOutOfRangeException("elementSize");
-
                 }
                 uint rhs = (uint)elementSize | ((uint)length << 3);
                 return Allocate(words, Type.ListBasic, rhs, dataAndWords, rhs);
@@ -882,7 +884,7 @@ namespace CapnProto.Take2
                 switch (startAndType & 7)
                 {
                     case Type.ListBasic:
-                        if ((aux & 3) == (uint)ElementSize.OneByte) return unchecked((int)aux >> 3);
+                        if ((aux & 7) == (uint)ElementSize.OneByte) return unchecked((int)aux >> 3);
                         break;
                     case Type.FarDouble:
                     case Type.FarSingle:
@@ -902,7 +904,7 @@ namespace CapnProto.Take2
                 switch (startAndType & 7)
                 {
                     case Type.ListBasic:
-                        if ((aux & 3) == (uint)ElementSize.OneByte) return; // looks ok
+                        if ((aux & 7) == (uint)ElementSize.OneByte) return; // looks ok
                         break;
                     case Type.FarSingle:
                     case Type.FarDouble:
@@ -922,7 +924,7 @@ namespace CapnProto.Take2
             switch (startAndType & 7)
             {
                 case Type.ListBasic:
-                    if ((aux & 3) == (uint)ElementSize.OneByte)
+                    if ((aux & 7) == (uint)ElementSize.OneByte)
                     {
                         unchecked
                         {
@@ -941,7 +943,7 @@ namespace CapnProto.Take2
             switch (startAndType & 7)
             {
                 case Type.ListBasic:
-                    if ((aux & 3) == (uint)ElementSize.OneByte)
+                    if ((aux & 7) == (uint)ElementSize.OneByte)
                     {
                         unchecked
                         {

@@ -21,10 +21,10 @@ namespace CapnProto.Take2
             if(value.Length == 0)
             {
                 // automatic nil pointer
-                return (Text)pointer.Allocate(ElementSize.OneByte, 1);
+                return (Text)pointer.AllocateList(ElementSize.OneByte, 1);
             }
             int byteLen = Encoding.UTF8.GetByteCount(value);
-            var ptr = pointer.Allocate(ElementSize.OneByte, byteLen + 1);
+            var ptr = pointer.AllocateList(ElementSize.OneByte, byteLen + 1);
             ptr.WriteString(value);
             return (Text)ptr;
         }
