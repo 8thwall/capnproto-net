@@ -63,6 +63,6 @@ namespace CapnProto
         FourBytes = 4,
         EightBytesNonPointer = 5,
         EightBytesPointer = 6,
-        Composite = 7
+        InlineComposite = 7
     }
 }

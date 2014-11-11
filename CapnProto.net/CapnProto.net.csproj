@@ -41,6 +41,7 @@
     <AssemblyOriginatorKeyFile>CapnProto.net.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -67,6 +68,7 @@
     <Compile Include="PointerType.cs" />
     <Compile Include="Schema\Schema.cs" />
     <Compile Include="Schema\Schema.designer.cs" />
+    <Compile Include="StructAttribute.cs" />
     <Compile Include="Take2\BufferSegmentFactory.cs" />
     <Compile Include="Take2\CapnProtoSerializer.cs" />
     <Compile Include="Take2\ISegmentFactoryState.cs" />
@@ -84,7 +86,7 @@
       <DependentUpon>CapnProtoReader.cs</DependentUpon>
     </Compile>
     <Compile Include="FieldAttribute.cs" />
-    <Compile Include="StructAttribute.cs" />
+    <Compile Include="IdAttribute.cs" />
     <Compile Include="ITypeSerializer.cs" />
     <Compile Include="ListPointer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

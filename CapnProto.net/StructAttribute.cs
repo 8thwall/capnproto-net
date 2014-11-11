@@ -3,18 +3,19 @@ using System.ComponentModel;
 
 namespace CapnProto
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Field
-        | AttributeTargets.Enum | AttributeTargets.Module, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
     [ImmutableObject(true)]
-    public sealed class IdAttribute : Attribute
+    public sealed class StructAttribute: Attribute
     {
-        public IdAttribute(ulong id, string name = null)
+        public StructAttribute(ElementSize preferredSize, int dataWords = 0, int pointers = 0)
         {
-            this.Id = id;
-            this.Name = name;
+            this.PreferredSize = preferredSize;
+            this.DataWords = dataWords;
+            this.Pointers = pointers;
         }
-        public ulong Id { get; private set; }
+        public ElementSize PreferredSize { get; private set; }
 
-        public string Name { get; private set; }
+        public int DataWords { get; private set; }
+        public int Pointers { get; private set; }
     }
 }

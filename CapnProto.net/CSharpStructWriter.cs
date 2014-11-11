@@ -149,10 +149,17 @@ namespace CapnProto
         {
             if (node.Union == Schema.Node.Unions.@struct)
             {
-                //if (node.@struct.isGroup)
-                //{
-                //    WriteLine().Write("[global::CapnProto.Group]");
-                //}
+                var @struct = node.@struct;
+                if (@struct.isGroup.Value)
+                {
+                    WriteLine().Write("[").Write(typeof(GroupAttribute)).Write("]");
+                }
+                else
+                {
+                    WriteLine().Write("[").Write(typeof(StructAttribute)).Write("(").Write(typeof(ElementSize)).Write(".")
+                        .Write(((ElementSize)@struct.preferredListEncoding.Value).ToString()).Write(", ")
+                        .Write(@struct.dataWordCount.Value).Write(", ").Write(@struct.pointerCount).Write(")]");
+                }
                 if (node.id != 0)
                 {
                     WriteLine().Write("[").Write(typeof(IdAttribute)).Write("(").Write(node.id).Write(")]");
@@ -167,6 +174,11 @@ namespace CapnProto
             WriteLine().Write("public static implicit operator ").Write(typeof(Pointer)).Write(" (").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write("; }");
             WriteLine().Write("public static bool operator true(").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write(".IsValid; }");
             WriteLine().Write("public static bool operator false(").Write(fullName).Write(" obj) { return !obj.").Write(PointerName).Write(".IsValid; }");
+            WriteLine().Write("public static bool operator !(").Write(fullName).Write(" obj) { return !obj.").Write(PointerName).Write(".IsValid; }");
+            WriteLine().Write("public override int GetHashCode() { return this.").Write(PointerName).Write(".GetHashCode(); }");
+            WriteLine().Write("public override string ToString() { return this.").Write(PointerName).Write(".ToString(); }");
+            WriteLine().Write("public override bool Equals(object obj) { return obj is ").Write(fullName).Write(" && (this.")
+                .Write(PointerName).Write(" == ((").Write(fullName).Write(")obj).").Write(PointerName).Write("); }");
             WriteLine().Write("public ").Write(fullName).Write(" Dereference() { return (").Write(fullName).Write(")this.").Write(PointerName).Write(".Dereference(); }");
             if (node.Union == Node.Unions.@struct)
             {

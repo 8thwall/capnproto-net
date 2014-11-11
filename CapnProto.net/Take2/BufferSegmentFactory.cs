@@ -195,14 +195,14 @@ namespace CapnProto.Take2
                 return wordsToCopy;
             }
 
-            public override int WriteString(int index, string value, int bytes)
+            public override unsafe int WriteString(int index, string value, int bytes)
             {
                 if (bytes-- > 0)
                 {
-                    int offset = this.offset + (index << 3);
-                    if (buffer[offset + bytes] == (byte)0)
+                    int offset = this.offset + (index << 3);                    
+                    if (this.buffer[offset + bytes] == (byte)0)
                     {
-                        return Encoding.GetBytes(value, 0, value.Length, buffer, offset);
+                        return Encoding.GetBytes(value, 0, value.Length, this.buffer, offset);
                     }
                 }
                 throw new InvalidOperationException();

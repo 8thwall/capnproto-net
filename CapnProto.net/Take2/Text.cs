@@ -12,7 +12,7 @@ namespace CapnProto.Take2
         public static implicit operator Pointer(Text pointer) { return pointer.pointer; }
         public static bool operator true(Text obj) { return obj.pointer.IsValid; }
         public static bool operator false(Text obj) { return !obj.pointer.IsValid; }
-        public static implicit operator string(Text obj) { return obj.ToString(); }
+        public static explicit operator string(Text obj) { return obj.ToString(); }
 
         public static Text Create(Pointer pointer, string value)
         {

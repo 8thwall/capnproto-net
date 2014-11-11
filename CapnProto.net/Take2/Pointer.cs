@@ -119,7 +119,7 @@ namespace CapnProto.Take2
                                 startAndType = ((uint)start << 3) | 1;
                                 aux = rhs;
                                 break;
-                            case ElementSize.Composite:
+                            case ElementSize.InlineComposite:
                                 startAndType = ((uint)start << 3) | 5;
                                 aux = rhs & 7; // copy out the type bits, but not the count
                                 header = segment[start];
@@ -299,12 +299,12 @@ namespace CapnProto.Take2
         public void SetUInt32(int index, uint value)
         {
             int shift = (index & 1) << 5; // 0 => 0, 1 => 32
-            SetDataWord(index >> 1, unchecked((ulong)value) << shift, (ulong)0xFFFF << shift);
+            SetDataWord(index >> 1, unchecked((ulong)value) << shift, (ulong)0xFFFFFFFF << shift);
         }
         public void SetInt32(int index, int value)
         {
             int shift = (index & 1) << 5; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
-            SetDataWord(index >> 1, unchecked((ulong)value) << shift, (ulong)0xFFFF << shift);
+            SetDataWord(index >> 1, unchecked((ulong)value) << shift, (ulong)0xFFFFFFFF << shift);
         }
         
         public void SetUInt64(int index, ulong value)
@@ -367,7 +367,7 @@ namespace CapnProto.Take2
         }
 
         const int MSB32 = 1 << 31;
-        private ulong GetDataWord(int index)
+        internal ulong GetDataWord(int index)
         {
             unchecked
             {
@@ -395,7 +395,7 @@ namespace CapnProto.Take2
                 return 0;
             }
         }
-        private void SetDataWord(int index, ulong value, ulong mask)
+        internal void SetDataWord(int index, ulong value, ulong mask)
         {
             unchecked
             {
@@ -467,7 +467,9 @@ namespace CapnProto.Take2
                         case Type.StructFragment:
                             throw new NotImplementedException();
                         case Type.ListComposite:
+                            // needs to return a StructFragment?
                             throw new NotImplementedException();
+
                     }
                 }
                 return default(Pointer);
@@ -518,6 +520,10 @@ namespace CapnProto.Take2
 
         public bool IsValid { get { return segment != null && (startAndType != 0 || segment.Index != 0); } }
 
+        public T Allocate<T>()
+        {
+            return StructAccessor<T>.Instance.Create(this);
+        }
         public Pointer Allocate(short dataWords, short pointers)
         {
             uint newDataWordsAndPointers = ((uint)checked((ushort)dataWords)) | (((uint)checked((ushort)pointers)) << 16);
@@ -560,6 +566,41 @@ namespace CapnProto.Take2
                 }
             }
         }
+        public Pointer Allocate(short dataWords, short pointers, int length)
+        {
+            unchecked
+            {
+                if (dataWords < 0) throw new ArgumentOutOfRangeException("dataWords");
+                if (pointers < 0) throw new ArgumentOutOfRangeException("pointers");
+                if (length < 0) throw new ArgumentOutOfRangeException("length");
+
+                int wordsPerElement = (int)dataWords + (int)pointers;
+                int totalWords = wordsPerElement * length;
+                uint rhs = (uint)(totalWords << 3 | (int)ElementSize.InlineComposite);
+
+                uint dataAndWords = (uint)(ushort)dataWords | (((uint)(ushort)pointers) << 16);
+                var list = Allocate(totalWords + 1, (uint)Type.ListComposite, rhs, dataAndWords, rhs);
+                list.SetTagWord((uint)(length << 3), rhs);
+                return list;
+
+            }
+        }
+
+        private void SetTagWord(uint lhs, uint rhs)
+        {
+            switch(startAndType & 7)
+            {
+                case Type.FarSingle:
+                case Type.FarDouble:
+                    Dereference().SetTagWord(lhs, rhs);
+                    break;
+                case Type.ListComposite:
+                    segment[(int)(startAndType >> 3)] = (ulong)lhs | ((ulong)rhs << 32);
+                    break;
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
         public Pointer Allocate(ElementSize elementSize, int length)
         {
             unchecked
@@ -591,7 +632,7 @@ namespace CapnProto.Take2
                     case ElementSize.EightBytesNonPointer:
                         words = length;
                         break;
-                    case ElementSize.Composite:
+                    case ElementSize.InlineComposite:
                         throw new InvalidOperationException("Composite lits should be allocated using the overload that accepts data word and pointer counts");
                     default:
                         throw new ArgumentOutOfRangeException("elementSize");
@@ -749,5 +790,23 @@ namespace CapnProto.Take2
             throw SingleByteListExpected();
         }
 
+
+        public int Count()
+        {
+            switch(startAndType & 7)
+            {
+                case Type.ListBasic:
+                case Type.ListComposite:
+                    return unchecked((int)(aux >> 3));
+                case Type.FarDouble:
+                case Type.FarSingle:
+                    return Dereference().Count();
+            }
+            throw ListExpected();
+        }
+        static Exception ListExpected()
+        {
+            return new InvalidOperationException("A list was expected");
+        }
     }
 }

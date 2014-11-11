@@ -153,7 +153,7 @@ namespace CapnProto
                                     ProcessPointer(output, pending, i, next, next.EffectiveOffset + i);
                                 }
                                 break;
-                            case ElementSize.Composite:
+                            case ElementSize.InlineComposite:
                                 var tagWord = ReadWord(next.Segment, next.EffectiveOffset);
                                 int data = unchecked((int)(ushort)(tagWord >> 32)),
                                     pointers = unchecked((int)(ushort)(tagWord >> 48)),
@@ -351,7 +351,7 @@ namespace CapnProto
                         }
                         return list;
                     }
-                case ElementSize.Composite:
+                case ElementSize.InlineComposite:
                     {
                         ulong tag = context.Reader.ReadWord(segment, origin++);
                         // The tag has the same layout as a struct pointer, except that the pointer offset (B)

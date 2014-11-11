@@ -1120,7 +1120,7 @@ namespace CapnProto
             {
                 return WriteLine().Write("#error parent not found for: ").Write(node.displayName);
             }
-            WriteLine().Write("[global::CapnProto.Group, global::CapnProto.Id(").Write(node.id).Write(")]");
+            WriteLine().Write("[").Write(typeof(GroupAttribute)).Write(", ").Write(typeof(IdAttribute)).Write("(").Write(node.id).Write(")]");
             WriteLine().Write("public struct ").Write(LocalName(node));
             Indent();
             WriteLine().Write("private readonly ").Write(FullyQualifiedName(parent)).Write(" parent;");

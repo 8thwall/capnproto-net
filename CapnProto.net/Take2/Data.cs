@@ -15,15 +15,20 @@ namespace CapnProto.Take2
         public static bool operator true(Data obj) { return obj.pointer.IsValid; }
         public static bool operator false(Data obj) { return !obj.pointer.IsValid; }
         public static Data Create(Pointer parent, int length) { return (Data)parent.Allocate(ElementSize.OneByte, length); }
-        
-        public int Count() { throw new NotImplementedException(); }
+
+        public int Count() { return pointer.SingleByteLength; }
         public void CopyTo(byte[] buffer, int destinationIndex = 0, int sourceIndex = 0, int count = -1) { throw new NotImplementedException(); }
 
         public int GetByteCount() { return pointer.SingleByteLength; }
         public byte this[int index]
         {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
+            get { return unchecked((byte)pointer.GetDataWord(index)); }
+            set { pointer.SetDataWord(index, unchecked((ulong)value), (ulong)0xFF); }
+        }
+
+        public override string ToString()
+        {
+            return pointer.ToString();
         }
     }
 }
