@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 namespace CapnProto.Take2
@@ -175,7 +176,7 @@ namespace CapnProto.Take2
                         {
                             words = GetSpaceRequired((ElementSize)(aux & 7), count);
                         }
-                        if(words == 0)
+                        if (words == 0)
                         {
                             return string.Format("[{0}:{1}] nil list, {2}, {3} items",
                                 segment.Index, startAndType >> 3, (ElementSize)(aux & 7), aux >> 3);
@@ -775,9 +776,9 @@ namespace CapnProto.Take2
             switch (elementSize)
             {
                 case ElementSize.ZeroByte: return 0;
-                case ElementSize.OneBit:return ((length - 1) >> 6) + 1;
-                case ElementSize.OneByte:return ((length - 1) >> 3) + 1;
-                case ElementSize.TwoBytes:return ((length - 1) >> 2) + 1;
+                case ElementSize.OneBit: return ((length - 1) >> 6) + 1;
+                case ElementSize.OneByte: return ((length - 1) >> 3) + 1;
+                case ElementSize.TwoBytes: return ((length - 1) >> 2) + 1;
                 case ElementSize.FourBytes: return ((length - 1) >> 1) + 1;
                 case ElementSize.EightBytesPointer: return length;
                 case ElementSize.EightBytesNonPointer: return length;
@@ -935,6 +936,44 @@ namespace CapnProto.Take2
                 case Type.FarSingle:
                 case Type.FarDouble:
                     return Dereference().ReadString();
+            }
+            throw SingleByteListExpected();
+        }
+        internal void ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int words)
+        {
+            switch (startAndType & 7)
+            {
+                case Type.ListBasic:
+                    if ((aux & 7) == (uint)ElementSize.OneByte && segment != null)
+                    {
+                        if (segment.ReadWords((int)(startAndType >> 3) + wordOffset, buffer, bufferOffset, words) != words)
+                            throw new EndOfStreamException();
+                        return;
+                    }
+                    break;
+                case Type.FarSingle:
+                case Type.FarDouble:
+                    Dereference().ReadWords(wordOffset, buffer, bufferOffset, words);
+                    return;
+            }
+            throw SingleByteListExpected();
+        }
+        internal void WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int words)
+        {
+            switch (startAndType & 7)
+            {
+                case Type.ListBasic:
+                    if ((aux & 7) == (uint)ElementSize.OneByte && segment != null)
+                    {
+                        if (segment.WriteWords((int)(startAndType >> 3) + wordOffset, buffer, bufferOffset, words) != words)
+                            throw new EndOfStreamException();
+                        return;
+                    }
+                    break;
+                case Type.FarSingle:
+                case Type.FarDouble:
+                    Dereference().WriteWords(wordOffset, buffer, bufferOffset, words);
+                    return;
             }
             throw SingleByteListExpected();
         }

@@ -121,7 +121,7 @@ namespace CapnProto.Take2
             return true;
         }
 
-        private class BufferSegment : Segment, ISegmentIO
+        private class BufferSegment : Segment
         {
 
             private byte[] buffer;
@@ -192,18 +192,22 @@ namespace CapnProto.Take2
                 get { return activeWords; }
             }
 
-            unsafe int ISegmentIO.CopyOut(byte[] buffer, int bufferOffset, int wordOffset, int maxWords)
+            public override int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
             {
                 int wordsToCopy = activeWords - wordOffset;
                 if (wordsToCopy > maxWords) wordsToCopy = maxWords;
 
-                fixed (byte* ptr = buffer)
-                {
-                    System.Runtime.InteropServices.Marshal.Copy(this.buffer, this.offset + (wordOffset << 3), new IntPtr(ptr), wordsToCopy << 3);
-                }
+                Buffer.BlockCopy(this.buffer, offset + (wordOffset << 3), buffer, bufferOffset, wordsToCopy << 3);
                 return wordsToCopy;
             }
+            public override int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
+            {
+                int wordsToCopy = activeWords - wordOffset;
+                if (wordsToCopy > maxWords) wordsToCopy = maxWords;
 
+                Buffer.BlockCopy(buffer, bufferOffset, this.buffer, offset + (wordOffset << 3), wordsToCopy << 3);
+                return wordsToCopy;
+            }
             public override unsafe int WriteString(int index, string value, int bytes)
             {
                 if (bytes-- > 0)

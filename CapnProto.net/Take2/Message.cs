@@ -55,7 +55,8 @@ namespace CapnProto.Take2
 
         int ISegment.WriteString(int index, string value, int bytes) { return this[0].WriteString(index, value, bytes); }
         string ISegment.ReadString(int index, int bytes) { return this[0].ReadString(index, bytes); }
-
+        int ISegment.ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords) { return this[0].ReadWords(wordOffset, buffer, bufferOffset, maxWords); }
+        int ISegment.WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords) { return this[0].WriteWords(wordOffset, buffer, bufferOffset, maxWords); }
         public override string ToString()
         {
             return string.Format("{0} segments, {1} words", SegmentCount, WordCount);
@@ -307,23 +308,7 @@ namespace CapnProto.Take2
         private unsafe int WriteSegment(byte[] buffer, ISegment segment, int wordOffset)
         {
             int wordsInBuffer = buffer.Length >> 3;
-            ISegmentIO io = segment as ISegmentIO;
-            if(io != null)
-            {
-                return io.CopyOut(buffer, 0, wordOffset, wordsInBuffer);
-            }
-            int wordsToWrite = Math.Min(segment.Length - wordOffset, wordsInBuffer);
-            // do it the hard way...
-            fixed (byte* ptr = buffer)
-            {
-                ulong* typed = (ulong*)ptr;
-                for (int i = 0; i < wordsToWrite; i++)
-                {
-                    typed[i] = segment[wordOffset++];
-                }
-            }
-            return wordsToWrite;
-
+            return segment.ReadWords(wordOffset, buffer, 0, wordsInBuffer);
         }
 
         [ThreadStatic]

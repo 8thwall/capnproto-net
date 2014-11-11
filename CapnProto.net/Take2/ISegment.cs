@@ -15,10 +15,9 @@ namespace CapnProto.Take2
 
         int WriteString(int index, string value, int bytes);
         string ReadString(int index, int bytes);
-    }
 
-    public interface ISegmentIO : ISegment
-    {
-        int CopyOut(byte[] buffer, int bufferOffset, int wordOffset, int words);
+        int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords);
+
+        int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords);
     }
 }

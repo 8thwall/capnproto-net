@@ -43,5 +43,8 @@ namespace CapnProto.Take2
         }
         public abstract int WriteString(int index, string value, int bytes);
         public abstract string ReadString(int index, int bytes);
+
+        public abstract int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int words);
+        public abstract int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int words);
     }
 }
