@@ -168,7 +168,7 @@
 //            string localName = LocalName(node), fullName = FullyQualifiedName(node);
 //            WriteLine().Write("public struct ").Write(localName);
 //            Indent();
-//            WriteLine().Write("private readonly ").Write(typeof(Pointer)).Write(" ").Write(PointerName).Write(";");
+//            WriteLine().Write("private ").Write(typeof(Pointer)).Write(" ").Write(PointerName).Write(";");
 //            WriteLine().Write("private ").Write(localName).Write("(").Write(typeof(Pointer)).Write(" pointer){ this.").Write(PointerName).Write(" = pointer; }");
 //            WriteLine().Write("public static explicit operator ").Write(fullName).Write("(").Write(typeof(Pointer)).Write(" pointer) { return new ").Write(fullName).Write("(pointer); }");
 //            WriteLine().Write("public static implicit operator ").Write(typeof(Pointer)).Write(" (").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write("; }");
@@ -968,7 +968,7 @@
 //            WriteLine().Write("[global::CapnProto.Group, global::CapnProto.Id(").Write(node.id).Write(")]");
 //            WriteLine().Write("public struct ").Write(LocalName(node));
 //            Indent();
-//            WriteLine().Write("private readonly ").Write(typeof(Pointer)).Write(" ").Write(PointerName).Write(";");
+//            WriteLine().Write("private ").Write(typeof(Pointer)).Write(" ").Write(PointerName).Write(";");
 //            WriteLine().Write("internal ").Write(LocalName(node)).Write("(").Write(typeof(Pointer)).Write(" pointer)");
 //            Indent();
 //            WriteLine().Write("this.").Write(PointerName).Write(" = pointer;");
