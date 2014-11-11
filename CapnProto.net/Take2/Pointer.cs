@@ -510,29 +510,37 @@ namespace CapnProto.Take2
         {
             unchecked
             {
-                if ((startAndType & 7) != Type.ListBasic) throw new InvalidOperationException();
-                if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                switch (startAndType & 7)
                 {
-                    int wordShift, valueShift;
-                    ulong mask;
-                    switch ((ElementSize)(aux & 7))
-                    {
-                        case ElementSize.OneBit: wordShift = 6; valueShift = (index & 63); mask = 1; break;
-                        case ElementSize.OneByte: wordShift = 3; valueShift = (index & 7) << 3; mask = 0xFF; break;
-                        case ElementSize.TwoBytes: wordShift = 2; valueShift = (index & 3) << 4; mask = 0xFFFF; break;
-                        case ElementSize.FourBytes: wordShift = 1; valueShift = (index & 1) << 5; mask = 0xFFFFFFFF; break;
-                        case ElementSize.EightBytesNonPointer:
-                            return segment[(int)(startAndType >> 3) + index];
-                        case ElementSize.InlineComposite:
-                            throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
-                        case ElementSize.ZeroByte:
-                        case ElementSize.EightBytesPointer:
-                        default:
-                            return 0;
-                    }
-                    return (segment[(int)(startAndType >> 3) + (index >> wordShift)] >> valueShift) & mask;
+                    case Type.ListBasic:
+                        if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                        {
+                            int wordShift, valueShift;
+                            ulong mask;
+                            switch ((ElementSize)(aux & 7))
+                            {
+                                case ElementSize.OneBit: wordShift = 6; valueShift = (index & 63); mask = 1; break;
+                                case ElementSize.OneByte: wordShift = 3; valueShift = (index & 7) << 3; mask = 0xFF; break;
+                                case ElementSize.TwoBytes: wordShift = 2; valueShift = (index & 3) << 4; mask = 0xFFFF; break;
+                                case ElementSize.FourBytes: wordShift = 1; valueShift = (index & 1) << 5; mask = 0xFFFFFFFF; break;
+                                case ElementSize.EightBytesNonPointer:
+                                    return segment[(int)(startAndType >> 3) + index];
+                                case ElementSize.InlineComposite:
+                                    throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
+                                case ElementSize.ZeroByte:
+                                case ElementSize.EightBytesPointer:
+                                default:
+                                    return 0;
+                            }
+                            return (segment[(int)(startAndType >> 3) + (index >> wordShift)] >> valueShift) & mask;
+                        }
+                        throw new IndexOutOfRangeException("index");
+                    case Type.FarSingle:
+                    case Type.FarDouble:
+                        return GetDataWordInBasicList(index);
+                    default:
+                        throw new InvalidOperationException();
                 }
-                throw new IndexOutOfRangeException("index");
             }
         }
         internal void SetDataWord(int index, ulong value, ulong mask)
@@ -591,35 +599,44 @@ namespace CapnProto.Take2
         {
             unchecked
             {
-                if ((startAndType & 7) != Type.ListBasic) throw new InvalidOperationException();
-                if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                switch (startAndType & 7)
                 {
-                    int wordShift, valueShift;
-                    ulong localMask;
-                    switch ((ElementSize)(aux & 7))
-                    {
-                        case ElementSize.OneBit: wordShift = 6; valueShift = (index & 63); localMask = 1; break;
-                        case ElementSize.OneByte: wordShift = 3; valueShift = (index & 7) << 3; localMask = 0xFF; break;
-                        case ElementSize.TwoBytes: wordShift = 2; valueShift = (index & 3) << 4; localMask = 0xFFFF; break;
-                        case ElementSize.FourBytes: wordShift = 1; valueShift = (index & 1) << 5; localMask = 0xFFFFFFFF; break;
-                        case ElementSize.EightBytesNonPointer:
-                            segment.SetValue((int)(startAndType >> 3) + index, value, mask);
-                            return;
-                        case ElementSize.InlineComposite:
-                            throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
-                        case ElementSize.ZeroByte:
-                        case ElementSize.EightBytesPointer:
-                        default:
-                            if (value != 0) throw CannotSetValue(index);
-                            return;
-                    }
-                    if ((mask & ~localMask) == 0)
-                    { // check not attempting to overwrite
-                        segment.SetValue((int)(startAndType >> 3) + (index >> wordShift), value << valueShift, mask << valueShift);
+                    case Type.ListBasic:
+                        if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                        {
+                            int wordShift, valueShift;
+                            ulong localMask;
+                            switch ((ElementSize)(aux & 7))
+                            {
+                                case ElementSize.OneBit: wordShift = 6; valueShift = (index & 63); localMask = 1; break;
+                                case ElementSize.OneByte: wordShift = 3; valueShift = (index & 7) << 3; localMask = 0xFF; break;
+                                case ElementSize.TwoBytes: wordShift = 2; valueShift = (index & 3) << 4; localMask = 0xFFFF; break;
+                                case ElementSize.FourBytes: wordShift = 1; valueShift = (index & 1) << 5; localMask = 0xFFFFFFFF; break;
+                                case ElementSize.EightBytesNonPointer:
+                                    segment.SetValue((int)(startAndType >> 3) + index, value, mask);
+                                    return;
+                                case ElementSize.InlineComposite:
+                                    throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
+                                case ElementSize.ZeroByte:
+                                case ElementSize.EightBytesPointer:
+                                default:
+                                    if (value != 0) throw CannotSetValue(index);
+                                    return;
+                            }
+                            if ((mask & ~localMask) == 0)
+                            { // check not attempting to overwrite
+                                segment.SetValue((int)(startAndType >> 3) + (index >> wordShift), value << valueShift, mask << valueShift);
+                                return;
+                            }
+                        }
+                        throw new IndexOutOfRangeException("index");
+                    case Type.FarDouble:
+                    case Type.FarSingle:
+                        Dereference().SetDataWordInBasicList(index, value, mask);
                         return;
-                    }
+                    default:
+                        throw new InvalidOperationException();
                 }
-                throw new IndexOutOfRangeException("index");
             }
         }
         static class Type
