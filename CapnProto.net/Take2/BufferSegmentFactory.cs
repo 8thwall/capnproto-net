@@ -158,6 +158,15 @@ namespace CapnProto.Take2
                 }
             }
 
+            public override unsafe void SetValue(int index, ulong value, ulong mask)
+            {
+                fixed (byte* ptr = &buffer[offset])
+                {
+                    ulong* typed = (ulong*)ptr;
+                    typed[index] = (value & mask) | (typed[index] & ~mask);
+                }
+            }
+
             public override void Reset(bool recycling)
             {
                 buffer = null;
