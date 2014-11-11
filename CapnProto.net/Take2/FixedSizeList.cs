@@ -141,5 +141,21 @@ namespace CapnProto.Take2
         {
             return StructAccessor<T>.Instance.CreateList(pointer, count);
         }
+
+        public static FixedSizeList<T> Create(Pointer pointer, IList<T> items)
+        {
+            if (items == null) return default(FixedSizeList<T>);
+            if (items.Count == 0) return FixedSizeList<T>.Create(pointer, 0);
+
+            var accessor = StructAccessor<T>.Instance;
+            FixedSizeList<T> list = accessor.IsPointer
+                ? accessor.CreateList(pointer, items.Count, ElementSize.EightBytesPointer)
+                : accessor.CreateList(pointer, items.Count);
+            for (int i = 0; i < items.Count; i++)
+            {
+                list[i] = items[i];
+            }
+            return list;
+        }
     }
 }

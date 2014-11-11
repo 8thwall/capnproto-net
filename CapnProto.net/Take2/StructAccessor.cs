@@ -7,6 +7,7 @@ namespace CapnProto.Take2
     {
         public static readonly StructAccessor<T> Instance;
 
+        public abstract bool IsPointer { get; }
         static StructAccessor()
         {
             object tmp;
@@ -59,9 +60,18 @@ namespace CapnProto.Take2
         public abstract void Set(Pointer pointer, int index, T value);
         public abstract FixedSizeList<T> CreateList(Pointer pointer, int count);
         public abstract T Create(Pointer pointer);
+
+        public virtual FixedSizeList<T> CreateList(Pointer pointer, int count, ElementSize elementSize)
+        {
+            throw new NotImplementedException();
+        }
     }
     internal abstract class BasicPointerAccessor<T> : StructAccessor<T>
     {
+        public override bool IsPointer
+        {
+            get { return true; }
+        }
         public override FixedSizeList<T> CreateList(Pointer pointer, int count)
         {
             return (FixedSizeList<T>)pointer.AllocateList(ElementSize.EightBytesPointer, count);
@@ -95,6 +105,10 @@ namespace CapnProto.Take2
     }
     abstract class BasicTypeAccessor<T> : StructAccessor<T>
     {
+        public override bool IsPointer
+        {
+            get { return true; }
+        }
         public override T Create(Pointer pointer)
         {
             throw new NotSupportedException("Pointer to a non-pointer type is not supported: " + typeof(T).FullName);
@@ -169,6 +183,10 @@ namespace CapnProto.Take2
     }
     internal abstract class FailStructAccessor<T> : StructAccessor<T>
     {
+        public override bool IsPointer
+        {
+            get { return true; }
+        }
         protected abstract Exception Fail();
         public override T Get(Pointer pointer, int index) { throw Fail(); }
         public override void Set(Pointer pointer, int index, T value) { throw Fail(); }
@@ -192,6 +210,10 @@ namespace CapnProto.Take2
 
     internal abstract class PointerStructAccessor<T> : StructAccessor<T>
     {
+        public override bool IsPointer
+        {
+            get { return true; }
+        }
         public static PointerStructAccessor<T> Create(ElementSize elementSize, short dataWords, short pointers)
         {
             try

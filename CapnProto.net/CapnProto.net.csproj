@@ -38,7 +38,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>CapnProto.net.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>../CapnProto.net.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cache.cs" />
     <Compile Include="CapnProtoBlobReader.cs">
       <DependentUpon>CapnProtoRawMemoryReader.cs</DependentUpon>
     </Compile>
@@ -58,6 +59,7 @@
     <Compile Include="CapnProtoReader.cs" />
     <Compile Include="CodeWriter.cs" />
     <Compile Include="CSharpStructWriter.cs" />
+    <Compile Include="ElementSize.cs" />
     <Compile Include="InvalidUnionDiscriminatorException.cs" />
     <Compile Include="CSharpCodeWriter.cs">
       <DependentUpon>CodeWriter.cs</DependentUpon>
@@ -97,9 +99,6 @@
     <Compile Include="UnionAttribute.cs" />
     <Compile Include="UnionStub.cs" />
     <Compile Include="Void.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="CapnProto.net.snk" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Notes.txt" />
