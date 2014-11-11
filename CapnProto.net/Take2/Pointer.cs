@@ -210,10 +210,12 @@ namespace CapnProto.Take2
         private readonly uint startAndType, dataWordsAndPointers, aux;
         // meaning:
 
-        // structs:
+        // struct:
         //  startAndType: LSB[type:2][fragment:1][start:29]MSB
         //  dataWordsAndPointers: LSB[data:16][pointers:16]MSB
-        //  aux: LSB[shift:6][padding:10][size:5][padding:11]MSB // for use with fragments; note: padding here is for CPU efficiency only; could be relocated
+        //  aux (fragment only): LSB[startBit:6][padding:2][size:6][padding:22]MSB 
+        // note: ^^^ padding and layout here here is for CPU efficiency only; could be relocated, and size can
+        // actually be stored in 3 bits, using it as a shift-multiplier i.e. size = 1 << [val]
 
         // lists:
         //  startAndType: LSB[type:2][composite:1][start:29]MSB
@@ -387,10 +389,26 @@ namespace CapnProto.Take2
                         case Type.Capability:
                             break;
                         case Type.StructFragment:
-                            throw new NotImplementedException();
+                            // only one word
+                            if(index == 0)
+                            {
+                                // k, let me walk you through this!
+                                // startAndType >> 3 is the word, offset, so segment[(int)(startAndType >> 3)] is the entire word
+                                // flags & 63 is the start-bit inside the word, so we can discard everything before that by shifting
+                                // next we want to mask that with enough 1s for the size of the data, where the size is: (flags >> 8) & 63
+                                // and a niec way of getting "n" 1s is to right-shift an all-1 block, then invert; all ones is: ~(ulong)0
+                                // and so "n" 1s is ~( allones << n)
+                                uint flags = aux;
+                                return (segment[(int)(startAndType >> 3)] >> (int)(flags & 63)) & ~((~(ulong)0) << (int)((flags >> 8) & 63));
+                            }
+                            break;
                         case Type.ListComposite:
-                            throw new NotImplementedException();
+                            throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
                     }
+                }
+                else if ((startAndType & 3) == 1) // any kind of list
+                {
+                    throw new IndexOutOfRangeException("index");
                 }
                 return 0;
             }
@@ -420,10 +438,28 @@ namespace CapnProto.Take2
                         case Type.Capability:
                             break;
                         case Type.StructFragment:
-                            throw new NotImplementedException();
+                            if (index == 0)
+                            {
+                                uint flags = aux;
+                                int shift = (int)(flags & 63);
+                                // need to check that the mask is entirely contained in the allowed region;
+                                // if it isn't, the caller is attempting to overwrite another fragment;
+                                // the legal mask is "n ones" (see GetDataWord),
+                                // so we can & with "all ones except n zeros", which is (~0 << n)
+                                if ((mask & ((~(ulong)0) << (int)((flags >> 8) & 63))) == 0)
+                                {
+                                    segment.SetValue((int)(startAndType >> 3), value << shift, mask << shift);
+                                    return;
+                                }
+                            }
+                            break;                            
                         case Type.ListComposite:
-                            throw new NotImplementedException();
+                            throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
                     }
+                }
+                else if ((startAndType & 3) == 1) // any kind of list
+                {
+                    throw new IndexOutOfRangeException("index");
                 }
                 if (value != 0) throw CannotSetValue(index);
             }
@@ -459,21 +495,19 @@ namespace CapnProto.Take2
                             {
                                 return new Pointer(segment, (int)(startAndType >> 3) + index);
                             }
-                            break;
+                            return GetPointerInBasicList(index);
                         case Type.FarSingle:
                         case Type.FarDouble:
                             return Dereference().GetPointer(index);
-                        case Type.Capability:
+                        case Type.Capability: // not even data...
+                        case Type.StructFragment: // never has pointers
                             break;
-                        case Type.StructFragment:
-                            throw new NotImplementedException();
                         case Type.ListComposite:
                             // non-fragment hook into middle of a list; dataWordsAndPointers is copied verbatim; offset is tweaked, aux is nil
                             if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
 
                             int offset = 1 + (int)(startAndType >> 3) + index * ((int)(dataWordsAndPointers & 0xFFFF) + (int)(dataWordsAndPointers >> 16));
                             return new Pointer(segment, (uint)(offset << 3), dataWordsAndPointers, 0);
-
                     }
                 }
                 else if ((startAndType & 3) == 1) // any kind of list
@@ -481,6 +515,50 @@ namespace CapnProto.Take2
                     throw new IndexOutOfRangeException("index");
                 }
                 return default(Pointer);
+            }
+        }
+
+        private Pointer GetPointerInBasicList(int index)
+        {
+            unchecked {
+                if (index < 0 || index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
+                if ((startAndType & 7) != Type.ListBasic) throw new InvalidOperationException();
+                
+                int word, size, startBit;
+                switch((ElementSize)(aux & 7))
+                {
+                    case ElementSize.ZeroByte:
+                        // can be treated as a simple (non-fragment) pointer without any words
+                        return new Pointer(segment, startAndType & ~(uint)7, 0, 0);
+                    case ElementSize.OneBit:
+                        size = 1;
+                        word = index >> 6;
+                        startBit = index & 63;
+                        break;
+                    case ElementSize.OneByte:
+                        size = 8;
+                        word = index >> 3;
+                        startBit = (index & 7) << 3;
+                        break;
+                    case ElementSize.TwoBytes:
+                        size = 16;
+                        word = index >> 2;
+                        startBit = (index & 3) << 4;
+                        break;
+                    case ElementSize.FourBytes:
+                        size = 32;
+                        word = index >> 1;
+                        startBit = (index & 1) << 5;
+                        break;
+                    case ElementSize.EightBytesPointer:
+                        return new Pointer(segment, (int)(startAndType >> 3) + index);
+                    case ElementSize.EightBytesNonPointer:
+                        // can be treated as a simple (non-fragment) pointer with a single data word
+                        return new Pointer(segment, (uint)(((int)(startAndType >> 3) + index) << 3), 1, 0);
+                    default:
+                        return default(Pointer); // I have no clue what the hell you want!
+                }
+                return new Pointer(segment, (uint)(((startAndType >> 3) + word) << 3) | Type.StructFragment, 1, (uint)(startBit) | (uint)(size << 8));
             }
         }
 
@@ -504,20 +582,27 @@ namespace CapnProto.Take2
                             break;
                         case Type.ListBasic:
                             if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
-                            throw new NotImplementedException();
+                            if((aux & 3) == (uint)ElementSize.EightBytesPointer)
+                            {
+                                value.WriteHeader(segment, (int)(startAndType >> 3) + index);
+                                return;
+                            }
+                            if (value.Dereference() != GetPointerInBasicList(index))
+                                throw new InvalidOperationException("You cannot reassign a pointer that refers to a location inside a struct-fragment list");
+                            return;
                         case Type.FarSingle:
                         case Type.FarDouble:
                             Dereference().SetPointer(index, value);
                             return;
-                        case Type.Capability:
+                        case Type.Capability: // not even data...
+                        case Type.StructFragment: // fragments never have pointers
                             break;
-                        case Type.StructFragment:
-                            throw new NotImplementedException();
                         case Type.ListComposite:
                             if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
                             int offset = 1 + (int)(startAndType >> 3) + index * ((int)(dataWordsAndPointers & 0xFFFF) + (int)(dataWordsAndPointers >> 16));
                             var expected = new Pointer(segment, (uint)(offset << 3), dataWordsAndPointers, 0);
-                            if (value.Dereference() != expected) throw new InvalidOperationException("You cannot reassign a pointer that refers to a location inside a composite/inline list");
+                            if (value.Dereference() != expected)
+                                throw new InvalidOperationException("You cannot reassign a pointer that refers to a location inside a composite/inline list");
                             return;
                     }
                 }

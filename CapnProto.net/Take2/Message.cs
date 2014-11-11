@@ -16,6 +16,10 @@ namespace CapnProto.Take2
             return msg;
         }
 
+        public static implicit operator Pointer(Message message)
+        {
+            return message == null ? default(Pointer) : message.Root;
+        }
 
         int ISegment.Index { get { return 0; } }
         Message ISegment.Message { get { return this; } }
@@ -339,6 +343,11 @@ namespace CapnProto.Take2
                 Array.Clear(buffer, 0, buffer.Length);
                 pooledBuffer = buffer;
             }
+        }
+
+        public T Allocate<T>()
+        {
+            return StructAccessor<T>.Instance.Create(this.Root);
         }
     }
 }
