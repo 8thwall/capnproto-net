@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 namespace CapnProto.Take2
 {
     internal abstract class StructAccessor<T>
@@ -37,7 +38,7 @@ namespace CapnProto.Take2
                         } else {
                             checked
                             {
-                                tmp = new DynamicPointerStructAccessor<T>(@struct.PreferredSize, (short)@struct.DataWords, (short)@struct.Pointers);
+                                tmp = PointerStructAccessor<T>.Create(@struct.PreferredSize, (short)@struct.DataWords, (short)@struct.Pointers);
                             }
                         }
                     }
@@ -138,7 +139,7 @@ namespace CapnProto.Take2
         }
         public override FixedSizeList<double> CreateList(Pointer pointer, int count) { return (FixedSizeList<double>)pointer.Allocate(ElementSize.EightBytesNonPointer, count); }
     }
-    internal abstract class FailStructAccessor<T> : BasicTypeAccessor<T>
+    internal abstract class FailStructAccessor<T> : StructAccessor<T>
     {
         protected abstract Exception Fail();
         public override T Get(Pointer pointer, int index) { throw Fail(); }
@@ -160,20 +161,42 @@ namespace CapnProto.Take2
             return new NotSupportedException("Type is a group (GroupAttribute), and cannot be accessed in this way: " + typeof(T).FullName);
         }
     }
-    // THIS BOXES; it is just a lazy stop-gap to show it working
-    // TODO: replace this shit
-    internal class DynamicPointerStructAccessor<T> : BasicTypeAccessor<T>
-    {
-        public override T Get(Pointer pointer, int index)
-        {
-            return (T)(dynamic)pointer.GetPointer(index);
-        }
 
-        public override void Set(Pointer pointer, int index, T value)
+    internal abstract class PointerStructAccessor<T> : StructAccessor<T>
+    {
+        public static PointerStructAccessor<T> Create(ElementSize elementSize, short dataWords, short pointers)
         {
-            pointer.SetPointer(index, (Pointer)(dynamic)value);
+            try
+            {
+                var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Static);
+                var op_toT = FindMethod(methods, typeof(Pointer), typeof(T), "op_implicit") ?? FindMethod(methods, typeof(Pointer), typeof(T), "op_explicit");
+                var op_fromT = FindMethod(methods, typeof(T), typeof(Pointer), "op_implicit") ?? FindMethod(methods, typeof(T), typeof(Pointer), "op_explicit");
+
+                if (op_toT != null && op_fromT != null)
+                {
+                    Func<Pointer, T> toT = (Func<Pointer, T>)Delegate.CreateDelegate(typeof(Func<Pointer, T>), null, op_toT);
+                    Func<T, Pointer> fromT = (Func<T, Pointer>)Delegate.CreateDelegate(typeof(Func<T, Pointer>), null, op_fromT);
+                    return new OperatorBasedStructAccessor(elementSize, dataWords, pointers, toT, fromT);
+                }
+            }
+            catch { }
+            return new DynamicPointerStructAccessor(elementSize, dataWords, pointers);
         }
-        public DynamicPointerStructAccessor(ElementSize elementSize, short dataWords, short pointers)
+        static MethodInfo FindMethod(MethodInfo[] methods, Type from, Type to, string name)
+        {
+            for(int i = 0 ; i < methods.Length ; i++)
+            {
+                var method = methods[i];
+                if(method.IsPublic && method.IsStatic &&
+                    string.Equals(name, method.Name, StringComparison.CurrentCultureIgnoreCase) && method.ReturnType == to)
+                {
+                    var args = method.GetParameters();
+                    if (args.Length == 1 && args[0].ParameterType == from) return method;
+                }
+            }
+            return null;
+        }
+        private PointerStructAccessor(ElementSize elementSize, short dataWords, short pointers)
         {
             this.elementSize = elementSize;
             this.dataWords = dataWords;
@@ -181,23 +204,70 @@ namespace CapnProto.Take2
         }
         private readonly ElementSize elementSize;
         private readonly short dataWords, pointers;
-
-        public override FixedSizeList<T> CreateList(Pointer pointer, int count)
+        protected Pointer CreateListImpl(Pointer pointer, int count)
         {
-            Pointer list;
-            if(elementSize == ElementSize.InlineComposite)
+            if (elementSize == ElementSize.InlineComposite)
             {
-                list = pointer.Allocate(dataWords, pointers, count);
+                return pointer.Allocate(dataWords, pointers, count);
             }
             else
             {
-                list = pointer.Allocate(elementSize, count);
+                return pointer.Allocate(elementSize, count);
             }
-            return (FixedSizeList<T>)(dynamic)list;
         }
-        public override T Create(Pointer pointer)
+        protected Pointer CreateImpl(Pointer pointer)
         {
-            return (T)(dynamic)pointer.Allocate(dataWords, pointers);
+            return pointer.Allocate(dataWords, pointers);
+        }
+        public override FixedSizeList<T> CreateList(Pointer pointer, int count)
+        {
+            return (FixedSizeList<T>)CreateListImpl(pointer, count);
+        }
+
+        private class OperatorBasedStructAccessor : PointerStructAccessor<T>
+        {
+            private readonly Func<Pointer, T> toT;
+            private readonly Func<T, Pointer> fromT;
+            public OperatorBasedStructAccessor(ElementSize elementSize, short dataWords, short pointers,
+                Func<Pointer, T> toT, Func<T, Pointer> fromT)
+                : base(elementSize, dataWords, pointers)
+            {
+                this.toT = toT;
+                this.fromT = fromT;
+            }
+            public override T Create(Pointer pointer)
+            {
+                return toT(CreateImpl(pointer));
+            }
+            public override T Get(Pointer pointer, int index)
+            {
+                return toT(pointer.GetPointer(index));
+            }
+            public override void Set(Pointer pointer, int index, T value)
+            {
+                pointer.SetPointer(index, fromT(value));
+            }
+        }
+
+        // THIS BOXES; it is just a lazy fallback, but it comes up with appropriate errors, at least
+        private class DynamicPointerStructAccessor : PointerStructAccessor<T>
+        {
+            public DynamicPointerStructAccessor(ElementSize elementSize, short dataWords, short pointers)
+                : base(elementSize, dataWords, pointers)
+            { }
+            public override T Get(Pointer pointer, int index)
+            {
+                return (T)(dynamic)pointer.GetPointer(index);
+            }
+
+            public override void Set(Pointer pointer, int index, T value)
+            {
+                pointer.SetPointer(index, (Pointer)(dynamic)value);
+            }
+            public override T Create(Pointer pointer)
+            {
+                return (T)(dynamic)CreateImpl(pointer);
+            }
         }
     }
 

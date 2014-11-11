@@ -306,7 +306,7 @@ namespace CapnProto.Take2
             int shift = (index & 1) << 5; // 0 => 0, 1 => 16, 2 => 32, 3 => 48
             SetDataWord(index >> 1, unchecked((ulong)value) << shift, (ulong)0xFFFFFFFF << shift);
         }
-        
+
         public void SetUInt64(int index, ulong value)
         {
             SetDataWord(index, value, ~(ulong)0);
@@ -347,7 +347,7 @@ namespace CapnProto.Take2
         {
             unchecked
             {
-                switch(startAndType & 7)
+                switch (startAndType & 7)
                 {
                     case Type.FarSingle:
                         // the start refers to the header of the data
@@ -454,7 +454,8 @@ namespace CapnProto.Take2
                             if (index < count) return new Pointer(segment, (int)(startAndType >> 3) + (int)(dataWordsAndPointers & 0xFFFF) + index);
                             break;
                         case Type.ListBasic:
-                            if((aux & 3) == (uint)ElementSize.EightBytesPointer && index < (int)(aux >> 3))
+                            if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
+                            if ((aux & 3) == (uint)ElementSize.EightBytesPointer)
                             {
                                 return new Pointer(segment, (int)(startAndType >> 3) + index);
                             }
@@ -467,10 +468,17 @@ namespace CapnProto.Take2
                         case Type.StructFragment:
                             throw new NotImplementedException();
                         case Type.ListComposite:
-                            // needs to return a StructFragment?
-                            throw new NotImplementedException();
+                            // non-fragment hook into middle of a list; dataWordsAndPointers is copied verbatim; offset is tweaked, aux is nil
+                            if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
+
+                            int offset = 1 + (int)(startAndType >> 3) + index * ((int)(dataWordsAndPointers & 0xFFFF) + (int)(dataWordsAndPointers >> 16));
+                            return new Pointer(segment, (uint)(offset << 3), dataWordsAndPointers, 0);
 
                     }
+                }
+                else if ((startAndType & 3) == 1) // any kind of list
+                {
+                    throw new IndexOutOfRangeException("index");
                 }
                 return default(Pointer);
             }
@@ -495,6 +503,7 @@ namespace CapnProto.Take2
                             }
                             break;
                         case Type.ListBasic:
+                            if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
                             throw new NotImplementedException();
                         case Type.FarSingle:
                         case Type.FarDouble:
@@ -505,8 +514,16 @@ namespace CapnProto.Take2
                         case Type.StructFragment:
                             throw new NotImplementedException();
                         case Type.ListComposite:
-                            throw new NotImplementedException();
+                            if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
+                            int offset = 1 + (int)(startAndType >> 3) + index * ((int)(dataWordsAndPointers & 0xFFFF) + (int)(dataWordsAndPointers >> 16));
+                            var expected = new Pointer(segment, (uint)(offset << 3), dataWordsAndPointers, 0);
+                            if (value.Dereference() != expected) throw new InvalidOperationException("You cannot reassign a pointer that refers to a location inside a composite/inline list");
+                            return;
                     }
+                }
+                else if ((startAndType & 3) == 1) // any kind of list
+                {
+                    throw new IndexOutOfRangeException("index");
                 }
                 if (value.IsValid) throw CannotSetValue(index);
             }
@@ -551,7 +568,7 @@ namespace CapnProto.Take2
                     bool plusHeader = true;
                     var msg = segment.Message;
                     start = msg.Allocate(ref segment, ref plusHeader, words);
-                    if(plusHeader)
+                    if (plusHeader)
                     {
                         // the header and data fit together
                         segment[start] = (ulong)(type & 3) | (((ulong)rhs) << 32); // zero offset, since data immediately follows header
@@ -562,7 +579,7 @@ namespace CapnProto.Take2
                     int headerStart = msg.Allocate(ref segment, ref plusHeader, 2);
                     segment[headerStart] = (uint)(start << 3) | Type.FarSingle | (((ulong)dataSegmentIndex) << 32);
                     segment[headerStart + 1] = (ulong)(type & 3) | (((ulong)rhs) << 32);
-                    return new Pointer(segment, (uint)(headerStart << 3) | Type.FarDouble, 0, 0);                    
+                    return new Pointer(segment, (uint)(headerStart << 3) | Type.FarDouble, 0, 0);
                 }
             }
         }
@@ -588,7 +605,7 @@ namespace CapnProto.Take2
 
         private void SetTagWord(uint lhs, uint rhs)
         {
-            switch(startAndType & 7)
+            switch (startAndType & 7)
             {
                 case Type.FarSingle:
                 case Type.FarDouble:
@@ -748,7 +765,7 @@ namespace CapnProto.Take2
         internal string ReadString()
         {
             if (segment == null) return null;
-            switch(startAndType & 7)
+            switch (startAndType & 7)
             {
                 case Type.ListBasic:
                     if ((aux & 3) == (uint)ElementSize.OneByte)
@@ -767,7 +784,7 @@ namespace CapnProto.Take2
         }
         internal void WriteString(string value)
         {
-            switch(startAndType & 7)
+            switch (startAndType & 7)
             {
                 case Type.ListBasic:
                     if ((aux & 3) == (uint)ElementSize.OneByte)
@@ -793,7 +810,7 @@ namespace CapnProto.Take2
 
         public int Count()
         {
-            switch(startAndType & 7)
+            switch (startAndType & 7)
             {
                 case Type.ListBasic:
                 case Type.ListComposite:
