@@ -754,6 +754,10 @@ namespace CapnProto.Schema
             {
                 return (global::CapnProto.Schema.Node.Unions)this.ѧ_.GetUInt16(6);
             }
+            set
+            {
+                this.ѧ_.SetUInt16(6, (ushort)value);
+            }
         }
         [global::CapnProto.StructAttribute(global::CapnProto.ElementSize.InlineComposite, 1, 1)]
         [global::CapnProto.IdAttribute(0xdebf55bbfa0fc242)]
@@ -1425,6 +1429,10 @@ namespace CapnProto.Schema
                 get
                 {
                     return (global::CapnProto.Schema.Field.ordinalGroup.Unions)this.ѧ_.GetUInt16(5);
+                }
+                set
+                {
+                    this.ѧ_.SetUInt16(5, (ushort)value);
                 }
             }
         }

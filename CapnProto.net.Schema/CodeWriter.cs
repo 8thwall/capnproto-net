@@ -47,12 +47,12 @@ namespace CapnProto
         public abstract CodeWriter WriteWarning(string message);
         public Schema.Node Lookup(ulong? id)
         {
-            return id == null ? null : Lookup(id.Value);
+            return id == null ? default(Node) : Lookup(id.Value);
         }
         public Schema.Node Lookup(ulong id)
         {
             Schema.Node node;
-            return map.TryGetValue(id, out node) ? node : null;
+            return map.TryGetValue(id, out node) ? node : default(Node);
         }
         public virtual CodeWriter Write(string value)
         {
@@ -325,7 +325,7 @@ namespace CapnProto
             Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
             HashSet<ulong> nestedDone = null;
 
-            if (fields != null)
+            if (fields)
             {
                 foreach (var field in fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name))
                 {
@@ -351,12 +351,15 @@ namespace CapnProto
                                 child = Lookup(field.slot.type.@struct.typeId);
                             break;
                     }
-                    if (child && child.IsGroup())
+                    if (child)
                     {
-                        if (nestedDone == null) nestedDone = new HashSet<ulong>();
-                        if (nestedDone.Add(child.id))
+                        if (child.IsGroup())
                         {
-                            WriteGroup(child, union);
+                            if (nestedDone == null) nestedDone = new HashSet<ulong>();
+                            if (nestedDone.Add(child.id))
+                            {
+                                WriteGroup(child, union);
+                            }
                         }
                     }
 

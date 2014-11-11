@@ -7,10 +7,6 @@ namespace CapnProto.Schema
 {
     partial struct Type
     {
-        public static implicit operator Type(Type.Unions type)
-        {
-            return new Type { Union = type };
-        }
         internal const int LEN_POINTER = -1;
         public int GetFieldLength()
         {
@@ -60,7 +56,7 @@ namespace CapnProto.Schema
         }
         public override string ToString()
         {
-            return id == 0 ? displayName : (id + ": " + displayName.ToString());
+            return id == 0 ? displayName.ToString() : (id + ": " + displayName.ToString());
         }
         internal string CustomSerializerName()
         {
@@ -239,7 +235,7 @@ namespace CapnProto.Schema
                 }
 
             }
-            node.nestedNodes = FixedSizedList<Node.NestedNode>.Create(node, nestedNodes);
+            node.nestedNodes = Take2.FixedSizeList<Node.NestedNode>.Create(node, nestedNodes);
             ushort discCount = 0;
             uint discOffset = 0;
             foreach (var field in type.GetFields())
@@ -279,7 +275,7 @@ namespace CapnProto.Schema
             Field field = new Field();
             var slot = field.slot;
             int len;
-            slot.type = GetSchemaType(type, out len);
+            slot.type = GetSchemaType(parent, type, out len);
             if (fa != null)
             {
                 if (fa.Start >= 0)
@@ -315,11 +311,11 @@ namespace CapnProto.Schema
             {
                 field.discriminantValue = Field.noDiscriminant;
             }
-            field.name = Text.Create(pointer, member.Name);
+            field.name = Text.Create(parent, member.Name);
 
             return field;
         }
-        private static Type GetSchemaType(System.Type type, out int len)
+        private static Type GetSchemaType(Take2.Pointer parent, System.Type type, out int len)
         {
             if (type == null)
             {
@@ -334,7 +330,7 @@ namespace CapnProto.Schema
                 if (type.IsEnum)
                 {
                     len = 16;
-                    Schema.Type tmp = Type.Unions.@enum;
+                    Schema.Type tmp = Schema.Type.Create(parent, Type.Unions.@enum);
                     var @enum = tmp.@enum;
                     @enum.typeId = idAttrib.Id;
                     return tmp;
@@ -342,7 +338,7 @@ namespace CapnProto.Schema
                 if (type.IsClass || type.IsValueType)
                 {
                     len = Type.LEN_POINTER;
-                    Schema.Type tmp = Type.Unions.@struct;
+                    Schema.Type tmp = Schema.Type.Create(parent, Type.Unions.@struct);
                     var @struct = tmp.@struct;
                     @struct.typeId = idAttrib.Id;
                 }
@@ -351,43 +347,43 @@ namespace CapnProto.Schema
             if (type == typeof(byte[]))
             {
                 len = 0;
-                return Type.Unions.data;
+                return Schema.Type.Create(parent, Type.Unions.data);
             }
-            else if (type == typeof(Void))
+            else if (type == typeof(void))
             {
                 len = 0;
-                return Type.Unions.@void;
+                return Schema.Type.Create(parent, Type.Unions.@void);
             }
             else if (type == typeof(object) || type == typeof(System.Collections.IList))
             {
                 len = Type.LEN_POINTER;
-                return Type.Unions.anyPointer;
+                return Schema.Type.Create(parent, Type.Unions.anyPointer);
             }
             switch (System.Type.GetTypeCode(type))
             {
                 case TypeCode.Empty: len = 0; return default(Type);
-                case TypeCode.Boolean: len = 1; return Type.Unions.@bool;
-                case TypeCode.SByte: len = 8; return Type.Unions.int8;
-                case TypeCode.Byte: len = 8; return Type.Unions.uint8;
-                case TypeCode.Int16: len = 16; return Type.Unions.int16;
-                case TypeCode.UInt16: len = 16; return Type.Unions.uint16;
-                case TypeCode.Int32: len = 32; return Type.Unions.int32;
-                case TypeCode.UInt32: len = 32; return Type.Unions.uint32;
-                case TypeCode.Int64: len = 64; return Type.Unions.int64;
-                case TypeCode.UInt64: len = 64; return Type.Unions.uint64;
-                case TypeCode.Char: len = 16; return Type.Unions.uint16;
-                case TypeCode.DBNull: len = 0; return Type.Unions.@void;
-                case TypeCode.Single: len = 32; return Type.Unions.float32;
-                case TypeCode.Double: len = 64; return Type.Unions.float64;
-                case TypeCode.String: len = Type.LEN_POINTER; return Type.Unions.text;
+                case TypeCode.Boolean: len = 1; return Schema.Type.Create(parent, Type.Unions.@bool);
+                case TypeCode.SByte: len = 8; return Schema.Type.Create(parent, Type.Unions.int8);
+                case TypeCode.Byte: len = 8; return Schema.Type.Create(parent, Type.Unions.uint8);
+                case TypeCode.Int16: len = 16; return Schema.Type.Create(parent, Type.Unions.int16);
+                case TypeCode.UInt16: len = 16; return Schema.Type.Create(parent, Type.Unions.uint16);
+                case TypeCode.Int32: len = 32; return Schema.Type.Create(parent, Type.Unions.int32);
+                case TypeCode.UInt32: len = 32; return Schema.Type.Create(parent, Type.Unions.uint32);
+                case TypeCode.Int64: len = 64; return Schema.Type.Create(parent, Type.Unions.int64);
+                case TypeCode.UInt64: len = 64; return Schema.Type.Create(parent, Type.Unions.uint64);
+                case TypeCode.Char: len = 16; return Schema.Type.Create(parent, Type.Unions.uint16);
+                case TypeCode.DBNull: len = 0; return Schema.Type.Create(parent, Type.Unions.@void);
+                case TypeCode.Single: len = 32; return Schema.Type.Create(parent, Type.Unions.float32);
+                case TypeCode.Double: len = 64; return Schema.Type.Create(parent, Type.Unions.float64);
+                case TypeCode.String: len = Type.LEN_POINTER; return Schema.Type.Create(parent, Type.Unions.text);
             }
 
             // lists (note this includes recursive)
-            var elType = GetSchemaType(GetElementType(type), out len);
+            var elType = GetSchemaType(parent, GetElementType(type), out len);
             if (elType)
             {
                 len = Type.LEN_POINTER;
-                Schema.Type tmp = Type.Unions.list;
+                Schema.Type tmp = Schema.Type.Create(parent, Type.Unions.list);
                 var list = tmp.list;
                 list.elementType = elType;
                 return tmp;
@@ -499,9 +495,12 @@ namespace CapnProto.Schema
                         int len = slot.type.GetFieldLength();
 
                         var relatedType = slot.type.Union == Type.Unions.@struct ? writer.Lookup(slot.type.@struct.typeId) : default(Node);
-                        if (relatedType && relatedType.IsGroup())
+                        if (relatedType)
                         {
-                            ComputeSpace(writer, relatedType, ref bodyWords, ref pointerWords);
+                            if (relatedType.IsGroup())
+                            {
+                                ComputeSpace(writer, relatedType, ref bodyWords, ref pointerWords);
+                            }
                         }
                         else if (len == 0) { }
                         else if (len == Type.LEN_POINTER)
