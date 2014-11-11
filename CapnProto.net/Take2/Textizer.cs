@@ -43,7 +43,7 @@ namespace CapnProto.Take2
             pointer = pointer.Dereference();
             if (!pointer.IsValid) return 0;
             int len = pointer.SingleByteLength;
-            if (--len <= 0 || pointer.GetByte(len) != 0) return 0;
+            if (--len <= 0 || pointer.GetListByte(len) != 0) return 0;
             using (var text = Create())
             {
                 var decoder = text.decoder ?? (text.decoder = encoding.GetDecoder());
@@ -69,7 +69,7 @@ namespace CapnProto.Take2
             pointer = pointer.Dereference();
             if (!pointer.IsValid) return 0;
             int len = pointer.SingleByteLength;
-            if (--len <= 0 || pointer.GetByte(len) != 0) return 0;
+            if (--len <= 0 || pointer.GetListByte(len) != 0) return 0;
             using (var text = Create())
             {
                 var decoder = text.decoder ?? (text.decoder = encoding.GetDecoder());
@@ -93,7 +93,7 @@ namespace CapnProto.Take2
             pointer = pointer.Dereference();
             if (!pointer.IsValid) return 0;
             int len = pointer.SingleByteLength;
-            if (--len <= 0 || pointer.GetByte(len) != 0) return 0;
+            if (--len <= 0 || pointer.GetListByte(len) != 0) return 0;
             using (var text = Create())
             {
                 var decoder = text.decoder ?? (text.decoder = encoding.GetDecoder());
@@ -123,8 +123,7 @@ namespace CapnProto.Take2
             if(--len == 0) throw new InvalidOperationException();
             if (len == 0)
             {   // empty string
-                //pointer.SetByte(len, 0);
-                pointer.SetDataWord(len, 0, 0xFF);
+                pointer.SetListByte(len, 0);
                 return;
             }
 
@@ -162,11 +161,9 @@ namespace CapnProto.Take2
                 int origin = wordOffset << 3;
                 for (int i = 0; i < byteOffset;i++ )
                 {
-                    pointer.SetDataWord(origin++, bytes[i], 0xFF);
-                    //pointer.SetByte(origin++, bytes[i]);
+                    pointer.SetListByte(origin++, bytes[i]);
                 }
-                pointer.SetDataWord(len, 0, 0xFF); // add the nul-terminator
-                //pointer.SetByte(len, 0); 
+                pointer.SetListByte(len, 0);
 
                 if (totalBytes != len) throw new InvalidOperationException("String encoded length mismatch");
             }

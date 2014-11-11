@@ -342,7 +342,101 @@ namespace CapnProto.Take2
 
         public unsafe void SetDouble(int index, double value)
         {
-            SetDouble(index, *(ulong*)(&value));
+            SetUInt64(index, *(ulong*)(&value));
+        }
+
+        public bool GetListBoolean(int index)
+        {
+            return GetDataWordInBasicList(index) != 0;
+        }
+        public void SetListBoolean(int index, bool value)
+        {
+            SetDataWordInBasicList(index, value ? (ulong)0 : (ulong)1, 0x01);
+        }
+        public byte GetListByte(int index)
+        {
+            return unchecked((byte)GetDataWordInBasicList(index));
+        }
+        public sbyte GetListSByte(int index)
+        {
+            return unchecked((sbyte)GetDataWordInBasicList(index));
+        }
+        public void SetListSByte(int index, sbyte value)
+        {
+            SetDataWordInBasicList(index, unchecked((ulong)value), 0xFF);
+        }
+        public void SetListByte(int index, byte value)
+        {
+            SetDataWordInBasicList(index, unchecked((ulong)value), 0xFF);
+        }
+        public short GetListInt16(int index)
+        {
+            return unchecked((short)GetDataWordInBasicList(index));
+        }
+        public ushort GetListUInt16(int index)
+        {
+            return unchecked((ushort)GetDataWordInBasicList(index));
+        }
+
+        public void SetListUInt16(int index, ushort value)
+        {
+            SetDataWordInBasicList(index, unchecked((ulong)value), 0xFFFFFFFF);
+        }
+        public void SetListInt16(int index, short value)
+        {
+            SetDataWordInBasicList(index, unchecked((ulong)value), 0xFFFF);
+        }
+        public int GetListInt32(int index)
+        {
+            return unchecked((int)GetDataWordInBasicList(index));
+        }
+        public uint GetListUInt32(int index)
+        {
+            return unchecked((uint)GetDataWordInBasicList(index));
+        }
+        public void SetListUInt32(int index, uint value)
+        {
+            SetDataWordInBasicList(index, unchecked((ulong)value), 0xFFFFFFFF);
+        }
+        public void SetListInt32(int index, int value)
+        {
+            SetDataWordInBasicList(index, unchecked((ulong)value), 0xFFFFFFFF);
+        }
+
+        public void SetListUInt64(int index, ulong value)
+        {
+            SetDataWordInBasicList(index, value, ~(ulong)0);
+        }
+        public void SetListInt64(int index, long value)
+        {
+            SetDataWordInBasicList(index, unchecked((ulong)value), ~(ulong)0);
+        }
+        public long GetListInt64(int index)
+        {
+            return unchecked((long)GetDataWordInBasicList(index));
+        }
+        public ulong GetListUInt64(int index)
+        {
+            return GetDataWordInBasicList(index);
+        }
+        public unsafe float GetListSingle(int index)
+        {
+            uint val = unchecked((uint)GetDataWordInBasicList(index));
+            return *(float*)(&val);
+        }
+        public unsafe void SetListSingle(int index, float value)
+        {
+            SetDataWordInBasicList(index, *(uint*)(&value), 0xFFFFFFFF);
+        }
+        public unsafe double GetListDouble(int index)
+        {
+            ulong val = GetDataWordInBasicList(index);
+            return *(double*)(&val);
+        }
+
+        public unsafe void SetListDouble(int index, double value)
+        {
+            SetDataWordInBasicList(index, *(ulong*)(&value), ~(ulong)0);
         }
         public Pointer Dereference()
         {
@@ -380,7 +474,7 @@ namespace CapnProto.Take2
                             if (index < (int)(dataWordsAndPointers & 0xFFFF)) return segment[(int)(startAndType >> 3) + index];
                             break;
                         case Type.ListBasic:
-                            return GetDataWordInBasicList(index);
+                            throw new InvalidOperationException("List values should be accessed via the GetList* methods or a list pointer");
                         case Type.FarSingle:
                         case Type.FarDouble:
                             return Dereference().GetDataWord(index);
@@ -457,7 +551,7 @@ namespace CapnProto.Take2
                             }
                             break;
                         case Type.ListBasic:
-                            SetDataWordInBasicList(index, value, mask);
+                            throw new InvalidOperationException("List values should be accessed via the SetList* methods or a list pointer");
                             return;
                         case Type.FarSingle:
                         case Type.FarDouble:
