@@ -36,7 +36,7 @@ namespace CapnProto.Take2
         }
         public static bool operator ==(Pointer x, Pointer y) { return AreEqual(x, y); }
         public static bool operator !=(Pointer x, Pointer y) { return !AreEqual(x, y); }
-        public static bool operator <(Pointer x, Pointer y) { return Compare(x, y) < 0; }
+        public static bool operator <(Pointer x, Pointer y) { return (Compare(x, y) & MSB32) != 0; }
         public static bool operator >(Pointer x, Pointer y) { return Compare(x, y) > 0; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -378,11 +378,10 @@ namespace CapnProto.Take2
                     switch (startAndType & 7)
                     {
                         case Type.StructBasic:
-                            int count = (int)(dataWordsAndPointers & 0xFFFF);
-                            if (index < count) return segment[(int)(startAndType >> 3) + index];
+                            if (index < (int)(dataWordsAndPointers & 0xFFFF)) return segment[(int)(startAndType >> 3) + index];
                             break;
                         case Type.ListBasic:
-                            throw new NotImplementedException();
+                            return GetDataWordInBasicList(index);
                         case Type.FarSingle:
                         case Type.FarDouble:
                             return Dereference().GetDataWord(index);
@@ -390,10 +389,10 @@ namespace CapnProto.Take2
                             break;
                         case Type.StructFragment:
                             // only one word
-                            if(index == 0)
+                            if (index == 0)
                             {
                                 // k, let me walk you through this!
-                                // startAndType >> 3 is the word, offset, so segment[(int)(startAndType >> 3)] is the entire word
+                                // startAndType >> 3 is the word-offset, so segment[(int)(startAndType >> 3)] is the entire word
                                 // flags & 63 is the start-bit inside the word, so we can discard everything before that by shifting
                                 // next we want to mask that with enough 1s for the size of the data, where the size is: (flags >> 8) & 63
                                 // and a niec way of getting "n" 1s is to right-shift an all-1 block, then invert; all ones is: ~(ulong)0
@@ -413,6 +412,36 @@ namespace CapnProto.Take2
                 return 0;
             }
         }
+
+        private ulong GetDataWordInBasicList(int index)
+        {
+            unchecked
+            {
+                if ((startAndType & 7) != Type.ListBasic) throw new InvalidOperationException();
+                if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                {
+                    int wordShift, valueShift;
+                    ulong mask;
+                    switch ((ElementSize)(aux & 7))
+                    {
+                        case ElementSize.OneBit: wordShift = 6; valueShift = (index & 63); mask = 1; break;
+                        case ElementSize.OneByte: wordShift = 3; valueShift = (index & 7) << 3; mask = 0xFF; break;
+                        case ElementSize.TwoBytes: wordShift = 2; valueShift = (index & 3) << 4; mask = 0xFFFF; break;
+                        case ElementSize.FourBytes: wordShift = 1; valueShift = (index & 1) << 5; mask = 0xFFFFFFFF; break;
+                        case ElementSize.EightBytesNonPointer:
+                            return segment[(int)(startAndType >> 3) + index];
+                        case ElementSize.InlineComposite:
+                            throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
+                        case ElementSize.ZeroByte:
+                        case ElementSize.EightBytesPointer:
+                        default:
+                            return 0;
+                    }
+                    return (segment[(int)(startAndType >> 3) + (index >> wordShift)] >> valueShift) & mask;
+                }
+                throw new IndexOutOfRangeException("index");
+            }
+        }
         internal void SetDataWord(int index, ulong value, ulong mask)
         {
             unchecked
@@ -422,15 +451,15 @@ namespace CapnProto.Take2
                     switch (startAndType & 7)
                     {
                         case Type.StructBasic:
-                            int count = (int)(dataWordsAndPointers & 0xFFFF);
-                            if (index < count)
+                            if (index < (int)(dataWordsAndPointers & 0xFFFF))
                             {
                                 segment.SetValue((int)(startAndType >> 3) + index, value, mask);
                                 return;
                             }
                             break;
                         case Type.ListBasic:
-                            throw new NotImplementedException();
+                            SetDataWordInBasicList(index, value, mask);
+                            return;
                         case Type.FarSingle:
                         case Type.FarDouble:
                             Dereference().SetDataWord(index, value, mask);
@@ -452,7 +481,7 @@ namespace CapnProto.Take2
                                     return;
                                 }
                             }
-                            break;                            
+                            break;
                         case Type.ListComposite:
                             throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
                     }
@@ -462,6 +491,42 @@ namespace CapnProto.Take2
                     throw new IndexOutOfRangeException("index");
                 }
                 if (value != 0) throw CannotSetValue(index);
+            }
+        }
+
+        private void SetDataWordInBasicList(int index, ulong value, ulong mask)
+        {
+            unchecked
+            {
+                if ((startAndType & 7) != Type.ListBasic) throw new InvalidOperationException();
+                if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                {
+                    int wordShift, valueShift;
+                    ulong localMask;
+                    switch ((ElementSize)(aux & 7))
+                    {
+                        case ElementSize.OneBit: wordShift = 6; valueShift = (index & 63); localMask = 1; break;
+                        case ElementSize.OneByte: wordShift = 3; valueShift = (index & 7) << 3; localMask = 0xFF; break;
+                        case ElementSize.TwoBytes: wordShift = 2; valueShift = (index & 3) << 4; localMask = 0xFFFF; break;
+                        case ElementSize.FourBytes: wordShift = 1; valueShift = (index & 1) << 5; localMask = 0xFFFFFFFF; break;
+                        case ElementSize.EightBytesNonPointer:
+                            segment.SetValue((int)(startAndType >> 3) + index, value, mask);
+                            return;
+                        case ElementSize.InlineComposite:
+                            throw new InvalidOperationException("An inline-composite list should be accessed via struct pointers");
+                        case ElementSize.ZeroByte:
+                        case ElementSize.EightBytesPointer:
+                        default:
+                            if (value != 0) throw CannotSetValue(index);
+                            return;
+                    }
+                    if ((mask & ~localMask) == 0)
+                    { // check not attempting to overwrite
+                        segment.SetValue((int)(startAndType >> 3) + (index >> wordShift), value << valueShift, mask << valueShift);
+                        return;
+                    }
+                }
+                throw new IndexOutOfRangeException("index");
             }
         }
         static class Type
@@ -520,45 +585,49 @@ namespace CapnProto.Take2
 
         private Pointer GetPointerInBasicList(int index)
         {
-            unchecked {
-                if (index < 0 || index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
+            unchecked
+            {
                 if ((startAndType & 7) != Type.ListBasic) throw new InvalidOperationException();
-                
-                int word, size, startBit;
-                switch((ElementSize)(aux & 7))
+                if ((index & MSB32) == 0 && index <= (int)(aux >> 3))
                 {
-                    case ElementSize.ZeroByte:
-                        // can be treated as a simple (non-fragment) pointer without any words
-                        return new Pointer(segment, startAndType & ~(uint)7, 0, 0);
-                    case ElementSize.OneBit:
-                        size = 1;
-                        word = index >> 6;
-                        startBit = index & 63;
-                        break;
-                    case ElementSize.OneByte:
-                        size = 8;
-                        word = index >> 3;
-                        startBit = (index & 7) << 3;
-                        break;
-                    case ElementSize.TwoBytes:
-                        size = 16;
-                        word = index >> 2;
-                        startBit = (index & 3) << 4;
-                        break;
-                    case ElementSize.FourBytes:
-                        size = 32;
-                        word = index >> 1;
-                        startBit = (index & 1) << 5;
-                        break;
-                    case ElementSize.EightBytesPointer:
-                        return new Pointer(segment, (int)(startAndType >> 3) + index);
-                    case ElementSize.EightBytesNonPointer:
-                        // can be treated as a simple (non-fragment) pointer with a single data word
-                        return new Pointer(segment, (uint)(((int)(startAndType >> 3) + index) << 3), 1, 0);
-                    default:
-                        return default(Pointer); // I have no clue what the hell you want!
+
+                    int word, size, startBit;
+                    switch ((ElementSize)(aux & 7))
+                    {
+                        case ElementSize.ZeroByte:
+                            // can be treated as a simple (non-fragment) pointer without any words
+                            return new Pointer(segment, startAndType & ~(uint)7, 0, 0);
+                        case ElementSize.OneBit:
+                            size = 1;
+                            word = index >> 6;
+                            startBit = index & 63;
+                            break;
+                        case ElementSize.OneByte:
+                            size = 8;
+                            word = index >> 3;
+                            startBit = (index & 7) << 3;
+                            break;
+                        case ElementSize.TwoBytes:
+                            size = 16;
+                            word = index >> 2;
+                            startBit = (index & 3) << 4;
+                            break;
+                        case ElementSize.FourBytes:
+                            size = 32;
+                            word = index >> 1;
+                            startBit = (index & 1) << 5;
+                            break;
+                        case ElementSize.EightBytesPointer:
+                            return new Pointer(segment, (int)(startAndType >> 3) + index);
+                        case ElementSize.EightBytesNonPointer:
+                            // can be treated as a simple (non-fragment) pointer with a single data word
+                            return new Pointer(segment, (uint)(((int)(startAndType >> 3) + index) << 3), 1, 0);
+                        default:
+                            return default(Pointer); // I have no clue what the hell you want!
+                    }
+                    return new Pointer(segment, (uint)(((startAndType >> 3) + word) << 3) | Type.StructFragment, 1, (uint)(startBit) | (uint)(size << 8));
                 }
-                return new Pointer(segment, (uint)(((startAndType >> 3) + word) << 3) | Type.StructFragment, 1, (uint)(startBit) | (uint)(size << 8));
+                throw new IndexOutOfRangeException("index");
             }
         }
 
@@ -582,7 +651,7 @@ namespace CapnProto.Take2
                             break;
                         case Type.ListBasic:
                             if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
-                            if((aux & 3) == (uint)ElementSize.EightBytesPointer)
+                            if ((aux & 3) == (uint)ElementSize.EightBytesPointer)
                             {
                                 value.WriteHeader(segment, (int)(startAndType >> 3) + index);
                                 return;
