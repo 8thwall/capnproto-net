@@ -2,7 +2,7 @@
 using System;
 using System.IO;
 using System.Text;
-namespace CapnProto.Take2
+namespace CapnProto
 {
     public sealed class BufferSegmentFactory : ISegmentFactory, IRecyclable
     {

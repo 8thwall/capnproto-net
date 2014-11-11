@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text;
 
-namespace CapnProto.Take2
+namespace CapnProto
 {
     class Textizer : IRecyclable, IDisposable
     {

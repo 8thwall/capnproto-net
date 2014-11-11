@@ -3,7 +3,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
-namespace CapnProto.Take2
+namespace CapnProto
 {
     public struct Pointer : IEquatable<Pointer>, IComparable<Pointer>
     {

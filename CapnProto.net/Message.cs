@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-namespace CapnProto.Take2
+namespace CapnProto
 {
     public sealed class Message : IDisposable, IRecyclable, ISegment, IEnumerable<ISegment>
     {

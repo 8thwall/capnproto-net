@@ -47,61 +47,25 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache.cs" />
-    <Compile Include="CapnProtoBlobReader.cs">
-      <DependentUpon>CapnProtoRawMemoryReader.cs</DependentUpon>
-    </Compile>
-    <Compile Include="CapnProtoMemoryMappedFileReader.cs">
-      <DependentUpon>CapnProtoRawMemoryReader.cs</DependentUpon>
-    </Compile>
-    <Compile Include="CapnProtoRawMemoryReader.cs">
-      <DependentUpon>CapnProtoReader.cs</DependentUpon>
-    </Compile>
-    <Compile Include="CapnProtoReader.cs" />
-    <Compile Include="CodeWriter.cs" />
-    <Compile Include="CSharpStructWriter.cs" />
     <Compile Include="ElementSize.cs" />
-    <Compile Include="InvalidUnionDiscriminatorException.cs" />
-    <Compile Include="CSharpCodeWriter.cs">
-      <DependentUpon>CodeWriter.cs</DependentUpon>
-    </Compile>
     <Compile Include="GroupAttrubute.cs" />
-    <Compile Include="IBlittable.cs" />
-    <Compile Include="PendingPointer.cs" />
-    <Compile Include="PointerType.cs" />
-    <Compile Include="Schema\Schema.cs" />
-    <Compile Include="Schema\Schema.designer.cs" />
     <Compile Include="StructAttribute.cs" />
-    <Compile Include="Take2\BufferSegmentFactory.cs" />
-    <Compile Include="Take2\CapnProtoSerializer.cs" />
-    <Compile Include="Take2\ISegmentFactoryState.cs" />
-    <Compile Include="Take2\Data.cs" />
-    <Compile Include="Take2\ISegment.cs" />
-    <Compile Include="Take2\ISegmentFactory.cs" />
-    <Compile Include="Take2\FixedSizeList.cs" />
-    <Compile Include="Take2\Message.cs" />
-    <Compile Include="Take2\Pointer.cs" />
-    <Compile Include="Take2\Segment.cs" />
-    <Compile Include="Take2\Segments.cs" />
-    <Compile Include="Take2\StructAccessor.cs" />
-    <Compile Include="Take2\Text.cs" />
-    <Compile Include="Take2\Textizer.cs" />
-    <Compile Include="TypeSerializer.cs" />
-    <Compile Include="CapnProtoStreamReader.cs">
-      <DependentUpon>CapnProtoReader.cs</DependentUpon>
-    </Compile>
+    <Compile Include="BufferSegmentFactory.cs" />
+    <Compile Include="Data.cs" />
+    <Compile Include="ISegment.cs" />
+    <Compile Include="ISegmentFactory.cs" />
+    <Compile Include="FixedSizeList.cs" />
+    <Compile Include="Message.cs" />
+    <Compile Include="Pointer.cs" />
+    <Compile Include="Segment.cs" />
+    <Compile Include="Segments.cs" />
+    <Compile Include="StructAccessor.cs" />
+    <Compile Include="Text.cs" />
+    <Compile Include="Textizer.cs" />
     <Compile Include="FieldAttribute.cs" />
     <Compile Include="IdAttribute.cs" />
-    <Compile Include="ITypeSerializer.cs" />
-    <Compile Include="ListPointer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StructPointer.cs" />
-    <Compile Include="TypeModel.cs" />
     <Compile Include="UnionAttribute.cs" />
-    <Compile Include="UnionStub.cs" />
-    <Compile Include="Void.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Notes.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

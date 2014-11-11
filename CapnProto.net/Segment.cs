@@ -1,6 +1,6 @@
 ﻿
 using System.Text;
-namespace CapnProto.Take2
+namespace CapnProto
 {
     public abstract class Segment : ISegment
     {

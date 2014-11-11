@@ -1,5 +1,5 @@
 ﻿
-namespace CapnProto.Take2
+namespace CapnProto
 {
     public static class Segments
     {

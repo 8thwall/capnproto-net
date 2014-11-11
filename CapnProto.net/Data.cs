@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CapnProto.Take2
+namespace CapnProto
 {
     public struct Data
     {

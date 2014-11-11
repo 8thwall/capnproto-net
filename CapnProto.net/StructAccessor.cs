@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace CapnProto.Take2
+namespace CapnProto
 {
     internal abstract class StructAccessor<T>
     {

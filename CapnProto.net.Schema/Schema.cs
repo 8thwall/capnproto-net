@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
-using CapnProto.Take2;
+
 namespace CapnProto.Schema
 {
     partial struct Type
@@ -235,7 +235,7 @@ namespace CapnProto.Schema
                 }
 
             }
-            node.nestedNodes = Take2.FixedSizeList<Node.NestedNode>.Create(node, nestedNodes);
+            node.nestedNodes = CapnProto.FixedSizeList<Node.NestedNode>.Create(node, nestedNodes);
             ushort discCount = 0;
             uint discOffset = 0;
             foreach (var field in type.GetFields())
@@ -255,7 +255,7 @@ namespace CapnProto.Schema
                 @struct.discriminantOffset = discOffset / 16;
             }
         }
-        static Field CreateField(Take2.Pointer parent, MemberInfo member, ref ushort discCount, ref uint discOffset)
+        static Field CreateField(CapnProto.Pointer parent, MemberInfo member, ref ushort discCount, ref uint discOffset)
         {
             if (member == null) return default(Field);
             System.Type type;
@@ -315,7 +315,7 @@ namespace CapnProto.Schema
 
             return field;
         }
-        private static Type GetSchemaType(Take2.Pointer parent, System.Type type, out int len)
+        private static Type GetSchemaType(CapnProto.Pointer parent, System.Type type, out int len)
         {
             if (type == null)
             {

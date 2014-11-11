@@ -2,7 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-namespace CapnProto.Take2
+namespace CapnProto
 {
     public struct FixedSizeList<T> : IList<T>, IList
     {

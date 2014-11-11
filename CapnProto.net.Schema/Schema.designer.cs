@@ -5,10 +5,10 @@ namespace CapnProto.Schema
     [global::CapnProto.IdAttribute(0xbfc546f6210ad7ce)]
     public partial struct CodeGeneratorRequest
     {
-        private readonly global::CapnProto.Take2.Pointer ѧ_;
-        private CodeGeneratorRequest(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-        public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest(pointer); }
-        public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.CodeGeneratorRequest obj) { return obj.ѧ_; }
+        private readonly global::CapnProto.Pointer ѧ_;
+        private CodeGeneratorRequest(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+        public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest(pointer); }
+        public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.CodeGeneratorRequest obj) { return obj.ѧ_; }
         public static bool operator true(global::CapnProto.Schema.CodeGeneratorRequest obj) { return obj.ѧ_.IsValid; }
         public static bool operator false(global::CapnProto.Schema.CodeGeneratorRequest obj) { return !obj.ѧ_.IsValid; }
         public static bool operator !(global::CapnProto.Schema.CodeGeneratorRequest obj) { return !obj.ѧ_.IsValid; }
@@ -16,13 +16,13 @@ namespace CapnProto.Schema
         public override string ToString() { return this.ѧ_.ToString(); }
         public override bool Equals(object obj) { return obj is global::CapnProto.Schema.CodeGeneratorRequest && (this.ѧ_ == ((global::CapnProto.Schema.CodeGeneratorRequest)obj).ѧ_); }
         public global::CapnProto.Schema.CodeGeneratorRequest Dereference() { return (global::CapnProto.Schema.CodeGeneratorRequest)this.ѧ_.Dereference(); }
-        public static global::CapnProto.Schema.CodeGeneratorRequest Create(global::CapnProto.Take2.Pointer parent) { return (global::CapnProto.Schema.CodeGeneratorRequest)parent.Allocate(0, 2); }
+        public static global::CapnProto.Schema.CodeGeneratorRequest Create(global::CapnProto.Pointer parent) { return (global::CapnProto.Schema.CodeGeneratorRequest)parent.Allocate(0, 2); }
         [global::CapnProto.FieldAttribute(0, pointer: 0)]
-        public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Node> nodes
+        public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Node> nodes
         {
             get
             {
-                return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Node>)this.ѧ_.GetPointer(0);
+                return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Node>)this.ѧ_.GetPointer(0);
             }
             set
             {
@@ -30,11 +30,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(1, pointer: 1)]
-        public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile> requestedFiles
+        public global::CapnProto.FixedSizeList<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile> requestedFiles
         {
             get
             {
-                return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile>)this.ѧ_.GetPointer(1);
+                return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile>)this.ѧ_.GetPointer(1);
             }
             set
             {
@@ -45,10 +45,10 @@ namespace CapnProto.Schema
         [global::CapnProto.IdAttribute(0xcfea0eb02e810062)]
         public partial struct RequestedFile
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            private RequestedFile(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-            public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile(pointer); }
-            public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return obj.ѧ_; }
+            private readonly global::CapnProto.Pointer ѧ_;
+            private RequestedFile(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+            public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile(pointer); }
+            public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return obj.ѧ_; }
             public static bool operator true(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return obj.ѧ_.IsValid; }
             public static bool operator false(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return !obj.ѧ_.IsValid; }
             public static bool operator !(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return !obj.ѧ_.IsValid; }
@@ -56,7 +56,7 @@ namespace CapnProto.Schema
             public override string ToString() { return this.ѧ_.ToString(); }
             public override bool Equals(object obj) { return obj is global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile && (this.ѧ_ == ((global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile)obj).ѧ_); }
             public global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile Dereference() { return (global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile)this.ѧ_.Dereference(); }
-            public static global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile Create(global::CapnProto.Take2.Pointer parent) { return (global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile)parent.Allocate(1, 2); }
+            public static global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile Create(global::CapnProto.Pointer parent) { return (global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile)parent.Allocate(1, 2); }
             [global::CapnProto.FieldAttribute(0, 0, 64)]
             public ulong id
             {
@@ -70,11 +70,11 @@ namespace CapnProto.Schema
                 }
             }
             [global::CapnProto.FieldAttribute(1, pointer: 0)]
-            public global::CapnProto.Take2.Text filename
+            public global::CapnProto.Text filename
             {
                 get
                 {
-                    return (global::CapnProto.Take2.Text)this.ѧ_.GetPointer(0);
+                    return (global::CapnProto.Text)this.ѧ_.GetPointer(0);
                 }
                 set
                 {
@@ -82,11 +82,11 @@ namespace CapnProto.Schema
                 }
             }
             [global::CapnProto.FieldAttribute(2, pointer: 1)]
-            public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import> imports
+            public global::CapnProto.FixedSizeList<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import> imports
             {
                 get
                 {
-                    return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import>)this.ѧ_.GetPointer(1);
+                    return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import>)this.ѧ_.GetPointer(1);
                 }
                 set
                 {
@@ -97,10 +97,10 @@ namespace CapnProto.Schema
             [global::CapnProto.IdAttribute(0xae504193122357e5)]
             public partial struct Import
             {
-                private readonly global::CapnProto.Take2.Pointer ѧ_;
-                private Import(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-                public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import(pointer); }
-                public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return obj.ѧ_; }
+                private readonly global::CapnProto.Pointer ѧ_;
+                private Import(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+                public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import(pointer); }
+                public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return obj.ѧ_; }
                 public static bool operator true(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return obj.ѧ_.IsValid; }
                 public static bool operator false(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return !obj.ѧ_.IsValid; }
                 public static bool operator !(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return !obj.ѧ_.IsValid; }
@@ -108,7 +108,7 @@ namespace CapnProto.Schema
                 public override string ToString() { return this.ѧ_.ToString(); }
                 public override bool Equals(object obj) { return obj is global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import && (this.ѧ_ == ((global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import)obj).ѧ_); }
                 public global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import Dereference() { return (global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import)this.ѧ_.Dereference(); }
-                public static global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import Create(global::CapnProto.Take2.Pointer parent) { return (global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import)parent.Allocate(1, 1); }
+                public static global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import Create(global::CapnProto.Pointer parent) { return (global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import)parent.Allocate(1, 1); }
                 [global::CapnProto.FieldAttribute(0, 0, 64)]
                 public ulong id
                 {
@@ -122,11 +122,11 @@ namespace CapnProto.Schema
                     }
                 }
                 [global::CapnProto.FieldAttribute(1, pointer: 0)]
-                public global::CapnProto.Take2.Text name
+                public global::CapnProto.Text name
                 {
                     get
                     {
-                        return (global::CapnProto.Take2.Text)this.ѧ_.GetPointer(0);
+                        return (global::CapnProto.Text)this.ѧ_.GetPointer(0);
                     }
                     set
                     {
@@ -140,10 +140,10 @@ namespace CapnProto.Schema
     [global::CapnProto.IdAttribute(0x9500cce23b334d80)]
     public partial struct Method
     {
-        private readonly global::CapnProto.Take2.Pointer ѧ_;
-        private Method(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-        public static explicit operator global::CapnProto.Schema.Method(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.Method(pointer); }
-        public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.Method obj) { return obj.ѧ_; }
+        private readonly global::CapnProto.Pointer ѧ_;
+        private Method(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+        public static explicit operator global::CapnProto.Schema.Method(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Method(pointer); }
+        public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Method obj) { return obj.ѧ_; }
         public static bool operator true(global::CapnProto.Schema.Method obj) { return obj.ѧ_.IsValid; }
         public static bool operator false(global::CapnProto.Schema.Method obj) { return !obj.ѧ_.IsValid; }
         public static bool operator !(global::CapnProto.Schema.Method obj) { return !obj.ѧ_.IsValid; }
@@ -151,13 +151,13 @@ namespace CapnProto.Schema
         public override string ToString() { return this.ѧ_.ToString(); }
         public override bool Equals(object obj) { return obj is global::CapnProto.Schema.Method && (this.ѧ_ == ((global::CapnProto.Schema.Method)obj).ѧ_); }
         public global::CapnProto.Schema.Method Dereference() { return (global::CapnProto.Schema.Method)this.ѧ_.Dereference(); }
-        public static global::CapnProto.Schema.Method Create(global::CapnProto.Take2.Pointer parent) { return (global::CapnProto.Schema.Method)parent.Allocate(3, 2); }
+        public static global::CapnProto.Schema.Method Create(global::CapnProto.Pointer parent) { return (global::CapnProto.Schema.Method)parent.Allocate(3, 2); }
         [global::CapnProto.FieldAttribute(0, pointer: 0)]
-        public global::CapnProto.Take2.Text name
+        public global::CapnProto.Text name
         {
             get
             {
-                return (global::CapnProto.Take2.Text)this.ѧ_.GetPointer(0);
+                return (global::CapnProto.Text)this.ѧ_.GetPointer(0);
             }
             set
             {
@@ -201,11 +201,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(4, pointer: 1)]
-        public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Annotation> annotations
+        public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Annotation> annotations
         {
             get
             {
-                return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Annotation>)this.ѧ_.GetPointer(1);
+                return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Annotation>)this.ѧ_.GetPointer(1);
             }
             set
             {
@@ -217,10 +217,10 @@ namespace CapnProto.Schema
     [global::CapnProto.IdAttribute(0x978a7cebdc549a4d)]
     public partial struct Enumerant
     {
-        private readonly global::CapnProto.Take2.Pointer ѧ_;
-        private Enumerant(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-        public static explicit operator global::CapnProto.Schema.Enumerant(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.Enumerant(pointer); }
-        public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.Enumerant obj) { return obj.ѧ_; }
+        private readonly global::CapnProto.Pointer ѧ_;
+        private Enumerant(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+        public static explicit operator global::CapnProto.Schema.Enumerant(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Enumerant(pointer); }
+        public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Enumerant obj) { return obj.ѧ_; }
         public static bool operator true(global::CapnProto.Schema.Enumerant obj) { return obj.ѧ_.IsValid; }
         public static bool operator false(global::CapnProto.Schema.Enumerant obj) { return !obj.ѧ_.IsValid; }
         public static bool operator !(global::CapnProto.Schema.Enumerant obj) { return !obj.ѧ_.IsValid; }
@@ -228,13 +228,13 @@ namespace CapnProto.Schema
         public override string ToString() { return this.ѧ_.ToString(); }
         public override bool Equals(object obj) { return obj is global::CapnProto.Schema.Enumerant && (this.ѧ_ == ((global::CapnProto.Schema.Enumerant)obj).ѧ_); }
         public global::CapnProto.Schema.Enumerant Dereference() { return (global::CapnProto.Schema.Enumerant)this.ѧ_.Dereference(); }
-        public static global::CapnProto.Schema.Enumerant Create(global::CapnProto.Take2.Pointer parent) { return (global::CapnProto.Schema.Enumerant)parent.Allocate(1, 2); }
+        public static global::CapnProto.Schema.Enumerant Create(global::CapnProto.Pointer parent) { return (global::CapnProto.Schema.Enumerant)parent.Allocate(1, 2); }
         [global::CapnProto.FieldAttribute(0, pointer: 0)]
-        public global::CapnProto.Take2.Text name
+        public global::CapnProto.Text name
         {
             get
             {
-                return (global::CapnProto.Take2.Text)this.ѧ_.GetPointer(0);
+                return (global::CapnProto.Text)this.ѧ_.GetPointer(0);
             }
             set
             {
@@ -254,11 +254,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(2, pointer: 1)]
-        public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Annotation> annotations
+        public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Annotation> annotations
         {
             get
             {
-                return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Annotation>)this.ѧ_.GetPointer(1);
+                return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Annotation>)this.ѧ_.GetPointer(1);
             }
             set
             {
@@ -270,10 +270,10 @@ namespace CapnProto.Schema
     [global::CapnProto.IdAttribute(0xe682ab4cf923a417)]
     public partial struct Node
     {
-        private readonly global::CapnProto.Take2.Pointer ѧ_;
-        private Node(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-        public static explicit operator global::CapnProto.Schema.Node(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.Node(pointer); }
-        public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.Node obj) { return obj.ѧ_; }
+        private readonly global::CapnProto.Pointer ѧ_;
+        private Node(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+        public static explicit operator global::CapnProto.Schema.Node(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Node(pointer); }
+        public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Node obj) { return obj.ѧ_; }
         public static bool operator true(global::CapnProto.Schema.Node obj) { return obj.ѧ_.IsValid; }
         public static bool operator false(global::CapnProto.Schema.Node obj) { return !obj.ѧ_.IsValid; }
         public static bool operator !(global::CapnProto.Schema.Node obj) { return !obj.ѧ_.IsValid; }
@@ -281,7 +281,7 @@ namespace CapnProto.Schema
         
         public override bool Equals(object obj) { return obj is global::CapnProto.Schema.Node && (this.ѧ_ == ((global::CapnProto.Schema.Node)obj).ѧ_); }
         public global::CapnProto.Schema.Node Dereference() { return (global::CapnProto.Schema.Node)this.ѧ_.Dereference(); }
-        public static global::CapnProto.Schema.Node Create(global::CapnProto.Take2.Pointer parent, global::CapnProto.Schema.Node.Unions union)
+        public static global::CapnProto.Schema.Node Create(global::CapnProto.Pointer parent, global::CapnProto.Schema.Node.Unions union)
         {
             var ptr = parent.Allocate(5, 5);
             ptr.SetUInt16(6, (ushort)union);
@@ -300,11 +300,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(1, pointer: 0)]
-        public global::CapnProto.Take2.Text displayName
+        public global::CapnProto.Text displayName
         {
             get
             {
-                return (global::CapnProto.Take2.Text)this.ѧ_.GetPointer(0);
+                return (global::CapnProto.Text)this.ѧ_.GetPointer(0);
             }
             set
             {
@@ -336,11 +336,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(4, pointer: 1)]
-        public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Node.NestedNode> nestedNodes
+        public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Node.NestedNode> nestedNodes
         {
             get
             {
-                return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Node.NestedNode>)this.ѧ_.GetPointer(1);
+                return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Node.NestedNode>)this.ѧ_.GetPointer(1);
             }
             set
             {
@@ -348,11 +348,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(5, pointer: 2)]
-        public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Annotation> annotations
+        public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Annotation> annotations
         {
             get
             {
-                return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Annotation>)this.ѧ_.GetPointer(2);
+                return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Annotation>)this.ѧ_.GetPointer(2);
             }
             set
             {
@@ -369,8 +369,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0x9ea0b19b37fb4435)]
         public partial struct structGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal structGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal structGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -447,11 +447,11 @@ namespace CapnProto.Schema
                 }
             }
             [global::CapnProto.FieldAttribute(13, pointer: 3)]
-            public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Field> fields
+            public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Field> fields
             {
                 get
                 {
-                    return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Field>)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(6) == (ushort)1 ? 3 : -1);
+                    return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Field>)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(6) == (ushort)1 ? 3 : -1);
                 }
                 set
                 {
@@ -469,17 +469,17 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xb54ab3364333f598)]
         public partial struct enumGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal enumGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal enumGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
             [global::CapnProto.FieldAttribute(14, pointer: 3)]
-            public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Enumerant> enumerants
+            public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Enumerant> enumerants
             {
                 get
                 {
-                    return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Enumerant>)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(6) == (ushort)2 ? 3 : -1);
+                    return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Enumerant>)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(6) == (ushort)2 ? 3 : -1);
                 }
                 set
                 {
@@ -497,17 +497,17 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xe82753cff0c2218f)]
         public partial struct interfaceGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal interfaceGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal interfaceGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
             [global::CapnProto.FieldAttribute(15, pointer: 3)]
-            public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Method> methods
+            public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Method> methods
             {
                 get
                 {
-                    return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Method>)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(6) == (ushort)3 ? 3 : -1);
+                    return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Method>)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(6) == (ushort)3 ? 3 : -1);
                 }
                 set
                 {
@@ -515,11 +515,11 @@ namespace CapnProto.Schema
                 }
             }
             [global::CapnProto.FieldAttribute(31, pointer: 4)]
-            public global::CapnProto.Take2.FixedSizeList<ulong> extends
+            public global::CapnProto.FixedSizeList<ulong> extends
             {
                 get
                 {
-                    return (global::CapnProto.Take2.FixedSizeList<ulong>)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(6) == (ushort)3 ? 4 : -1);
+                    return (global::CapnProto.FixedSizeList<ulong>)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(6) == (ushort)3 ? 4 : -1);
                 }
                 set
                 {
@@ -537,8 +537,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xb18aa5ac7a0d9420)]
         public partial struct constGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal constGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal constGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -577,8 +577,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xec1619d4400a0290)]
         public partial struct annotationGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal annotationGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal annotationGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -763,10 +763,10 @@ namespace CapnProto.Schema
         [global::CapnProto.IdAttribute(0xdebf55bbfa0fc242)]
         public partial struct NestedNode
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            private NestedNode(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-            public static explicit operator global::CapnProto.Schema.Node.NestedNode(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.Node.NestedNode(pointer); }
-            public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.Node.NestedNode obj) { return obj.ѧ_; }
+            private readonly global::CapnProto.Pointer ѧ_;
+            private NestedNode(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+            public static explicit operator global::CapnProto.Schema.Node.NestedNode(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Node.NestedNode(pointer); }
+            public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Node.NestedNode obj) { return obj.ѧ_; }
             public static bool operator true(global::CapnProto.Schema.Node.NestedNode obj) { return obj.ѧ_.IsValid; }
             public static bool operator false(global::CapnProto.Schema.Node.NestedNode obj) { return !obj.ѧ_.IsValid; }
             public static bool operator !(global::CapnProto.Schema.Node.NestedNode obj) { return !obj.ѧ_.IsValid; }
@@ -774,13 +774,13 @@ namespace CapnProto.Schema
             public override string ToString() { return this.ѧ_.ToString(); }
             public override bool Equals(object obj) { return obj is global::CapnProto.Schema.Node.NestedNode && (this.ѧ_ == ((global::CapnProto.Schema.Node.NestedNode)obj).ѧ_); }
             public global::CapnProto.Schema.Node.NestedNode Dereference() { return (global::CapnProto.Schema.Node.NestedNode)this.ѧ_.Dereference(); }
-            public static global::CapnProto.Schema.Node.NestedNode Create(global::CapnProto.Take2.Pointer parent) { return (global::CapnProto.Schema.Node.NestedNode)parent.Allocate(1, 1); }
+            public static global::CapnProto.Schema.Node.NestedNode Create(global::CapnProto.Pointer parent) { return (global::CapnProto.Schema.Node.NestedNode)parent.Allocate(1, 1); }
             [global::CapnProto.FieldAttribute(0, pointer: 0)]
-            public global::CapnProto.Take2.Text name
+            public global::CapnProto.Text name
             {
                 get
                 {
-                    return (global::CapnProto.Take2.Text)this.ѧ_.GetPointer(0);
+                    return (global::CapnProto.Text)this.ѧ_.GetPointer(0);
                 }
                 set
                 {
@@ -805,10 +805,10 @@ namespace CapnProto.Schema
     [global::CapnProto.IdAttribute(0xce23dcd2d7b00c9b)]
     public partial struct Value
     {
-        private readonly global::CapnProto.Take2.Pointer ѧ_;
-        private Value(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-        public static explicit operator global::CapnProto.Schema.Value(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.Value(pointer); }
-        public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.Value obj) { return obj.ѧ_; }
+        private readonly global::CapnProto.Pointer ѧ_;
+        private Value(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+        public static explicit operator global::CapnProto.Schema.Value(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Value(pointer); }
+        public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Value obj) { return obj.ѧ_; }
         public static bool operator true(global::CapnProto.Schema.Value obj) { return obj.ѧ_.IsValid; }
         public static bool operator false(global::CapnProto.Schema.Value obj) { return !obj.ѧ_.IsValid; }
         public static bool operator !(global::CapnProto.Schema.Value obj) { return !obj.ѧ_.IsValid; }
@@ -816,7 +816,7 @@ namespace CapnProto.Schema
         public override string ToString() { return this.ѧ_.ToString(); }
         public override bool Equals(object obj) { return obj is global::CapnProto.Schema.Value && (this.ѧ_ == ((global::CapnProto.Schema.Value)obj).ѧ_); }
         public global::CapnProto.Schema.Value Dereference() { return (global::CapnProto.Schema.Value)this.ѧ_.Dereference(); }
-        public static global::CapnProto.Schema.Value Create(global::CapnProto.Take2.Pointer parent, global::CapnProto.Schema.Value.Unions union)
+        public static global::CapnProto.Schema.Value Create(global::CapnProto.Pointer parent, global::CapnProto.Schema.Value.Unions union)
         {
             var ptr = parent.Allocate(2, 1);
             ptr.SetUInt16(0, (ushort)union);
@@ -955,11 +955,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(12, pointer: 0)]
-        public global::CapnProto.Take2.Text text
+        public global::CapnProto.Text text
         {
             get
             {
-                return (global::CapnProto.Take2.Text)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)12 ? 0 : -1);
+                return (global::CapnProto.Text)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)12 ? 0 : -1);
             }
             set
             {
@@ -967,11 +967,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(13, pointer: 0)]
-        public global::CapnProto.Take2.Data data
+        public global::CapnProto.Data data
         {
             get
             {
-                return (global::CapnProto.Take2.Data)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)13 ? 0 : -1);
+                return (global::CapnProto.Data)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)13 ? 0 : -1);
             }
             set
             {
@@ -979,11 +979,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(14, pointer: 0)]
-        public global::CapnProto.Take2.Pointer list
+        public global::CapnProto.Pointer list
         {
             get
             {
-                return (global::CapnProto.Take2.Pointer)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)14 ? 0 : -1);
+                return (global::CapnProto.Pointer)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)14 ? 0 : -1);
             }
             set
             {
@@ -1003,11 +1003,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(16, pointer: 0)]
-        public global::CapnProto.Take2.Pointer @struct
+        public global::CapnProto.Pointer @struct
         {
             get
             {
-                return (global::CapnProto.Take2.Pointer)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)16 ? 0 : -1);
+                return (global::CapnProto.Pointer)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)16 ? 0 : -1);
             }
             set
             {
@@ -1015,11 +1015,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(18, pointer: 0)]
-        public global::CapnProto.Take2.Pointer anyPointer
+        public global::CapnProto.Pointer anyPointer
         {
             get
             {
-                return (global::CapnProto.Take2.Pointer)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)18 ? 0 : -1);
+                return (global::CapnProto.Pointer)this.ѧ_.GetPointer(this.ѧ_.GetUInt16(0) == (ushort)18 ? 0 : -1);
             }
             set
             {
@@ -1071,10 +1071,10 @@ namespace CapnProto.Schema
     [global::CapnProto.IdAttribute(0xd07378ede1f9cc60)]
     public partial struct Type
     {
-        private readonly global::CapnProto.Take2.Pointer ѧ_;
-        private Type(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-        public static explicit operator global::CapnProto.Schema.Type(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.Type(pointer); }
-        public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.Type obj) { return obj.ѧ_; }
+        private readonly global::CapnProto.Pointer ѧ_;
+        private Type(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+        public static explicit operator global::CapnProto.Schema.Type(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Type(pointer); }
+        public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Type obj) { return obj.ѧ_; }
         public static bool operator true(global::CapnProto.Schema.Type obj) { return obj.ѧ_.IsValid; }
         public static bool operator false(global::CapnProto.Schema.Type obj) { return !obj.ѧ_.IsValid; }
         public static bool operator !(global::CapnProto.Schema.Type obj) { return !obj.ѧ_.IsValid; }
@@ -1082,7 +1082,7 @@ namespace CapnProto.Schema
         public override string ToString() { return this.ѧ_.ToString(); }
         public override bool Equals(object obj) { return obj is global::CapnProto.Schema.Type && (this.ѧ_ == ((global::CapnProto.Schema.Type)obj).ѧ_); }
         public global::CapnProto.Schema.Type Dereference() { return (global::CapnProto.Schema.Type)this.ѧ_.Dereference(); }
-        public static global::CapnProto.Schema.Type Create(global::CapnProto.Take2.Pointer parent, global::CapnProto.Schema.Type.Unions union)
+        public static global::CapnProto.Schema.Type Create(global::CapnProto.Pointer parent, global::CapnProto.Schema.Type.Unions union)
         {
             var ptr = parent.Allocate(2, 1);
             ptr.SetUInt16(0, (ushort)union);
@@ -1098,8 +1098,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0x87e739250a60ea97)]
         public partial struct listGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal listGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal listGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -1126,8 +1126,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0x9e0e78711a7f87a9)]
         public partial struct enumGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal enumGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal enumGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -1154,8 +1154,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xac3a6f60ef4cc6d3)]
         public partial struct structGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal structGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal structGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -1182,8 +1182,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xed8bca69f7fb0cbf)]
         public partial struct interfaceGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal interfaceGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal interfaceGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -1234,10 +1234,10 @@ namespace CapnProto.Schema
     [global::CapnProto.IdAttribute(0x9aad50a41f4af45f)]
     public partial struct Field
     {
-        private readonly global::CapnProto.Take2.Pointer ѧ_;
-        private Field(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-        public static explicit operator global::CapnProto.Schema.Field(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.Field(pointer); }
-        public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.Field obj) { return obj.ѧ_; }
+        private readonly global::CapnProto.Pointer ѧ_;
+        private Field(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+        public static explicit operator global::CapnProto.Schema.Field(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Field(pointer); }
+        public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Field obj) { return obj.ѧ_; }
         public static bool operator true(global::CapnProto.Schema.Field obj) { return obj.ѧ_.IsValid; }
         public static bool operator false(global::CapnProto.Schema.Field obj) { return !obj.ѧ_.IsValid; }
         public static bool operator !(global::CapnProto.Schema.Field obj) { return !obj.ѧ_.IsValid; }
@@ -1245,18 +1245,18 @@ namespace CapnProto.Schema
         //public override string ToString() { return this.ѧ_.ToString(); }
         public override bool Equals(object obj) { return obj is global::CapnProto.Schema.Field && (this.ѧ_ == ((global::CapnProto.Schema.Field)obj).ѧ_); }
         public global::CapnProto.Schema.Field Dereference() { return (global::CapnProto.Schema.Field)this.ѧ_.Dereference(); }
-        public static global::CapnProto.Schema.Field Create(global::CapnProto.Take2.Pointer parent, global::CapnProto.Schema.Field.Unions union)
+        public static global::CapnProto.Schema.Field Create(global::CapnProto.Pointer parent, global::CapnProto.Schema.Field.Unions union)
         {
             var ptr = parent.Allocate(3, 4);
             ptr.SetUInt16(4, (ushort)union);
             return (global::CapnProto.Schema.Field)ptr;
         }
         [global::CapnProto.FieldAttribute(0, pointer: 0)]
-        public global::CapnProto.Take2.Text name
+        public global::CapnProto.Text name
         {
             get
             {
-                return (global::CapnProto.Take2.Text)this.ѧ_.GetPointer(0);
+                return (global::CapnProto.Text)this.ѧ_.GetPointer(0);
             }
             set
             {
@@ -1276,11 +1276,11 @@ namespace CapnProto.Schema
             }
         }
         [global::CapnProto.FieldAttribute(2, pointer: 1)]
-        public global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Annotation> annotations
+        public global::CapnProto.FixedSizeList<global::CapnProto.Schema.Annotation> annotations
         {
             get
             {
-                return (global::CapnProto.Take2.FixedSizeList<global::CapnProto.Schema.Annotation>)this.ѧ_.GetPointer(1);
+                return (global::CapnProto.FixedSizeList<global::CapnProto.Schema.Annotation>)this.ѧ_.GetPointer(1);
             }
             set
             {
@@ -1310,8 +1310,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xc42305476bb4746f)]
         public partial struct slotGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal slotGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal slotGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -1374,8 +1374,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xcafccddb68db1d11)]
         public partial struct groupGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal groupGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal groupGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -1402,8 +1402,8 @@ namespace CapnProto.Schema
         [global::CapnProto.Group, global::CapnProto.Id(0xbb90d5c287870be6)]
         public partial struct ordinalGroup
         {
-            private readonly global::CapnProto.Take2.Pointer ѧ_;
-            internal ordinalGroup(global::CapnProto.Take2.Pointer pointer)
+            private readonly global::CapnProto.Pointer ѧ_;
+            internal ordinalGroup(global::CapnProto.Pointer pointer)
             {
                 this.ѧ_ = pointer;
             }
@@ -1454,10 +1454,10 @@ namespace CapnProto.Schema
     [global::CapnProto.IdAttribute(0xf1c8950dab257542)]
     public partial struct Annotation
     {
-        private readonly global::CapnProto.Take2.Pointer ѧ_;
-        private Annotation(global::CapnProto.Take2.Pointer pointer) { this.ѧ_ = pointer; }
-        public static explicit operator global::CapnProto.Schema.Annotation(global::CapnProto.Take2.Pointer pointer) { return new global::CapnProto.Schema.Annotation(pointer); }
-        public static implicit operator global::CapnProto.Take2.Pointer(global::CapnProto.Schema.Annotation obj) { return obj.ѧ_; }
+        private readonly global::CapnProto.Pointer ѧ_;
+        private Annotation(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
+        public static explicit operator global::CapnProto.Schema.Annotation(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Annotation(pointer); }
+        public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Annotation obj) { return obj.ѧ_; }
         public static bool operator true(global::CapnProto.Schema.Annotation obj) { return obj.ѧ_.IsValid; }
         public static bool operator false(global::CapnProto.Schema.Annotation obj) { return !obj.ѧ_.IsValid; }
         public static bool operator !(global::CapnProto.Schema.Annotation obj) { return !obj.ѧ_.IsValid; }
@@ -1465,7 +1465,7 @@ namespace CapnProto.Schema
         public override string ToString() { return this.ѧ_.ToString(); }
         public override bool Equals(object obj) { return obj is global::CapnProto.Schema.Annotation && (this.ѧ_ == ((global::CapnProto.Schema.Annotation)obj).ѧ_); }
         public global::CapnProto.Schema.Annotation Dereference() { return (global::CapnProto.Schema.Annotation)this.ѧ_.Dereference(); }
-        public static global::CapnProto.Schema.Annotation Create(global::CapnProto.Take2.Pointer parent) { return (global::CapnProto.Schema.Annotation)parent.Allocate(1, 1); }
+        public static global::CapnProto.Schema.Annotation Create(global::CapnProto.Pointer parent) { return (global::CapnProto.Schema.Annotation)parent.Allocate(1, 1); }
         [global::CapnProto.FieldAttribute(0, 0, 64)]
         public ulong id
         {
