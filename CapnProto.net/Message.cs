@@ -338,7 +338,7 @@ namespace CapnProto
             }
         }
 
-        public T Allocate<T>()
+        public T Allocate<T>() where T : struct, IPointer
         {
             return StructAccessor<T>.Instance.Create(this.Root);
         }
@@ -352,10 +352,10 @@ namespace CapnProto
             return FixedSizeList<T>.Create(this.Root, items);
         }
 
-        public void Crawl(TextWriter output, bool includeDataWords)
+        public void Crawl(TextWriter output, bool includeDataWords, Pointer root = default(Pointer))
         {
             SortedList<Pointer, Pointer> pending = new SortedList<Pointer, Pointer>();
-            var root = Root;
+            if (!root.IsValid) root = this.Root;
             pending.Add(root, root);
             HashSet<Pointer> seen = new HashSet<Pointer>();
             while(pending.Count != 0)

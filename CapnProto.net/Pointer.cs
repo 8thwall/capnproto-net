@@ -105,19 +105,19 @@ namespace CapnProto
                         {
                             case ElementSize.EightBytesPointer:
                                 dataWordsAndPointers = 1 << 16;
-                                startAndType = ((uint)start << 3) | 1;
+                                startAndType = ((uint)start << 3) | Type.ListBasic;
                                 aux = rhs;
                                 break;
                             case ElementSize.InlineComposite:
-                                startAndType = ((uint)start << 3) | 5;
+                                startAndType = ((uint)start << 3) | Type.ListComposite;
                                 aux = rhs & 7; // copy out the type bits, but not the count
                                 header = segment[start];
-                                aux |= ((uint)header) << 1;
+                                aux |= ((uint)header & ~(uint)3) << 1; // was offset 2, need 3
                                 dataWordsAndPointers = (uint)(header >> 32);
                                 break;
                             default:
                                 dataWordsAndPointers = 1;
-                                startAndType = ((uint)start << 3) | 1;
+                                startAndType = ((uint)start << 3) | Type.ListBasic;
                                 aux = rhs;
                                 break;
                         }
@@ -175,8 +175,9 @@ namespace CapnProto
                             return string.Format("[{0}:{1}] nil list, {2}, {3} items",
                                 segment.Index, startAndType >> 3, (ElementSize)(aux & 7), aux >> 3);
                         }
-                        return string.Format("[{0}:{1}-{2}] list, {3}, {4} items",
-                                segment.Index, startAndType >> 3, (startAndType >> 3) + words - 1, (ElementSize)(aux & 7), aux >> 3);
+                        return string.Format("[{0}:{1}-{2}] list, {3}, {4} items ({5} words, {6} pointers each)",
+                                segment.Index, startAndType >> 3, (startAndType >> 3) + words - 1, (ElementSize)(aux & 7), aux >> 3,
+                                dataWordsAndPointers & 0xFFFF, dataWordsAndPointers >> 16);
                     case Type.FarSingle:
                         return string.Format("far to single-word pad at [{0}:{1}]", segment.Index, aux, startAndType >> 3);
                     case Type.Capability:
@@ -794,7 +795,7 @@ namespace CapnProto
 
         public bool IsValid { get { return segment != null; } }
 
-        public T Allocate<T>()
+        public T Allocate<T>() where T : struct, IPointer
         {
             return StructAccessor<T>.Instance.Create(this);
         }
@@ -851,10 +852,10 @@ namespace CapnProto
                 int wordsPerElement = (int)dataWords + (int)pointers;
                 int totalWords = wordsPerElement * length;
                 uint rhs = (uint)(totalWords << 3 | (int)ElementSize.InlineComposite);
-
+                uint aux = (uint)(length << 3 | (int)ElementSize.InlineComposite);
                 uint dataAndWords = (uint)(ushort)dataWords | (((uint)(ushort)pointers) << 16);
-                var list = Allocate(totalWords + 1, (uint)Type.ListComposite, rhs, dataAndWords, rhs);
-                list.SetTagWord((uint)(length << 3), rhs);
+                var list = Allocate(totalWords + 1, (uint)Type.ListComposite, rhs, dataAndWords, aux);
+                list.SetTagWord((uint)(length << 2) | Type.StructBasic, dataAndWords);
                 return list;
 
             }

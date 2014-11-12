@@ -183,7 +183,7 @@ namespace CapnProto
                     index = activeWords;
                     activeWords += words;
 #if VERBOSE
-                    System.Diagnostics.Debug.WriteLine(string.Format(
+                    Console.WriteLine(string.Format(
                         "Allocating {0} words at [{1}:{2}-{3}]", words, Index, index, index + words - 1));
 #endif
                     return true;
