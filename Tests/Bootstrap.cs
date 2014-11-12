@@ -86,6 +86,7 @@ namespace Tests
 
             using (var msg = Message.Load(source))
             {
+                if (!msg.ReadNext()) throw new EndOfStreamException();
                 var req = (CodeGeneratorRequest)msg.Root;
                 using (var sw = new StringWriter())
                 {
