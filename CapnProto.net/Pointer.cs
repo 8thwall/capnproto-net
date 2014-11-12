@@ -85,8 +85,17 @@ namespace CapnProto
             {
                 if (header == 0)
                 {
-                    this = default(Pointer); // nil pointer
-                    return;
+                    if (headerIndex == 0 && segment != null && segment.Index == 0)
+                    {
+                        // smells like our root pointer hasn't been assigned yet...
+                        // use a far-pointer to [0:0] for now
+                        header = 2; // that's all we need!
+                    }
+                    else
+                    {
+                        this = default(Pointer); // nil pointer
+                        return;
+                    }
                 }
                 this.segment = segment;
                 uint lhs = (uint)header, rhs = (uint)(header >> 32);
