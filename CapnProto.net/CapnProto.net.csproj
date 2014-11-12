@@ -50,7 +50,9 @@
     <Compile Include="Cache.cs" />
     <Compile Include="ElementSize.cs" />
     <Compile Include="GroupAttrubute.cs" />
+    <Compile Include="MemoryMappedFileSegmentFactory.cs" />
     <Compile Include="Pointers.cs" />
+    <Compile Include="SegmentFactory.cs" />
     <Compile Include="StructAttribute.cs" />
     <Compile Include="BufferSegmentFactory.cs" />
     <Compile Include="Data.cs" />

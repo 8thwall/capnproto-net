@@ -130,6 +130,7 @@ namespace CapnProto
         {
             if (segmentFactory != null) segmentFactory.Dispose();
             this.segmentFactory = null;
+            ResetSegments(0);
         }
         public void Dispose()
         {
@@ -162,7 +163,7 @@ namespace CapnProto
                     if (seg != null) seg.Reset(true);
                 }
             }
-            if (segments == null || max > segments.Length)
+            if (max != 0 && (segments == null || max > segments.Length))
                 Array.Resize(ref segments, Math.Min(max, DEFAULT_SIZE));
             SegmentCount = 0;
         }
