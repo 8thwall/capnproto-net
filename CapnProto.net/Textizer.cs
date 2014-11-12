@@ -172,26 +172,29 @@ namespace CapnProto
 
         internal static Text Create(Pointer pointer, System.Data.IDataRecord reader, int fieldIndex)
         {
-            using(var text = Create())
-            {
-                var bytes = text.bytes;
-                var chars = text.chars;
-                var encoder = text.Encoder;
+            // TODO: replace with GetChars work
 
-                int fieldOffset = 0, charsRead, byteOffset = 0;
-                do
-                {
-                    charsRead = (int)reader.GetChars(fieldIndex, fieldOffset, chars, 0, MAX_CHARS_TO_ENCODE);
-                    int newBytes = encoder.GetBytes(chars, 0, charsRead, bytes, byteOffset, false);
+            return Text.Create(pointer, reader.GetString(fieldIndex));
+            //using(var text = Create())
+            //{
+            //    var bytes = text.bytes;
+            //    var chars = text.chars;
+            //    var encoder = text.Encoder;
 
-                    int availableBytes = newBytes + byteOffset;
-                    int fullWords = availableBytes >> 3;
+            //    int fieldOffset = 0, charsRead, byteOffset = 0;
+            //    do
+            //    {
+            //        charsRead = (int)reader.GetChars(fieldIndex, fieldOffset, chars, 0, MAX_CHARS_TO_ENCODE);
+            //        int newBytes = encoder.GetBytes(chars, 0, charsRead, bytes, byteOffset, false);
+
+            //        int availableBytes = newBytes + byteOffset;
+            //        int fullWords = availableBytes >> 3;
 
                     
-                } while (charsRead != 0);
+            //    } while (charsRead != 0);
 
-                throw new NotImplementedException();
-            }
+            //    throw new NotImplementedException();
+            //}
         }
     }
 
