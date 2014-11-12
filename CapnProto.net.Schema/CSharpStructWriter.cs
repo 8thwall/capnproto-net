@@ -20,8 +20,8 @@ namespace CapnProto
             get { return false; }
         }
         public CSharpStructWriter(TextWriter destination, FixedSizeList<Schema.Node> nodes,
-            string @namespace, string serializer)
-            : base(destination, nodes, @namespace, serializer)
+            string @namespace)
+            : base(destination, nodes, @namespace, "not used")
         { }
         private int indentationLevel;
 
@@ -250,7 +250,7 @@ namespace CapnProto
 
         private static void CascadePointers(CodeWriter writer, Schema.Node node, SortedList<int, List<Tuple<Schema.Node, Schema.Field, Stack<UnionStub>>>> ptrFields, Stack<UnionStub> union)
         {
-            if (node.@struct.fields)
+            if (node.@struct.fields.IsValid())
             {
                 foreach (var field in node.@struct.fields)
                 {
@@ -983,7 +983,7 @@ namespace CapnProto
             Indent();
             WriteLine().Write("this.").Write(PointerName).Write(" = pointer;");
             Outdent();
-            if (node.@struct.fields)
+            if (node.@struct.fields.IsValid())
             {
                 foreach (var field in node.@struct.fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name, Text.Comparer))
                 {
@@ -1015,7 +1015,7 @@ namespace CapnProto
             if (union.Count != 0) Write("new ");
             Write("enum Unions");
             Indent();
-            if (@struct.fields)
+            if (@struct.fields.IsValid())
             {
                 foreach (var field in @struct.fields)
                 {

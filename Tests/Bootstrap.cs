@@ -86,14 +86,10 @@ namespace Tests
 
             using (var msg = Message.Load(source))
             {
-                if (!msg.ReadNext()) throw new EndOfStreamException();
                 var req = (CodeGeneratorRequest)msg.Root;
-
-                //ShowSchemaInfo(req);
-
                 using (var sw = new StringWriter())
                 {
-                    var codeWriter = new CSharpStructWriter(sw, req.nodes, @namespace, "not used");
+                    var codeWriter = new CSharpStructWriter(sw, req.nodes, @namespace);
                     req.GenerateCustomModel(codeWriter);
                     File.WriteAllText(destination, sw.ToString());
                     Console.WriteLine("File generated: {0}", destination);
@@ -116,7 +112,7 @@ namespace Tests
 
         private static void ShowSchemaInfo(CodeGeneratorRequest req)
         {
-            if (req.requestedFiles)
+            if (req.requestedFiles.IsValid())
             {
                 if (req.requestedFiles.Count() != 0)
                 {
@@ -124,7 +120,7 @@ namespace Tests
                     foreach (var file in req.requestedFiles)
                     {
                         Console.WriteLine("{0}: {1}", file.id, file.filename);
-                        if (file.imports)
+                        if (file.imports.IsValid())
                         {
                             foreach (var imp in file.imports)
                             {
@@ -135,7 +131,7 @@ namespace Tests
                     Console.WriteLine();
                 }
             }
-            if (req.nodes)
+            if (req.nodes.IsValid())
             {
                 if (req.nodes.Count() != 0)
                 {
@@ -143,7 +139,6 @@ namespace Tests
                     foreach (var node in req.nodes)
                     {
                         string name = node.displayName.ToString();
-                        //Console.WriteLine((Pointer)node);
                         Console.WriteLine("  {2}: {0} ({1})", name, name.Substring((int)node.displayNamePrefixLength), node.Union);
                     }
                     Console.WriteLine();

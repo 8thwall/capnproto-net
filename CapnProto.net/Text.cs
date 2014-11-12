@@ -6,8 +6,12 @@ using System.IO;
 using System.Text;
 namespace CapnProto
 {
-    public struct Text
+    public struct Text : IPointer
     {
+        public static explicit operator Text(Pointer pointer) { return new Text(pointer, null); }
+        public static implicit operator Pointer(Text pointer) { return pointer.pointer; }
+        public static explicit operator string(Text obj) { return obj.ToString(); }
+
         private static readonly TextComparer comparer = new TextComparer();
         public static TextComparer Comparer { get { return comparer; } }
         public sealed class TextComparer : IComparer<Text>, IEqualityComparer<Text>
@@ -93,11 +97,6 @@ namespace CapnProto
             this.pointer = pointer;
             this.value = value;
         }
-        public static explicit operator Text(Pointer pointer) { return new Text(pointer, null); }
-        public static implicit operator Pointer(Text pointer) { return pointer.pointer; }
-        public static bool operator true(Text obj) { return obj.pointer.IsValid; }
-        public static bool operator false(Text obj) { return !obj.pointer.IsValid; }
-        public static explicit operator string(Text obj) { return obj.ToString(); }
 
         public static Text Create(Pointer pointer, string value)
         {
@@ -171,5 +170,11 @@ namespace CapnProto
             }
             return Textizer.AppendTo(pointer, destination);
         }
+        public override bool Equals(object obj)
+        {
+            return obj is Text && ((Text)obj).pointer == this.pointer;
+        }
+        public override int GetHashCode() { return this.pointer.GetHashCode(); }
+        Pointer IPointer.Pointer { get { return pointer; } }
     }
 }

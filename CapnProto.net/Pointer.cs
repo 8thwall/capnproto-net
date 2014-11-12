@@ -554,7 +554,6 @@ namespace CapnProto
                             break;
                         case Type.ListBasic:
                             throw new InvalidOperationException("List values should be accessed via the SetList* methods or a list pointer");
-                            return;
                         case Type.FarSingle:
                         case Type.FarDouble:
                             Dereference().SetDataWord(index, value, mask);

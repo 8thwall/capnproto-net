@@ -4,19 +4,18 @@ using System.Collections;
 using System.Collections.Generic;
 namespace CapnProto
 {
-    public struct FixedSizeList<T> : IList<T>, IList
+    public struct FixedSizeList<T> : IList<T>, IList, IPointer
     {
-        public override string ToString()
-        {
-            return pointer.ToString();
-        }
-        private readonly Pointer pointer;
-        private FixedSizeList(Pointer pointer) { this.pointer = pointer; }
         public static explicit operator FixedSizeList<T>(Pointer pointer) { return new FixedSizeList<T>(pointer); }
         public static implicit operator Pointer(FixedSizeList<T> obj) { return obj.pointer; }
-        public static bool operator true(FixedSizeList<T> obj) { return obj.pointer.IsValid; }
-        public static bool operator false(FixedSizeList<T> obj) { return !obj.pointer.IsValid; }
-        public static bool operator !(FixedSizeList<T> obj) { return !obj.pointer.IsValid; }
+        private readonly Pointer pointer;
+        private FixedSizeList(Pointer pointer) { this.pointer = pointer; }
+        public override bool Equals(object obj)
+        {
+            return obj is FixedSizeList<T> && ((FixedSizeList<T>)obj).pointer == this.pointer;
+        }
+        public override int GetHashCode() { return this.pointer.GetHashCode(); }
+        public override string ToString() { return pointer.ToString(); }
 
         public T this[int index]
         {
@@ -157,5 +156,6 @@ namespace CapnProto
             }
             return list;
         }
+        Pointer IPointer.Pointer { get { return pointer; } }
     }
 }

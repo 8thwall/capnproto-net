@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>CapnProto-net</id>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
     <authors>marc.gravell</authors>
     <owners>marc.gravell</owners>
     <summary>.NET implementation of the Cap'n Proto data interchange protocol</summary>

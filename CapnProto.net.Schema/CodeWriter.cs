@@ -35,7 +35,7 @@ namespace CapnProto
             foreach (var pair in map)
             {
                 var nested = pair.Value.nestedNodes;
-                if (nested)
+                if (nested.IsValid())
                 {
                     foreach (var x in nested)
                         if (x.id == node.id) return pair.Value;
@@ -260,7 +260,7 @@ namespace CapnProto
         {
             var children = node.nestedNodes;
             var seen = new HashSet<ulong>();
-            if (children)
+            if (children.IsValid())
             {
                 foreach (var child in children)
                 {
@@ -331,7 +331,7 @@ namespace CapnProto
             Schema.CodeGeneratorRequest.ComputeSpace(this, node, ref bodyWords, ref pointerWords);
             HashSet<ulong> nestedDone = null;
 
-            if (fields)
+            if (fields.IsValid())
             {
                 foreach (var field in fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name, Text.Comparer))
                 {
@@ -400,7 +400,7 @@ namespace CapnProto
 
         internal CodeWriter Write(Text text)
         {
-            if (text) text.AppendTo(destination);
+            if (text.IsValid()) text.AppendTo(destination);
             return this;
         }
     }

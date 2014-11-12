@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		CapnProto-net.Schema.nuspec = CapnProto-net.Schema.nuspec
 		CapnProto.net.snk = CapnProto.net.snk
 		LICENSE = LICENSE
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{7FCA14D8-6C86-43B6-A1EC-8327468E475C}"

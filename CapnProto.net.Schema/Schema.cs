@@ -401,7 +401,7 @@ namespace CapnProto.Schema
             {
                 if (node.Union == Node.Unions.file) continue;
                 var children = node.nestedNodes;
-                if (children)
+                if (children.IsValid())
                 {
                     foreach (var child in children)
                         if (child.id != 0) nested.Add(child.id);
@@ -485,7 +485,7 @@ namespace CapnProto.Schema
             {
                 bodyEnd = (int)((node.@struct.discriminantOffset + 1) * 16);
             }
-            if (node.@struct.fields)
+            if (node.@struct.fields.IsValid())
             {
                 foreach (var field in node.@struct.@fields)
                 {
