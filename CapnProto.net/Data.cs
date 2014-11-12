@@ -4,7 +4,7 @@ namespace CapnProto
 {
     public struct Data
     {
-        private readonly Pointer pointer;
+        private Pointer pointer;
         private Data(Pointer pointer) {
             
             this.pointer = pointer;

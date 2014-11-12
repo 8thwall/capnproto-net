@@ -43,12 +43,14 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache.cs" />
     <Compile Include="ElementSize.cs" />
     <Compile Include="GroupAttrubute.cs" />
+    <Compile Include="Pointers.cs" />
     <Compile Include="StructAttribute.cs" />
     <Compile Include="BufferSegmentFactory.cs" />
     <Compile Include="Data.cs" />

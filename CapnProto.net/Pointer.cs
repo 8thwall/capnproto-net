@@ -85,19 +85,7 @@ namespace CapnProto
             {
                 if (header == 0)
                 {
-                    // normally, this is considered a nil-pointer; we will special-case the root
-                    // of a message, though:
-                    if (segment.Index == 0)
-                    {
-                        this.segment = segment;
-                        this.startAndType = 0;
-                        this.dataWordsAndPointers = 0;
-                        this.aux = 0;
-                    }
-                    else
-                    {
-                        this = default(Pointer);
-                    }
+                    this = default(Pointer); // nil pointer
                     return;
                 }
                 this.segment = segment;
@@ -134,6 +122,12 @@ namespace CapnProto
                                 break;
                         }
                         break;
+                    case Type.FarSingle:
+                        int targetSegment = (int)rhs;
+                        if (targetSegment != segment.Index) this.segment = segment = segment.Message[targetSegment];
+                        startAndType = lhs;
+                        dataWordsAndPointers = aux = 0;
+                        break;
                     default:
                         startAndType = lhs;
                         dataWordsAndPointers = 0;
@@ -148,7 +142,7 @@ namespace CapnProto
             {
                 return "[nil]";
             }
-            else if (startAndType == 0 && segment.Index == 0)
+            else if (startAndType == 2 && segment.Index == 0)
             {
                 return "[root]";
             }
@@ -184,14 +178,14 @@ namespace CapnProto
                         return string.Format("[{0}:{1}-{2}] list, {3}, {4} items",
                                 segment.Index, startAndType >> 3, (startAndType >> 3) + words - 1, (ElementSize)(aux & 7), aux >> 3);
                     case Type.FarSingle:
-                        return string.Format("far to pad at [{0}:{1}]", segment.Index, aux, startAndType >> 3);
+                        return string.Format("far to single-word pad at [{0}:{1}]", segment.Index, aux, startAndType >> 3);
                     case Type.Capability:
                         return string.Format("capability {0}", aux);
                     case Type.StructFragment:
                         return string.Format("[{0}:{1}-{1}] struct fragment, {2} bits, offset {3}",
                                 segment.Index, startAndType >> 3, aux >> 16, aux & 0xFFFF);
                     case Type.FarDouble:
-                        return string.Format("far to double-pad at [{0}:{1}]",
+                        return string.Format("far to double-word pad at [{0}:{1}]",
                                 segment.Index, aux, startAndType >> 3);
                     default:
                         return "unknown";
@@ -233,7 +227,7 @@ namespace CapnProto
         {
             ulong word = GetDataWord(index >> 6);
             int shift = index & 63;
-            return (word >> shift) != 0;
+            return ((word >> shift) & 1) != 0;
         }
         public void SetBoolean(int index, bool value)
         {
@@ -799,7 +793,7 @@ namespace CapnProto
             return new InvalidOperationException("Value cannot be assigned; the object has insufficient space for this field");
         }
 
-        public bool IsValid { get { return segment != null && (startAndType != 0 || segment.Index != 0); } }
+        public bool IsValid { get { return segment != null; } }
 
         public T Allocate<T>()
         {
@@ -816,7 +810,7 @@ namespace CapnProto
             {
                 int start;
                 var segment = this.segment;
-                if (segment == null) throw new InvalidOperationException("A pointer withough a segment cannot be used to allocate");
+                if (segment == null) throw new InvalidOperationException("A null-pointer cannot be used to allocate");
                 if (words < 0) throw new ArgumentOutOfRangeException("words");
                 if (words == 0)
                 {// takes no space; pretend it is at the end, but no need to allocate
@@ -935,7 +929,7 @@ namespace CapnProto
             {
                 var segment = this.segment;
                 ulong lhs, rhs;
-                if (segment == null || (startAndType == 0 && segment.Index == 0))
+                if (segment == null)
                 {
                     // nil-pointer
                     lhs = rhs = 0;
@@ -1127,9 +1121,60 @@ namespace CapnProto
             }
             throw ListExpected();
         }
-        static Exception ListExpected()
+        Exception ListExpected()
         {
-            return new InvalidOperationException("A list was expected");
+            return new InvalidOperationException("A list was expected; " + ToString());
+        }
+        public bool IsFar
+        {
+            get { return (startAndType & 3) == 2; }
+        }
+        public int Pointers()
+        {   
+            switch(startAndType & 7)
+            {
+                case Type.StructBasic:
+                    return (int)(dataWordsAndPointers >> 16);
+                case Type.StructFragment:
+                    return 0; // never has pointers
+                case Type.ListBasic:
+                    if ((aux & 7) == (uint)ElementSize.EightBytesPointer)
+                        return (int)(aux >> 3);
+                    return 0;
+                case Type.ListComposite:
+                    return (int)(aux >> 3);                        
+                case Type.FarSingle:
+                case Type.FarDouble:
+                    return Dereference().Pointers();
+                default:
+                    return 0;
+            }
+        }
+
+        public int DataWords()
+        {
+            switch (startAndType & 3)
+            {
+                case Type.StructBasic:
+                    return (int)(dataWordsAndPointers & 0xFFFF);
+                case Type.FarSingle:
+                    return Dereference().DataWords();
+                default:
+                    return 0;
+            }
+        }
+
+        public bool IsList()
+        {
+            switch(startAndType & 3)
+            {
+                case Type.ListBasic:
+                    return true;
+                case Type.FarSingle:
+                    return Dereference().IsList();
+                default:
+                    return false;
+            }
         }
     }
 }

@@ -11,13 +11,17 @@ namespace CapnProto
             this.buffer = null;
             this.offsetBytes = this.remainingWords = this.segmentWords = 0;
         }
+        void IDisposable.Dispose()
+        {
+            Cache<BufferSegmentFactory>.Push(this);
+        }
         public static BufferSegmentFactory Create(byte[] buffer, int offset = 0, int count = -1, int segmentWords = 1024)
         {
             if (buffer == null) throw new ArgumentNullException();
             if (segmentWords <= 0) throw new ArgumentOutOfRangeException("segmentWords");
             if (offset < 0 || offset >= buffer.Length) throw new ArgumentOutOfRangeException("offset");
             if (count < 0) { count = buffer.Length - offset; }
-            else if (offset + count >= buffer.Length) throw new ArgumentOutOfRangeException("count");
+            else if (offset + count > buffer.Length) throw new ArgumentOutOfRangeException("count");
 
             var state = Cache<BufferSegmentFactory>.Pop() ?? new BufferSegmentFactory();
             state.Init(buffer, offset, count, segmentWords);

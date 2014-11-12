@@ -18,7 +18,6 @@ namespace CapnProto
 
         public abstract ulong this[int index] { get; set; }
         public abstract int Length { get; }
-
         public void Init(Message message, int index)
         {
             this.message = message;

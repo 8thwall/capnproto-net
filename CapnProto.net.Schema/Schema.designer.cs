@@ -268,8 +268,9 @@ namespace CapnProto.Schema
     }
     [global::CapnProto.StructAttribute(global::CapnProto.ElementSize.InlineComposite, 5, 5)]
     [global::CapnProto.IdAttribute(0xe682ab4cf923a417)]
-    public partial struct Node
+    public partial struct Node : IPointer
     {
+        Pointer IPointer.Pointer { get { return ѧ_; } }
         private readonly global::CapnProto.Pointer ѧ_;
         private Node(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.Node(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Node(pointer); }

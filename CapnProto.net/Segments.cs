@@ -3,9 +3,12 @@ namespace CapnProto
 {
     public static class Segments
     {
-        public static string ToString(this ISegment segment, int word)
+        public static string ToString(this ISegment segment, int wordIndex)
         {
-            var value = segment[word];
+            return ToString(segment[wordIndex]);
+        }
+        public static string ToString(ulong value)
+        {
             unchecked
             {
                 return string.Format("{0:X2}{1:X2}-{2:X2}{3:X2}-{4:X2}{5:X2}-{6:X2}{7:X2}",

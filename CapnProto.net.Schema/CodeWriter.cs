@@ -14,7 +14,7 @@ namespace CapnProto
 
         private TextWriter destination;
         Dictionary<ulong, Schema.Node> map = new Dictionary<ulong, Schema.Node>();
-        public CodeWriter(TextWriter destination, List<Schema.Node> nodes, string @namespace, string serializer)
+        public CodeWriter(TextWriter destination, FixedSizeList<Schema.Node> nodes, string @namespace, string serializer)
         {
             this.destination = destination;
             this.@namespace = @namespace;
@@ -302,11 +302,17 @@ namespace CapnProto
                     case Schema.Node.Unions.@const:
                         WriteConst(node);
                         break;
+                    case Schema.Node.Unions.annotation:
+                    default:
+                        WriteLine().WriteComment(string.Format("Not implemented: {0} ({1}))", node.displayName, node.Union));
+                        break;
                 }
             }
             return this;
 
         }
+
+        protected abstract CodeWriter WriteComment(string text);
         public void WriteStruct(Schema.Node node, Stack<UnionStub> union)
         {
             if (node.IsGroup()) return;
@@ -327,7 +333,7 @@ namespace CapnProto
 
             if (fields)
             {
-                foreach (var field in fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name))
+                foreach (var field in fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name, Text.Comparer))
                 {
                     bool pushed = false;
                     if (field.discriminantValue != Field.noDiscriminant)
@@ -390,6 +396,12 @@ namespace CapnProto
 
             WriteNestedTypes(node, union);
             EndClass();
+        }
+
+        internal CodeWriter Write(Text text)
+        {
+            if (text) text.AppendTo(destination);
+            return this;
         }
     }
 }

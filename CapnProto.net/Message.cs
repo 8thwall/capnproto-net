@@ -9,6 +9,15 @@ namespace CapnProto
         public const int WordLength = 8;
         private Message() { }
 
+        public static Message Load(byte[] buffer, int offset = 0, int length = -1)
+        {
+            return Create(BufferSegmentFactory.Create(buffer, offset, length));
+        }
+        public static Message Load(string path)
+        {
+            var data = File.ReadAllBytes(path);
+            return Create(BufferSegmentFactory.Create(data, 0, data.Length));
+        }
         public static Message Create(ISegmentFactory segmentFactory)
         {
             var msg = Cache<Message>.Pop() ?? new Message();
@@ -97,7 +106,7 @@ namespace CapnProto
             {
                 if (SegmentCount == 0)
                 {
-                    return new Pointer(this, 0, 0);
+                    return new Pointer(this, 0, 2); // far-pointer to [0:0]
                 }
                 var segment = segments[0];
                 return new Pointer(segment, 0, segment[0]);
@@ -119,7 +128,7 @@ namespace CapnProto
 
         void IRecyclable.Reset(bool recycling)
         {
-            this.factoryState = null;
+            if (segmentFactory != null) segmentFactory.Dispose();
             this.segmentFactory = null;
         }
         public void Dispose()
@@ -127,7 +136,6 @@ namespace CapnProto
             Cache<Message>.Push(this);
         }
         private ISegmentFactory segmentFactory;
-        private object factoryState;
 
         public int SegmentCount { get; private set; }
 
@@ -342,6 +350,77 @@ namespace CapnProto
         public FixedSizeList<T> AllocateList<T>(IList<T> items)
         {
             return FixedSizeList<T>.Create(this.Root, items);
+        }
+
+        public void Crawl(TextWriter output, bool includeDataWords)
+        {
+            SortedList<Pointer, Pointer> pending = new SortedList<Pointer, Pointer>();
+            var root = Root;
+            pending.Add(root, root);
+            HashSet<Pointer> seen = new HashSet<Pointer>();
+            while(pending.Count != 0)
+            {
+                Pointer next, from;
+                using(var iter = pending.GetEnumerator())
+                {
+                    if (!iter.MoveNext()) break;
+                    next = iter.Current.Key;
+                    from = iter.Current.Value;
+                }
+                pending.Remove(next);
+
+                if(!next.IsValid) continue;
+
+                output.WriteLine(next.ToString());
+                if (next != from)
+                    output.WriteLine("     < {0}", from);
+
+                if(!seen.Add(next))
+                {
+                    output.WriteLine("   (duplicated; recursion is likely)");
+                    continue;
+                }
+
+                if (next.IsFar)
+                {
+                    var child = next.Dereference();
+                    output.WriteLine("     > {0}", child);
+                    if (child.IsValid) pending.Add(child, next);
+                }
+                else
+                {
+                    int pointers = next.Pointers();
+                    if(includeDataWords)
+                    {
+                        if(next.IsList())
+                        {
+                            if (pointers == 0)
+                            {
+                                int count = next.Count();
+                                for (int i = 0; i < count; i++)
+                                {
+                                    output.WriteLine("  {0:00} : {1}", i, Segments.ToString(next.GetListUInt64(i)));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            int words = next.DataWords();
+                            for (int i = 0; i < words; i++)
+                            {
+                                output.WriteLine("  {0:00} : {1}", i, Segments.ToString(next.GetUInt64(i)));
+                            }
+                        }
+                    }
+                    for (int i = 0; i < pointers; i++)
+                    {
+                        var child = next.GetPointer(i);
+                        output.WriteLine("  {0:00} > {1}", i, child);
+                        if (child.IsValid) pending.Add(child, next);
+                    }
+                }
+                output.WriteLine();
+            }
         }
     }
 }
