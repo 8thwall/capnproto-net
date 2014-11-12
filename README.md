@@ -12,7 +12,7 @@ Firstly, because there is no serialization/deserialization step, it is *really, 
 
 But there's another big point here:
 
-Zero alloactions
+Zero allocations
 -
 
 CanpProto-net has been specifically written to work *with almost zero allocations*. When you're traversing data, behind the scenes each instance is actually a `struct`; you just read and write to the `struct`, and it all *just works*
@@ -36,7 +36,7 @@ If you also need the schema-processing tools:
 Schemas
 -
 
-Cap'n Proto data is often described via a schema file; the syntax for this file is [described in the Cap'n Proto documentation](http://kentonv.github.io/capnproto/language.htm). At the current time, `CapnProto-net` does not have a "managed" parser (although I intend writing one); it can, however, process pre-compiled schemas that have been compiled with [the `capnp` tool](http://kentonv.github.io/capnproto/capnp-tool.html). To compile a schema ***on linux***, you might use:
+Cap'n Proto data is often described via a schema file; the syntax for this file is [described in the Cap'n Proto documentation](http://kentonv.github.io/capnproto/language.html). At the current time, `CapnProto-net` does not have a "managed" parser (although I intend writing one); it can, however, process pre-compiled schemas that have been compiled with [the `capnp` tool](http://kentonv.github.io/capnproto/capnp-tool.html). To compile a schema ***on linux***, you might use:
 
     capnp compile -o/bin/cat {source.capnp} > {target.bin}
 
