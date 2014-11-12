@@ -26,11 +26,11 @@ namespace CapnProto
         }
         protected Schema.Node FindParent(Schema.Node node)
         {
-            if (!node || node.id == 0) return default(Node);
+            if (!node.IsValid() || node.id == 0) return default(Node);
             if (node.scopeId != 0 && node.scopeId != node.id)
             {
                 var tmp = Lookup(node.scopeId);
-                if (tmp) return tmp;
+                if (tmp.IsValid()) return tmp;
             }
             foreach (var pair in map)
             {
@@ -181,7 +181,7 @@ namespace CapnProto
 
         public virtual CodeWriter Write(Schema.Type type, Value value)
         {
-            if (!value) return Write("null");
+            if (!value.IsValid()) return Write("null");
             switch (value.Union)
             {
                 case Value.Unions.@bool: return Write(value.@bool);
@@ -267,7 +267,7 @@ namespace CapnProto
                     if (seen.Add(child.id))
                     {
                         var found = Lookup(child.id);
-                        if (found)
+                        if (found.IsValid())
                         {
                             WriteNode(found, union);
                         }
@@ -289,7 +289,7 @@ namespace CapnProto
         }
         public virtual CodeWriter WriteNode(Schema.Node node, Stack<UnionStub> union)
         {
-            if (node)
+            if (node.IsValid())
             {
                 switch (node.Union)
                 {
@@ -357,7 +357,7 @@ namespace CapnProto
                                 child = Lookup(field.slot.type.@struct.typeId);
                             break;
                     }
-                    if (child)
+                    if (child.IsValid())
                     {
                         if (child.IsGroup())
                         {

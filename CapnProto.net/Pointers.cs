@@ -7,7 +7,7 @@ namespace CapnProto
     }
     public static class Pointers
     {
-        public static bool IsValid<T>(T pointer) where T : struct, IPointer
+        public static bool IsValid<T>(this T pointer) where T : struct, IPointer
         {
             return pointer.Pointer.IsValid;
         }

@@ -241,12 +241,12 @@ namespace CapnProto.Schema
             foreach (var field in type.GetFields())
             {
                 var member = CreateField(node, field, ref discCount, ref discOffset);
-                if (member) fields.Add(member);
+                if (member.IsValid()) fields.Add(member);
             }
             foreach (var prop in type.GetProperties())
             {
                 var member = CreateField(node, prop, ref discCount, ref discOffset);
-                if (member) fields.Add(member);
+                if (member.IsValid()) fields.Add(member);
             }
             if (discCount != 0 && node.Union == Node.Unions.@struct)
             {
@@ -380,7 +380,7 @@ namespace CapnProto.Schema
 
             // lists (note this includes recursive)
             var elType = GetSchemaType(parent, GetElementType(type), out len);
-            if (elType)
+            if (elType.IsValid())
             {
                 len = Type.LEN_POINTER;
                 Schema.Type tmp = Schema.Type.Create(parent, Type.Unions.list);
@@ -495,7 +495,7 @@ namespace CapnProto.Schema
                         int len = slot.type.GetFieldLength();
 
                         var relatedType = slot.type.Union == Type.Unions.@struct ? writer.Lookup(slot.type.@struct.typeId) : default(Node);
-                        if (relatedType)
+                        if (relatedType.IsValid())
                         {
                             if (relatedType.IsGroup())
                             {

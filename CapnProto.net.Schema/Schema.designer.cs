@@ -9,9 +9,6 @@ namespace CapnProto.Schema
         private CodeGeneratorRequest(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest(pointer); }
         public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.CodeGeneratorRequest obj) { return obj.ѧ_; }
-        public static bool operator true(global::CapnProto.Schema.CodeGeneratorRequest obj) { return obj.ѧ_.IsValid; }
-        public static bool operator false(global::CapnProto.Schema.CodeGeneratorRequest obj) { return !obj.ѧ_.IsValid; }
-        public static bool operator !(global::CapnProto.Schema.CodeGeneratorRequest obj) { return !obj.ѧ_.IsValid; }
         public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
         partial void OnToString(ref string s);
         public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -51,9 +48,6 @@ namespace CapnProto.Schema
             private RequestedFile(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
             public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile(pointer); }
             public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return obj.ѧ_; }
-            public static bool operator true(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return obj.ѧ_.IsValid; }
-            public static bool operator false(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return !obj.ѧ_.IsValid; }
-            public static bool operator !(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile obj) { return !obj.ѧ_.IsValid; }
             public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
             partial void OnToString(ref string s);
             public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -105,9 +99,6 @@ namespace CapnProto.Schema
                 private Import(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
                 public static explicit operator global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import(pointer); }
                 public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return obj.ѧ_; }
-                public static bool operator true(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return obj.ѧ_.IsValid; }
-                public static bool operator false(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return !obj.ѧ_.IsValid; }
-                public static bool operator !(global::CapnProto.Schema.CodeGeneratorRequest.RequestedFile.Import obj) { return !obj.ѧ_.IsValid; }
                 public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
                 partial void OnToString(ref string s);
                 public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -150,9 +141,6 @@ namespace CapnProto.Schema
         private Method(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.Method(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Method(pointer); }
         public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Method obj) { return obj.ѧ_; }
-        public static bool operator true(global::CapnProto.Schema.Method obj) { return obj.ѧ_.IsValid; }
-        public static bool operator false(global::CapnProto.Schema.Method obj) { return !obj.ѧ_.IsValid; }
-        public static bool operator !(global::CapnProto.Schema.Method obj) { return !obj.ѧ_.IsValid; }
         public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
         partial void OnToString(ref string s);
         public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -229,9 +217,6 @@ namespace CapnProto.Schema
         private Enumerant(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.Enumerant(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Enumerant(pointer); }
         public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Enumerant obj) { return obj.ѧ_; }
-        public static bool operator true(global::CapnProto.Schema.Enumerant obj) { return obj.ѧ_.IsValid; }
-        public static bool operator false(global::CapnProto.Schema.Enumerant obj) { return !obj.ѧ_.IsValid; }
-        public static bool operator !(global::CapnProto.Schema.Enumerant obj) { return !obj.ѧ_.IsValid; }
         public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
         partial void OnToString(ref string s);
         public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -284,9 +269,6 @@ namespace CapnProto.Schema
         private Node(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.Node(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Node(pointer); }
         public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Node obj) { return obj.ѧ_; }
-        public static bool operator true(global::CapnProto.Schema.Node obj) { return obj.ѧ_.IsValid; }
-        public static bool operator false(global::CapnProto.Schema.Node obj) { return !obj.ѧ_.IsValid; }
-        public static bool operator !(global::CapnProto.Schema.Node obj) { return !obj.ѧ_.IsValid; }
         public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
         partial void OnToString(ref string s);
         public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -779,9 +761,6 @@ namespace CapnProto.Schema
             private NestedNode(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
             public static explicit operator global::CapnProto.Schema.Node.NestedNode(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Node.NestedNode(pointer); }
             public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Node.NestedNode obj) { return obj.ѧ_; }
-            public static bool operator true(global::CapnProto.Schema.Node.NestedNode obj) { return obj.ѧ_.IsValid; }
-            public static bool operator false(global::CapnProto.Schema.Node.NestedNode obj) { return !obj.ѧ_.IsValid; }
-            public static bool operator !(global::CapnProto.Schema.Node.NestedNode obj) { return !obj.ѧ_.IsValid; }
             public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
             partial void OnToString(ref string s);
             public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -823,9 +802,6 @@ namespace CapnProto.Schema
         private Value(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.Value(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Value(pointer); }
         public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Value obj) { return obj.ѧ_; }
-        public static bool operator true(global::CapnProto.Schema.Value obj) { return obj.ѧ_.IsValid; }
-        public static bool operator false(global::CapnProto.Schema.Value obj) { return !obj.ѧ_.IsValid; }
-        public static bool operator !(global::CapnProto.Schema.Value obj) { return !obj.ѧ_.IsValid; }
         public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
         partial void OnToString(ref string s);
         public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -1095,9 +1071,6 @@ namespace CapnProto.Schema
         private Type(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.Type(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Type(pointer); }
         public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Type obj) { return obj.ѧ_; }
-        public static bool operator true(global::CapnProto.Schema.Type obj) { return obj.ѧ_.IsValid; }
-        public static bool operator false(global::CapnProto.Schema.Type obj) { return !obj.ѧ_.IsValid; }
-        public static bool operator !(global::CapnProto.Schema.Type obj) { return !obj.ѧ_.IsValid; }
         public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
         partial void OnToString(ref string s);
         public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -1264,9 +1237,6 @@ namespace CapnProto.Schema
         private Field(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.Field(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Field(pointer); }
         public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Field obj) { return obj.ѧ_; }
-        public static bool operator true(global::CapnProto.Schema.Field obj) { return obj.ѧ_.IsValid; }
-        public static bool operator false(global::CapnProto.Schema.Field obj) { return !obj.ѧ_.IsValid; }
-        public static bool operator !(global::CapnProto.Schema.Field obj) { return !obj.ѧ_.IsValid; }
         public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
         partial void OnToString(ref string s);
         public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }
@@ -1491,9 +1461,6 @@ namespace CapnProto.Schema
         private Annotation(global::CapnProto.Pointer pointer) { this.ѧ_ = pointer; }
         public static explicit operator global::CapnProto.Schema.Annotation(global::CapnProto.Pointer pointer) { return new global::CapnProto.Schema.Annotation(pointer); }
         public static implicit operator global::CapnProto.Pointer(global::CapnProto.Schema.Annotation obj) { return obj.ѧ_; }
-        public static bool operator true(global::CapnProto.Schema.Annotation obj) { return obj.ѧ_.IsValid; }
-        public static bool operator false(global::CapnProto.Schema.Annotation obj) { return !obj.ѧ_.IsValid; }
-        public static bool operator !(global::CapnProto.Schema.Annotation obj) { return !obj.ѧ_.IsValid; }
         public override int GetHashCode() { return this.ѧ_.GetHashCode(); }
         partial void OnToString(ref string s);
         public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.ѧ_.ToString(); }

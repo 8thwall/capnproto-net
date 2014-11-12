@@ -145,7 +145,7 @@ namespace CapnProto
         }
         public override CodeWriter WriteConst(Schema.Node node)
         {
-            if (!node || node.Union != Schema.Node.Unions.@const) return this;
+            if (!node.IsValid() || node.Union != Schema.Node.Unions.@const) return this;
             var @const = node.@const;
             return WriteLine().Write("public const ").Write(@const.type).Write(" ").Write(LocalName(node)).Write(" = ").Write(@const.type, @const.value).Write(";");
         }
@@ -176,9 +176,6 @@ namespace CapnProto
             WriteLine().Write("private ").Write(localName).Write("(").Write(typeof(Pointer)).Write(" pointer){ this.").Write(PointerName).Write(" = pointer; }");
             WriteLine().Write("public static explicit operator ").Write(fullName).Write("(").Write(typeof(Pointer)).Write(" pointer) { return new ").Write(fullName).Write("(pointer); }");
             WriteLine().Write("public static implicit operator ").Write(typeof(Pointer)).Write(" (").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write("; }");
-            WriteLine().Write("public static bool operator true(").Write(fullName).Write(" obj) { return obj.").Write(PointerName).Write(".IsValid; }");
-            WriteLine().Write("public static bool operator false(").Write(fullName).Write(" obj) { return !obj.").Write(PointerName).Write(".IsValid; }");
-            WriteLine().Write("public static bool operator !(").Write(fullName).Write(" obj) { return !obj.").Write(PointerName).Write(".IsValid; }");
             WriteLine().Write("public override int GetHashCode() { return this.").Write(PointerName).Write(".GetHashCode(); }");
             WriteLine().Write("partial void OnToString(ref string s);");
             WriteLine().Write("public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.").Write(PointerName).Write(".ToString(); }");
@@ -229,7 +226,7 @@ namespace CapnProto
                     break;
                 case Schema.Type.Unions.@struct:
                     var found = Lookup(elType.@struct.typeId);
-                    if (!found)
+                    if (!found.IsValid())
                     {
                         Write("null; #error type not found: ").Write(elType.@struct.typeId);
                     }
@@ -263,7 +260,7 @@ namespace CapnProto
                         case Field.Unions.group:
                             {
                                 var found = writer.Lookup(field.group.typeId);
-                                if (found)
+                                if (found.IsValid())
                                 {
                                     if (isFiltered) union.Push(new UnionStub(node.@struct.discriminantOffset, field.discriminantValue));
                                     CascadePointers(writer, found, ptrFields, union);
@@ -274,7 +271,7 @@ namespace CapnProto
                         case Field.Unions.slot:
                             {
                                 var slot = field.slot;
-                                if (!slot.type) continue;
+                                if (!slot.type.IsValid()) continue;
                                 int len = slot.type.GetFieldLength();
 
                                 if (len == Schema.Type.LEN_POINTER)
@@ -538,7 +535,7 @@ namespace CapnProto
 
         public override string Format(Schema.Type type, bool nullable = false)
         {
-            if (!type) return null;
+            if (!type.IsValid()) return null;
             ulong typeid = 0;
             switch (type.Union)
             {
@@ -724,7 +721,7 @@ namespace CapnProto
             if (field.Union == Field.Unions.group)
             {
                 var found = Lookup(field.group.typeId);
-                if (!found)
+                if (!found.IsValid())
                 {
                     return WriteLine().Write("#warning no type for: " + field.name);
                 }
@@ -732,7 +729,7 @@ namespace CapnProto
                 return WriteGroupAccessor(parent, found, field.name.ToString(), union.Count != 0);
             }
 
-            if (!field.slot.type)
+            if (!field.slot.type.IsValid())
             {
                 return WriteLine().Write("#warning no type for: " + field.name);
             }
@@ -760,12 +757,9 @@ namespace CapnProto
 
             //bool extraNullable = union.Count != 0 && type.Union != Schema.Type.Unions.@struct;
             var grp = (len == Schema.Type.LEN_POINTER && type.Union == Schema.Type.Unions.@struct) ? Lookup(type.@struct.typeId) : default(Node);
-            if (grp)
+            if (grp.IsValid() && grp.IsGroup())
             {
-                if (grp.IsGroup())
-                {
-                    return WriteGroupAccessor(parent, grp, field.name.ToString(), false);
-                }
+                return WriteGroupAccessor(parent, grp, field.name.ToString(), false);
             }
             if (slot.hadExplicitDefault)
             {
@@ -941,7 +935,7 @@ namespace CapnProto
 
         private CodeWriter WriteXorDefaultValue(Value defaultValue)
         {
-            if (!defaultValue) return this;
+            if (!defaultValue.IsValid()) return this;
             switch (defaultValue.Union)
             {
                 case Value.Unions.int8: if (defaultValue.int8 != 0) Write(" ^ ").WriteLiteral(defaultValue.int8); break;
@@ -977,7 +971,7 @@ namespace CapnProto
             {
                 parent = FindParent(parent);
             }
-            if (!parent)
+            if (!parent.IsValid())
             {
                 return WriteLine().Write("#error parent not found for: ").Write(node.displayName);
             }
