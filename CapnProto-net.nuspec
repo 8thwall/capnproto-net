@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>CapnProto-net</id>
-    <version>0.0.1</version>
+    <version>0.0.3</version>
     <authors>marc.gravell</authors>
     <owners>marc.gravell</owners>
     <summary>.NET implementation of the Cap'n Proto data interchange protocol</summary>
@@ -11,7 +11,7 @@
     <tags>binary serialization</tags>
     <language>en-US</language>
     <projectUrl>https://github.com/mgravell/capnproto-net</projectUrl>
-    <licenseUrl>https://github.com/mgravell/capnproto-net/master/LICENSE</licenseUrl>
+    <licenseUrl>https://raw.githubusercontent.com/mgravell/capnproto-net/master/LICENSE</licenseUrl>
     <copyright>Marc Gravell, 2014</copyright>
   </metadata>
   <files>

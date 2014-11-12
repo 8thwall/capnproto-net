@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>CapnProto-net.Schema</id>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
     <authors>marc.gravell</authors>
     <owners>marc.gravell</owners>
     <summary>Schema parsing / generation tools for CapnProto-net</summary>
@@ -12,11 +12,11 @@
     <tags>binary serialization</tags>
     <language>en-US</language>
     <projectUrl>https://github.com/mgravell/capnproto-net</projectUrl>
-    <licenseUrl>https://github.com/mgravell/capnproto-net/master/LICENSE</licenseUrl>
+    <licenseUrl>https://raw.githubusercontent.com/mgravell/capnproto-net/master/LICENSE</licenseUrl>
     <copyright>Marc Gravell, 2014</copyright>
 
     <dependencies>
-      <dependency id="CapnProto-net" version="0.0.1"/>
+      <dependency id="CapnProto-net" version="0.0.3"/>
     </dependencies>
   </metadata>
   <files>
