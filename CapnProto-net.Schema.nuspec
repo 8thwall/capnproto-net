@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>CapnProto-net.Schema</id>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
     <authors>marc.gravell</authors>
     <owners>marc.gravell</owners>
     <summary>Schema parsing / generation tools for CapnProto-net</summary>
@@ -16,7 +16,7 @@
     <copyright>Marc Gravell, 2014</copyright>
 
     <dependencies>
-      <dependency id="CapnProto-net" version="0.0.4"/>
+      <dependency id="CapnProto-net" version="0.0.5"/>
     </dependencies>
   </metadata>
   <files>
