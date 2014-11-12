@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>CapnProto-net.Schema</id>
+    <version>0.0.2</version>
+    <authors>marc.gravell</authors>
+    <owners>marc.gravell</owners>
+    <summary>Schema parsing / generation tools for CapnProto-net</summary>
+    <description>
+      Schema parser and generator intended to be used with CapnProto-net
+    </description>
+    <tags>binary serialization</tags>
+    <language>en-US</language>
+    <projectUrl>https://github.com/mgravell/capnproto-net</projectUrl>
+    <licenseUrl>https://github.com/mgravell/capnproto-net/master/LICENSE</licenseUrl>
+    <copyright>Marc Gravell, 2014</copyright>
+
+    <dependencies>
+      <dependency id="CapnProto-net" version="0.0.1"/>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="CapnProto.net.Schema\bin\Release\CapnProto-net.Schema.*" target="lib\net45" />
+  </files>
+</package>

@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>CapnProto-net</id>
+    <version>0.0.1</version>
+    <authors>marc.gravell</authors>
+    <owners>marc.gravell</owners>
+    <summary>.NET implementation of the Cap'n Proto data interchange protocol</summary>
+    <description>To quote from the parent project, &quot;Cap’n Proto is an insanely fast data interchange format and capability-based RPC system.&quot;; this library adds core parser support for .NET;
+    it can be used directly, but is intended to be used with the designer.cs file created from CapnProto-net.Schema</description>
+    <tags>binary serialization</tags>
+    <language>en-US</language>
+    <projectUrl>https://github.com/mgravell/capnproto-net</projectUrl>
+    <licenseUrl>https://github.com/mgravell/capnproto-net/master/LICENSE</licenseUrl>
+    <copyright>Marc Gravell, 2014</copyright>
+  </metadata>
+  <files>
+    <file src="CapnProto.net\bin\Release\*.*" target="lib\net45" />
+  </files>
+</package>
