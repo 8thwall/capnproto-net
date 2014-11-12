@@ -15,7 +15,7 @@ But there's another big point here:
 Zero alloactions
 -
 
-CanpProto-net has been specifically written to work *with almost zero allocations*. When you're traversing data, behind the scene's each instance is actually a `struct`; you just read and write to the `struct`, and it all *just works*
+CanpProto-net has been specifically written to work *with almost zero allocations*. When you're traversing data, behind the scenes each instance is actually a `struct`; you just read and write to the `struct`, and it all *just works*
 
 > but Marc, mutable structs are evil! think of the kittens!
 
