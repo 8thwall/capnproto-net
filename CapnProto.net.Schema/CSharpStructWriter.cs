@@ -170,7 +170,7 @@ namespace CapnProto
                 }
             }
             string localName = LocalName(node), fullName = FullyQualifiedName(node);
-            WriteLine().Write("public struct ").Write(localName);
+            WriteLine().Write("public partial struct ").Write(localName).Write(" : ").Write(typeof(IPointer));
             Indent();
             WriteLine().Write("private ").Write(typeof(Pointer)).Write(" ").Write(PointerName).Write(";");
             WriteLine().Write("private ").Write(localName).Write("(").Write(typeof(Pointer)).Write(" pointer){ this.").Write(PointerName).Write(" = pointer; }");
@@ -180,9 +180,12 @@ namespace CapnProto
             WriteLine().Write("public static bool operator false(").Write(fullName).Write(" obj) { return !obj.").Write(PointerName).Write(".IsValid; }");
             WriteLine().Write("public static bool operator !(").Write(fullName).Write(" obj) { return !obj.").Write(PointerName).Write(".IsValid; }");
             WriteLine().Write("public override int GetHashCode() { return this.").Write(PointerName).Write(".GetHashCode(); }");
-            WriteLine().Write("public override string ToString() { return this.").Write(PointerName).Write(".ToString(); }");
+            WriteLine().Write("partial void OnToString(ref string s);");
+            WriteLine().Write("public override string ToString() { string s = null; this.OnToString(ref s); return s ?? this.").Write(PointerName).Write(".ToString(); }");
             WriteLine().Write("public override bool Equals(object obj) { return obj is ").Write(fullName).Write(" && (this.")
                 .Write(PointerName).Write(" == ((").Write(fullName).Write(")obj).").Write(PointerName).Write("); }");
+            WriteLine().Write(typeof(Pointer)).Write(" ").Write(typeof(IPointer)).Write(".Pointer { get { return this.").Write(PointerName).Write("; } }");
+
             WriteLine().Write("public ").Write(fullName).Write(" Dereference() { return (").Write(fullName).Write(")this.").Write(PointerName).Write(".Dereference(); }");
             if (node.Union == Node.Unions.@struct)
             {
@@ -979,7 +982,7 @@ namespace CapnProto
                 return WriteLine().Write("#error parent not found for: ").Write(node.displayName);
             }
             WriteLine().Write("[global::CapnProto.Group, global::CapnProto.Id(").Write(node.id).Write(")]");
-            WriteLine().Write("public struct ").Write(LocalName(node));
+            WriteLine().Write("public partial struct ").Write(LocalName(node));
             Indent();
             WriteLine().Write("private ").Write(typeof(Pointer)).Write(" ").Write(PointerName).Write(";");
             WriteLine().Write("internal ").Write(LocalName(node)).Write("(").Write(typeof(Pointer)).Write(" pointer)");
@@ -988,7 +991,7 @@ namespace CapnProto
             Outdent();
             if (node.@struct.fields)
             {
-                foreach (var field in node.@struct.fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name))
+                foreach (var field in node.@struct.fields.OrderBy(x => x.codeOrder).ThenBy(x => x.name, Text.Comparer))
                 {
                     if (field.discriminantValue == Field.noDiscriminant)
                     {
@@ -1035,6 +1038,13 @@ namespace CapnProto
             WriteLine().Write("return (").Write(FullyQualifiedName(node)).Write(".Unions)this.").Write(PointerName).Write(".GetUInt16(");
             WriteFieldOffset(node.@struct.discriminantOffset, union).Write(");");
             Outdent();
+
+            WriteLine().Write("set");
+            Indent();
+            WriteLine().Write("this.").Write(PointerName).Write(".SetUInt16(");
+            WriteFieldOffset(node.@struct.discriminantOffset, union).Write(", (ushort)value);");
+            Outdent();
+
             //WriteLine().Write("set");
             //Indent();
             //ulong mask = ~((ulong)0xFFFF << byteInWord);

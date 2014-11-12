@@ -43,9 +43,9 @@ namespace CapnProto.Schema
     }
     public partial struct Field
     {
-        public override string ToString()
+        partial void OnToString(ref string s)
         {
-            return name.ToString();
+            s = name.ToString();
         }
     }
     public partial struct Node
@@ -54,9 +54,9 @@ namespace CapnProto.Schema
         {
             return Union == Unions.@struct && @struct.isGroup;
         }
-        public override string ToString()
+        partial void OnToString(ref string s)
         {
-            return id == 0 ? displayName.ToString() : (id + ": " + displayName.ToString());
+            s = id == 0 ? displayName.ToString() : (id + ": " + displayName.ToString());
         }
         internal string CustomSerializerName()
         {
