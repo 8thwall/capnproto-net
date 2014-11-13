@@ -8,7 +8,7 @@ namespace CapnProto
 {
     public unsafe sealed class MemoryMappedFileSegmentFactory : SegmentFactory
     {
-        MemoryMappedFile file;
+        MemoryMappedFile mmFile;
         MemoryMappedViewAccessor view;
         ulong* pointer;
         private long totalWords;
@@ -27,10 +27,10 @@ namespace CapnProto
                 catch { }
                 view = null;
             }
-            if (file != null)
+            if (mmFile != null)
             {
-                file.Dispose();
-                file = null;
+                mmFile.Dispose();
+                mmFile = null;
             }
             base.Reset(recycling);
         }
@@ -84,7 +84,7 @@ namespace CapnProto
                 view.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
                 this.pointer = (ulong*)&ptr[offsetBytes];
                 this.view = view;
-                if (leaveOpen) this.file = file;
+                if (!leaveOpen) this.mmFile = file;
                 view = null;
                 this.totalWords = lengthBytes >> 3;
             }
@@ -117,10 +117,11 @@ namespace CapnProto
                     break;
             }
             FileStream fs = null;
+            MemoryMappedFile file = null;
             try
             {
                 fs = File.Open(path, fileMode, fileAccess);
-                MemoryMappedFile file = MemoryMappedFile.CreateFromFile(fs, null, 0, access, null, HandleInheritability.None, false);
+                file = MemoryMappedFile.CreateFromFile(fs, null, 0, access, null, HandleInheritability.None, false);
                 Init(file, offsetBytes, lengthBytes, access, defaultSegmentWords, false);
                 fs = null;
                 file = null;
@@ -135,7 +136,7 @@ namespace CapnProto
         }
         protected override ISegment CreateEmptySegment()
         {
-            return PointerSegment.Create();
+            return PointerSegment.Create(false);
         }
         protected override bool InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords)
         {

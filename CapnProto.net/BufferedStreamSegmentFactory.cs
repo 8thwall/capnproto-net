@@ -1,8 +1,12 @@
-﻿using System;
+﻿#define UNMANAGED
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CapnProto
@@ -11,19 +15,35 @@ namespace CapnProto
     {
         Stream source;
         long lastWord, remainingWords;
+        bool leaveOpen;
         readonly byte[] scratch = new byte[8];
 
-        public static BufferedStreamSegmentFactory Create(Stream source, long length)
+        public static BufferedStreamSegmentFactory Create(Stream source, long length, bool leaveOpen)
         {
-            var obj = new BufferedStreamSegmentFactory();
-            obj.Init(source, length);
+            var obj = Cache<BufferedStreamSegmentFactory>.Pop() ?? new BufferedStreamSegmentFactory();
+            obj.Init(source, length, leaveOpen);
             return obj;
         }
-
-        private void Init(Stream source, long length)
+        public override void Dispose()
+        {
+            Cache<BufferedStreamSegmentFactory>.Push(this);
+        }
+        protected override void Reset(bool recyclying)
+        {
+            if(source != null && !leaveOpen)
+            {
+                try { source.Dispose(); } catch { }
+            }
+            source = null;
+            lastWord = remainingWords = 0;
+            leaveOpen = false;
+            base.Reset(recyclying);
+        }
+        private void Init(Stream source, long length, bool leaveOpen)
         {
             this.source = source;
             this.lastWord = 0;
+            this.leaveOpen = leaveOpen;
             if (length < 0) remainingWords = -1;
             else remainingWords = length >> 3;
         }
@@ -64,23 +84,65 @@ namespace CapnProto
 
         protected override ISegment CreateEmptySegment()
         {
+#if UNMANAGED
+            return PointerSegment.Create(true);
+#else
             return BufferSegment.Create();
+#endif
         }
 
+        static byte[] sharedBuffer;
+        private static byte[] PopBuffer()
+        {
+            return Interlocked.Exchange(ref sharedBuffer, null) ?? new byte[1024 * Message.WordLength];
+        }
+        private static void PushBuffer(byte[] buffer)
+        {
+            if(buffer != null) Interlocked.Exchange(ref sharedBuffer, buffer);
+        }
         protected override bool InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords)
         {
             CheckLastWord(wordOffset, totalWords);
+            
             if(this.remainingWords >= 0 && this.remainingWords < totalWords)
             {
                 return false;
             }
+
+#if UNMANAGED
+            var ptr = default(IntPtr);
+            byte[] buffer = null;
+            try {
+                long bytes = ((long)totalWords) << 3;
+                ptr = Marshal.AllocHGlobal(totalWords << 3);
+                buffer = PopBuffer();
+
+                IntPtr writeHead = ptr;
+                while(bytes > 0)
+                {
+                    int read = (int)Math.Min(bytes, buffer.Length);
+                    if (!Read(source, buffer, read)) throw new EndOfStreamException();
+                    Marshal.Copy(buffer, 0, writeHead, read);
+                    writeHead += read;
+                    bytes -= read;
+                }
+                ((PointerSegment)segment).Initialize(ptr, totalWords, activeWords);
+                ptr = default(IntPtr);
+            }
+            finally
+            {
+                PushBuffer(buffer);
+                if (ptr != default(IntPtr)) Marshal.FreeHGlobal(ptr);
+            }
+#else
             byte[] buffer = new byte[totalWords << 3];
-            if(!Read(source, buffer, buffer.Length))
+            if (!Read(source, buffer, buffer.Length))
             {
                 return false;
             }
             ((BufferSegment)segment).Init(buffer, 0, totalWords, activeWords);
-            if (this.remainingWords > 0) this.remainingWords-=totalWords;
+#endif
+            if (this.remainingWords > 0) this.remainingWords -= totalWords;
             return true;
         }
         

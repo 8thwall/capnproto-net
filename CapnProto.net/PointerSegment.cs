@@ -4,11 +4,34 @@ using System.Text;
 
 namespace CapnProto
 {
+    
     public unsafe class PointerSegment : Segment
     {
-        public static PointerSegment Create()
+        private class PointerOwningSegment : PointerSegment
         {
+            public override void Reset(bool recycling)
+            {
+                FreePointer();
+                base.Reset(recycling);
+            }
+            public override void Dispose()
+            {
+                Cache<PointerOwningSegment>.Push(this);
+            }
+            ~PointerOwningSegment()
+            {
+                FreePointer();
+            }
+        }
+        public static PointerSegment Create(bool free)
+        {
+            if (free) return Cache<PointerOwningSegment>.Pop() ?? new PointerOwningSegment();
             return Cache<PointerSegment>.Pop() ?? new PointerSegment();
+        }
+        protected void FreePointer()
+        {
+            if (pointer != (ulong*)0) Marshal.FreeHGlobal(new IntPtr(pointer));
+            pointer = (ulong*)0;
         }
         public override void Dispose()
         {
@@ -21,7 +44,6 @@ namespace CapnProto
             this.pointer = (ulong*)pointer;
             this.totalWords = totalWords;
             this.activeWords = activeWords;
-
         }
         private int totalWords, activeWords;
 
@@ -35,6 +57,7 @@ namespace CapnProto
             activeWords = totalWords = 0;
             base.Reset(recycling);
         }
+
         public override ulong this[int index]
         {
             get {

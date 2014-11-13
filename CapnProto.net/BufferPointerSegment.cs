@@ -6,7 +6,7 @@ namespace CapnProto
     public class BufferPointerSegment : PointerSegment
     {
         GCHandle handle;
-        public new static BufferPointerSegment Create()
+        public static BufferPointerSegment Create()
         {
             return new BufferPointerSegment();
         }

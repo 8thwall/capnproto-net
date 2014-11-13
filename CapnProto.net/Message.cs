@@ -15,9 +15,9 @@ namespace CapnProto
         }
 
 
-        public static Message Load(Stream source, int length = -1)
+        public static Message Load(Stream source, int length = -1, bool leaveOpen = false)
         {
-            return Load(BufferedStreamSegmentFactory.Create(source, length));
+            return Load(BufferedStreamSegmentFactory.Create(source, length, leaveOpen));
         }
         public static Message Load(string path)
         {
