@@ -4,125 +4,71 @@ using System.IO;
 using System.Text;
 namespace CapnProto
 {
-    public sealed class BufferSegmentFactory : ISegmentFactory, IRecyclable
+    public sealed class BufferSegmentFactory : SegmentFactory
     {
-        void IRecyclable.Reset(bool recycling)
-        {
-            this.buffer = null;
-            this.offsetBytes = this.remainingWords = this.segmentWords = 0;
-        }
-        void IDisposable.Dispose()
+        public override void Dispose()
         {
             Cache<BufferSegmentFactory>.Push(this);
         }
-        public static BufferSegmentFactory Create(byte[] buffer, int offset = 0, int count = -1, int segmentWords = 1024)
+
+        protected override void Reset(bool recycling)
+        {
+            this.buffer = null;
+            this.underlyingBaseOffset = this.availableWords = 0;
+            base.Reset(recycling);
+        }
+
+        public static BufferSegmentFactory Create(byte[] buffer, int offset = 0, int count = -1, int defaultSegmentWords = DefaultSegmentWords)
         {
             if (buffer == null) throw new ArgumentNullException();
-            if (segmentWords <= 0) throw new ArgumentOutOfRangeException("segmentWords");
+            if (defaultSegmentWords <= 0) throw new ArgumentOutOfRangeException("segmentWords");
             if (offset < 0 || offset >= buffer.Length) throw new ArgumentOutOfRangeException("offset");
             if (count < 0) { count = buffer.Length - offset; }
             else if (offset + count > buffer.Length) throw new ArgumentOutOfRangeException("count");
 
             var state = Cache<BufferSegmentFactory>.Pop() ?? new BufferSegmentFactory();
-            state.Init(buffer, offset, count, segmentWords);
+            state.Init(buffer, offset, count, defaultSegmentWords);
             return state;
         }
         private BufferSegmentFactory() { }
 
-        private int segmentWords;
-        private int offsetBytes;
-        private int remainingWords;
+        private int underlyingBaseOffset, availableWords;
         private byte[] buffer;
 
-        private void Init(byte[] buffer, int offsetBytes, int bytes, int segmentWords)
+        private void Init(byte[] buffer, int underlyingBaseOffset, int bytes, int defaultSegmentWords)
         {
-            this.segmentWords = segmentWords;
             this.buffer = buffer;
-            this.offsetBytes = offsetBytes;
-            this.remainingWords = bytes >> 3;
+            this.underlyingBaseOffset = underlyingBaseOffset;
+            this.availableWords = bytes >> 3;
+            base.Init(defaultSegmentWords);
         }
 
-
-        private void ConsumeWords(int words)
+        protected override int SuggestAvailable(Message message, long wordOffset, int requiredWords, int suggestedWords)
         {
-            if (words < 0) throw new ArgumentOutOfRangeException("count");
-            if (words > this.remainingWords) throw new EndOfStreamException();
-            this.offsetBytes += words << 3;
-            this.remainingWords -= words;
+            int space = checked(availableWords - (int)wordOffset);
+            return Math.Min(space, suggestedWords);
         }
-
-        private unsafe ulong ReadUInt64()
+        protected override unsafe bool TryReadWord(long wordOffset, out ulong value)
         {
-            if (this.remainingWords < 1) throw new EndOfStreamException();
-            ulong result;
-            fixed (byte* ptr = &buffer[offsetBytes])
+            if(wordOffset < availableWords)
             {
-                result = *((ulong*)ptr);
-            }
-            offsetBytes += 8;
-            remainingWords--;
-            return result;
-        }
-        ISegment ISegmentFactory.TryAllocate(Message message, int words)
-        {
-            BufferSegment segment = null;
-            if (remainingWords >= words)
-            {
-                // definitely have enough
-                if (segmentWords > words)
+                fixed (byte* ptr = &buffer[underlyingBaseOffset])
                 {
-                    words = segmentWords; // allocate an entire segment
-                    if (words > remainingWords) words = remainingWords; // unless that makes us too big
+                    value = ((ulong*)ptr)[wordOffset];
+                    return true;
                 }
-                segment = (BufferSegment)message.ReuseExistingSegment() ?? BufferSegment.Create();
-                segment.Init(buffer, offsetBytes, words, 0);
-                ConsumeWords(words);
-                message.AddSegment(segment);
             }
-            return segment;
+            value = 0;
+            return false;
         }
-        bool ISegmentFactory.ReadNext(Message message)
+        protected override bool InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords)
         {
-            if (remainingWords == 0) return false;
-
-            ulong word = ReadUInt64();
-            int segments = (int)(uint)(word) + 1;
-            // layout is:
-            // [count-1][len0]
-            // [len1][len2]
-            // [len3][len4]
-            // ...
-            // [lenN][padding]
-            // so: we can use count/2 as a sneaky way of knowing how many extra words to expect
-            int origin = offsetBytes + 8 * (segments / 2);
-            message.ResetSegments(segments);
-            var buffer = this.buffer;
-
-            int totalWords = 0;
-            for (int i = 0; i < segments; i++)
-            {
-                if ((i % 2) == 0)
-                {
-                    word >>= 32;
-                }
-                else
-                {
-                    word = ReadUInt64();
-                }
-                var segment = (BufferSegment)message.ReuseExistingSegment() ?? BufferSegment.Create();
-                int len = (int)(uint)(word);
-                segment.Init(buffer, origin, len, len);
-                message.AddSegment(segment);
-                origin += (len << 3);
-                totalWords += len;
-            }
-            // move the base offset past the data
-            ConsumeWords(totalWords);
-            if (origin != offsetBytes)
-            {
-                throw new InvalidOperationException(string.Format("offset mismatch; craziness; {0} vs {1}", offsetBytes, origin));
-            }
+            ((BufferSegment)segment).Init(buffer, checked(underlyingBaseOffset + (int)(wordOffset << 3)), totalWords, activeWords);
             return true;
+        }
+        protected override ISegment CreateEmptySegment()
+        {
+            return BufferSegment.Create();
         }
 
         private class BufferSegment : Segment
@@ -175,7 +121,7 @@ namespace CapnProto
             {
                 buffer = null;
             }
-            public override bool TryAllocate(int words, out int index)
+            protected override bool TryAllocate(int words, out int index)
             {
                 int space = capacityWords - activeWords;
                 if (space >= words)

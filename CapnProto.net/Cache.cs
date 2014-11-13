@@ -2,7 +2,7 @@
 
 namespace CapnProto
 {
-    public interface IRecyclable
+    public interface IRecyclable : IDisposable
     {
         void Reset(bool recycling);
     }

@@ -3,16 +3,32 @@ using System;
 using System.IO;
 namespace CapnProto
 {
-    abstract class SegmentFactory : ISegmentFactory
+    public abstract class SegmentFactory : ISegmentFactory, IRecyclable
     {
+        public const int DefaultSegmentWords = 1024;
         private long wordOffset;
+        private int defaultSegmentWords;
+        protected abstract bool TryReadWord(long wordOffset, out ulong value);
 
-        protected abstract bool TryReadUInt64(long offset, out ulong value);
+        protected void Init(int defaultSegmentWords)
+        {
+            this.defaultSegmentWords = defaultSegmentWords;
+        }
+        void IRecyclable.Reset(bool recyclying)
+        {
+            Reset(recyclying);
+        }
+        protected virtual void Reset(bool recyclying)
+        {
+            defaultSegmentWords = 0;
+            wordOffset = 0;
+        }
 
-        bool ISegmentFactory.ReadNext(Message message)
+        bool ISegmentFactory.ReadNext(Message message) { return ReadNext(message); }
+        protected virtual bool ReadNext(Message message)
         {
             ulong word;
-            if (!TryReadUInt64(wordOffset++, out word)) return false;
+            if (!TryReadWord(wordOffset++, out word)) return false;
             int segments = (int)(uint)(word) + 1;
             // layout is:
             // [count-1][len0]
@@ -21,7 +37,7 @@ namespace CapnProto
             // ...
             // [lenN][padding]
             // so: we can use count/2 as a sneaky way of knowing how many extra words to expect
-            long origin = wordOffset + (segments / 2);
+            long segmentWordOffset = wordOffset + (segments / 2);
             message.ResetSegments(segments);
 
             int totalWords = 0;
@@ -31,34 +47,62 @@ namespace CapnProto
                 {
                     word >>= 32;
                 }
-                else if (!TryReadUInt64(wordOffset++, out word))
+                else if (!TryReadWord(wordOffset++, out word))
                 {
                     throw new EndOfStreamException();
                 }
                 var segment = message.ReuseExistingSegment() ?? CreateEmptySegment();
                 int len = (int)(uint)(word);
-                InitializeSegment(segment, origin, len, len);
+                if (!(segment != null && InitializeSegment(segment, segmentWordOffset, len, len)))
+                {
+                    throw new OutOfMemoryException("Unable to initialize segment " + i);
+                }
                 message.AddSegment(segment);
-                origin += (len << 3);
+                segmentWordOffset += len;
                 totalWords += len;
             }
             // move the base offset past the data
             wordOffset += totalWords;
-            if (origin != wordOffset)
+            if (segmentWordOffset != wordOffset)
             {
-                throw new InvalidOperationException(string.Format("offset mismatch; craziness; {0} vs {1}", wordOffset, origin));
+                throw new InvalidOperationException(string.Format("offset mismatch; craziness; {0} vs {1}", wordOffset, segmentWordOffset));
             }
             return true;
         }
         protected abstract ISegment CreateEmptySegment();
 
-        protected abstract void InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords);
+        protected abstract bool InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords);
 
-        public virtual ISegment TryAllocate(Message message, int words)
+        
+        /// <summary>
+        /// Indicate an amount of available space; the number returned can be anything, but if it is not at least "required",
+        /// it will be treated as an allocation failure; the "suggested" value may indicate default block sizes, etc - but
+        /// the implementation is welcome to suggest a larger size. Note that the allocation is not considered complete until
+        /// InitializeSegment has been successfully invoked (returning true)
+        /// </summary>
+        protected virtual int SuggestAvailable(Message message, long wordOffset, int requiredWords, int suggestedWords)
         {
+            return -1;
+        }
+
+        ISegment ISegmentFactory.TryAllocate(Message message, int words)
+        {
+            if (words <= 0) throw new ArgumentOutOfRangeException("words");
+            int suggested = SuggestAvailable(message, wordOffset, words, Math.Max(words, defaultSegmentWords));
+            if (suggested < words) return null;
+
+            // k, we're doing ok!
+            ISegment seg = CreateEmptySegment();
+            if (seg != null && InitializeSegment(seg, wordOffset, suggested, 0))
+            {
+                message.AddSegment(seg);
+                wordOffset += suggested;
+                return seg;
+            }
+            if (seg != null) seg.Dispose();
             return null;
         }
 
-        public virtual void Dispose() { }
+        public virtual void Dispose() { Reset(false); }
     }
 }

@@ -1,30 +1,36 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.IO.MemoryMappedFiles;
 
 namespace CapnProto
 {
-    internal class MemoryMappedFileSegmentFactory : SegmentFactory, IRecyclable
+    public sealed class MemoryMappedFileSegmentFactory : SegmentFactory
     {
         MemoryMappedFile file;
-        private bool @readonly;
+        MemoryMappedFileAccess access;
         private long totalWords, offset;
-        void IRecyclable.Reset(bool recycling)
+
+        public override void Dispose()
+        {
+            Cache<MemoryMappedFileSegmentFactory>.Push(this);
+        }
+        protected override void Reset(bool recycling)
         {
             if (file != null)
             {
                 file.Dispose();
                 file = null;
             }
+            base.Reset(recycling);
         }
-        public static MemoryMappedFileSegmentFactory Load(string path, bool @readonly = false)
+        public static MemoryMappedFileSegmentFactory Open(string path,
+            MemoryMappedFileAccess access = MemoryMappedFileAccess.Read, int defaultSegmentWords = DefaultSegmentWords)
         {
             long length = new FileInfo(path).Length;
             MemoryMappedFileSegmentFactory obj = null;
             try
             {
                 obj = Cache<MemoryMappedFileSegmentFactory>.Pop() ?? new MemoryMappedFileSegmentFactory();
-                obj.Init(path, 0, length >> 8, @readonly);
+                obj.Init(path, 0, length >> 8, FileMode.Open, access, defaultSegmentWords);
                 var tmp = obj;
                 obj = null; // to avoid finally
                 return tmp;
@@ -35,32 +41,49 @@ namespace CapnProto
             }
         }
 
-        private void Init(string path, long offset, long totalWords, bool @readonly)
+        private void Init(string path, long offset, long totalWords, FileMode fileMode, MemoryMappedFileAccess access, int defaultSegmentWords)
         {
-            this.@readonly = @readonly;
-            file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, Access);
-            this.totalWords = totalWords;
-            this.offset = offset;
-        }
-        private MemoryMappedFileAccess Access { get { return @readonly ? MemoryMappedFileAccess.Read : MemoryMappedFileAccess.ReadWrite; } }
-
-        public override void Dispose()
-        {
-            Cache<MemoryMappedFileSegmentFactory>.Push(this);
+            base.Init(defaultSegmentWords);
+            this.access = access;
+            FileAccess fileAccess;
+            switch(access)
+            {
+                case MemoryMappedFileAccess.Read:
+                case MemoryMappedFileAccess.ReadExecute:
+                case MemoryMappedFileAccess.CopyOnWrite:
+                    fileAccess = FileAccess.Read;
+                    break;
+                case MemoryMappedFileAccess.Write:
+                    fileAccess = FileAccess.Write;
+                    break;
+                default:
+                    fileAccess = FileAccess.ReadWrite;
+                    break;
+            }
+            var fs = File.Open(path, fileMode, fileAccess);
+            try {
+                file = MemoryMappedFile.CreateFromFile(fs, null, 0, access, null, HandleInheritability.None, false);
+                fs = null;
+                this.totalWords = totalWords;
+                this.offset = offset;
+            } finally {
+                if(fs != null) fs.Dispose();
+            }
         }
         protected override ISegment CreateEmptySegment()
         {
-            throw new System.NotImplementedException();
+            return MemoryMappedFileSegment.Create();
         }
-        protected override void InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords)
+        protected override bool InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords)
         {
-            throw new System.NotImplementedException();
+            ((MemoryMappedFileSegment)segment).Init(file, wordOffset, totalWords, activeWords, access);
+            return true;
         }
-        protected override bool TryReadUInt64(long offset, out ulong value)
+        protected override bool TryReadWord(long wordOffset, out ulong value)
         {
-            if (offset < totalWords)
+            if (wordOffset < totalWords)
             {
-                using (var acc = file.CreateViewAccessor(this.offset + (offset << 3), 8))
+                using (var acc = file.CreateViewAccessor(this.offset + (wordOffset << 3), 8))
                 {
                     value = acc.ReadUInt64(0);
                     return true;
@@ -72,7 +95,21 @@ namespace CapnProto
 
         private class MemoryMappedFileSegment : Segment
         {
-            private int maxWords, activeWords;
+            public static MemoryMappedFileSegment Create()
+            {
+                return Cache<MemoryMappedFileSegment>.Pop() ?? new MemoryMappedFileSegment();
+            }
+            public override void Dispose()
+            {
+                Cache<MemoryMappedFileSegment>.Push(this);
+            }
+            internal void Init(MemoryMappedFile file, long wordOffset, int totalWords, int activeWords, MemoryMappedFileAccess access)
+            {
+                this.totalWords = totalWords;
+                this.activeWords = activeWords;
+                accessor = file.CreateViewAccessor(wordOffset << 3, totalWords << 3, access);
+            }
+            private int totalWords, activeWords;
             private MemoryMappedViewAccessor accessor;
             public override int Length
             {
@@ -86,18 +123,12 @@ namespace CapnProto
             }
             public override ulong this[int index]
             {
-                get
-                {
-                    return accessor.ReadUInt64(index << 3);
-                }
-                set
-                {
-                    accessor.Write(index << 3, value);
-                }
+                get { return accessor.ReadUInt64(index << 3); }
+                set { accessor.Write(index << 3, value); }
             }
-            public override bool TryAllocate(int words, out int index)
+            protected override bool TryAllocate(int words, out int index)
             {
-                int space = maxWords - activeWords;
+                int space = totalWords - activeWords;
                 if(words <= space)
                 {
                     index = activeWords;
@@ -106,6 +137,11 @@ namespace CapnProto
                 }
                 index = 0;
                 return false;
+            }
+
+            public override void SetValue(int index, ulong value, ulong mask)
+            {
+                accessor.Write(index << 3, (value & mask) | (accessor.ReadUInt64(index << 3) & ~mask));
             }
         }
     }

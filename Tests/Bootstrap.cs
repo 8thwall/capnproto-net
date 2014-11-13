@@ -98,6 +98,29 @@ namespace Tests
             }
         }
 
+        [Test]
+        [TestCaseSource("GetSchemaFiles")]
+        public void CanGenerateFromSchemasUsingMemoryMappedFiles(string source)
+        {
+            string destination = Path.ChangeExtension(source, ".mmf.designer.cs");
+
+            var @namespace = PickNamespace(source);
+
+
+            using (var msg = Message.Load(MemoryMappedFileSegmentFactory.Open(source)))
+            {
+                if (!msg.ReadNext()) throw new EndOfStreamException();
+                var req = (CodeGeneratorRequest)msg.Root;
+                using (var sw = new StringWriter())
+                {
+                    var codeWriter = new CSharpStructWriter(sw, req.nodes, @namespace);
+                    req.GenerateCustomModel(codeWriter);
+                    File.WriteAllText(destination, sw.ToString());
+                    Console.WriteLine("File generated: {0}", destination);
+                }
+            }
+        }
+
         private string PickNamespace(string source)
         {
             source = Path.GetFileNameWithoutExtension(source);

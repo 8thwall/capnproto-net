@@ -11,14 +11,14 @@ namespace CapnProto
 
         public static Message Load(byte[] buffer, int offset = 0, int length = -1)
         {
-            return Create(BufferSegmentFactory.Create(buffer, offset, length));
+            return Load(BufferSegmentFactory.Create(buffer, offset, length));
         }
         public static Message Load(string path)
         {
             var data = File.ReadAllBytes(path);
-            return Create(BufferSegmentFactory.Create(data, 0, data.Length));
+            return Load(BufferSegmentFactory.Create(data, 0, data.Length));
         }
-        public static Message Create(ISegmentFactory segmentFactory)
+        public static Message Load(ISegmentFactory segmentFactory)
         {
             var msg = Cache<Message>.Pop() ?? new Message();
             msg.Init(segmentFactory);
@@ -130,7 +130,22 @@ namespace CapnProto
         {
             if (segmentFactory != null) segmentFactory.Dispose();
             this.segmentFactory = null;
-            ResetSegments(0);
+            if (recycling)
+            {
+                ResetSegments(0);
+            }
+            else
+            {
+                if(segments != null)
+                {
+                    for (int i = 0; i < segments.Length; i++)
+                    {
+                        var seg = segments[i];
+                        if (seg != null) seg.Dispose();
+                    }
+                }
+                segments = null;
+            }
         }
         public void Dispose()
         {

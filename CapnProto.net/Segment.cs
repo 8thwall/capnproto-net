@@ -17,6 +17,8 @@ namespace CapnProto
             get { return message; }
         }
 
+        public virtual void Dispose() { }
+
         public abstract ulong this[int index] { get; set; }
         public abstract int Length { get; }
         public void Init(Message message, int index)
@@ -24,8 +26,11 @@ namespace CapnProto
             this.message = message;
             this.index = index;
         }
-
-        public virtual bool TryAllocate(int words, out int index)
+        bool ISegment.TryAllocate(int words, out int index)
+        {
+            return TryAllocate(words, out index);
+        }
+        protected virtual bool TryAllocate(int words, out int index)
         {
             index = int.MinValue;
             return false;
@@ -50,21 +55,31 @@ namespace CapnProto
             throw new NotImplementedException();
         }
 
-        public virtual int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int words)
-        {
-            throw new NotImplementedException();
-        }
-        public virtual int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int words)
+        public virtual unsafe int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int words)
         {
             int space = Length - wordOffset;
             if (words > space) words = space;
-            for(int i = 0 ; i < words ; i++)
+            fixed (byte* ptr = &buffer[bufferOffset])
             {
-                this[wordOffset++] =
-                    (ulong)buffer[bufferOffset++] | ((ulong)buffer[bufferOffset++] << 8) |
-                    ((ulong)buffer[bufferOffset++] << 16) | ((ulong)buffer[bufferOffset++] << 24) |
-                    ((ulong)buffer[bufferOffset++] << 32) | ((ulong)buffer[bufferOffset++] << 40) |
-                    ((ulong)buffer[bufferOffset++] << 48) | ((ulong)buffer[bufferOffset++] << 56);
+                ulong* typed = (ulong*)ptr;
+                for (int i = 0; i < words; i++)
+                {
+                    typed[i] = this[wordOffset++];
+                }
+            }
+            return words;
+        }
+        public virtual unsafe int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int words)
+        {
+            int space = Length - wordOffset;
+            if (words > space) words = space;
+            fixed(byte* ptr = &buffer[bufferOffset])
+            {
+                ulong* typed = (ulong*)ptr;
+                for(int i = 0 ; i < words ; i++)
+                {
+                    this[wordOffset++] = typed[i];
+                }
             }
             return words;
         }
