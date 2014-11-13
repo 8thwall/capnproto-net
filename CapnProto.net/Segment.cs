@@ -6,6 +6,25 @@ namespace CapnProto
     public abstract class Segment : ISegment
     {
         protected static readonly Encoding Encoding = new UTF8Encoding(false);
+
+        [ThreadStatic]
+        private static Decoder sharedDecoder;
+        protected static void PushDecoder(Decoder decoder)
+        {
+            if (decoder != null)
+            {
+                decoder.Reset();
+                sharedDecoder = decoder;
+            }
+        }
+        protected static Decoder PopDecoder()
+        {
+            var decoder = sharedDecoder;
+            sharedDecoder = null;
+            if (decoder == null) return Encoding.GetDecoder();
+            return decoder;
+        }
+
         public int Index
         {
             get { return index; }

@@ -130,20 +130,21 @@ namespace CapnProto
         {
             if (segmentFactory != null) segmentFactory.Dispose();
             this.segmentFactory = null;
-            if (recycling)
+           
+            if(segments != null)
             {
-                ResetSegments(0);
-            }
-            else
-            {
-                if(segments != null)
+                for (int i = 0; i < segments.Length; i++)
                 {
-                    for (int i = 0; i < segments.Length; i++)
+                    var seg = segments[i];
+                    if (seg != null)
                     {
-                        var seg = segments[i];
-                        if (seg != null) seg.Dispose();
+                        segments[i] = null;
+                        seg.Dispose();
                     }
                 }
+            }
+            if(!recycling)
+            {
                 segments = null;
             }
         }

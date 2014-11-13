@@ -1,5 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.IO.MemoryMappedFiles;
+using System.Text;
 
 namespace CapnProto
 {
@@ -83,7 +85,7 @@ namespace CapnProto
         {
             if (wordOffset < totalWords)
             {
-                using (var acc = file.CreateViewAccessor(this.offset + (wordOffset << 3), 8))
+                using (var acc = file.CreateViewAccessor(this.offset + (wordOffset << 3), 8, access))
                 {
                     value = acc.ReadUInt64(0);
                     return true;
@@ -107,8 +109,10 @@ namespace CapnProto
             {
                 this.totalWords = totalWords;
                 this.activeWords = activeWords;
-                accessor = file.CreateViewAccessor(wordOffset << 3, totalWords << 3, access);
+                this.byteOffset = wordOffset << 3;
+                accessor = file.CreateViewAccessor(byteOffset, totalWords << 3, access);
             }
+            private long byteOffset;
             private int totalWords, activeWords;
             private MemoryMappedViewAccessor accessor;
             public override int Length
@@ -142,6 +146,59 @@ namespace CapnProto
             public override void SetValue(int index, ulong value, ulong mask)
             {
                 accessor.Write(index << 3, (value & mask) | (accessor.ReadUInt64(index << 3) & ~mask));
+            }
+
+            public unsafe override int WriteString(int index, string value, int bytes)
+            {
+                if (bytes-- > 0)
+                {
+
+                    byte* ptr = (byte*)0;
+                    var handle = accessor.SafeMemoryMappedViewHandle;
+                    handle.AcquirePointer(ref ptr);
+                    try
+                    {
+                        ptr += byteOffset + (index << 3); // our actual pointer needs to a: allow for the base offset, and b: talk in words
+                        fixed(char* chars = value)
+                        {
+                            return Encoding.GetBytes(chars, value.Length, ptr, bytes);
+                        }
+                    }
+                    finally
+                    {
+                        handle.ReleasePointer();
+                    }
+                }
+                throw new InvalidOperationException();
+            }
+
+            public unsafe override string ReadString(int index, int bytes)
+            {
+                if (bytes-- > 0)
+                {
+                    byte* ptr = (byte*)0;
+                    var handle = accessor.SafeMemoryMappedViewHandle;
+                    handle.AcquirePointer(ref ptr);
+                    Decoder dec = null;
+                    try
+                    {
+                        ptr += byteOffset + (index << 3); // our actual pointer needs to a: allow for the base offset, and b: talk in words
+
+                        if (ptr[bytes] == 0)
+                        {
+                            sbyte* sPtr = (sbyte*)ptr;
+                            dec = PopDecoder();
+                            int chars = dec.GetCharCount(ptr, bytes, true);
+                            return new string(sPtr, 0, chars, Encoding);
+                        }
+                    }
+                    finally
+                    {
+                        handle.ReleasePointer();
+                        PushDecoder(dec);
+                    }
+                }
+                throw new InvalidOperationException();
             }
         }
     }
