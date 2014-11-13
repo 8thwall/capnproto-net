@@ -412,36 +412,25 @@ namespace CapnProto
                 }
                 else
                 {
+                    if(next.IsList())
+                    {
+                        int count = next.Count();
+                        bool isPointerList = next.IsPointerList();
+                        for (int i = 0; i < count; i++ )
+                        {
+                            var child = isPointerList ? next.GetListPointer(i)
+                                : next.GetListStruct(i);
+                            output.WriteLine("  {0:00} > {1}", i, child);
+                            if (child.IsValid) pending.Add(child, next);
+                        }
+                    }
                     int pointers = next.Pointers();
                     if(includeDataWords)
-                    {
-                        if(next.IsList())
+                    {   
+                        int words = next.DataWords();
+                        for (int i = 0; i < words; i++)
                         {
-                            int count = next.Count();
-                            if (next.IsComplexList())
-                            {
-                                for (int i = 0; i < count; i++)
-                                {
-                                    var child= next.GetPointer(i);
-                                    output.WriteLine("  {0:00} > {1}", i, child);
-                                    if (child.IsValid) pending.Add(child, next);
-                                }
-                            }
-                            else
-                            {
-                                for (int i = 0; i < count; i++)
-                                {
-                                    output.WriteLine("  {0:00} : {1}", i, Segments.ToString(next.GetListUInt64(i)));
-                                }
-                            }
-                        }
-                        else
-                        {
-                            int words = next.DataWords();
-                            for (int i = 0; i < words; i++)
-                            {
-                                output.WriteLine("  {0:00} : {1}", i, Segments.ToString(next.GetUInt64(i)));
-                            }
+                            output.WriteLine("  {0:00} : {1}", i, Segments.ToString(next.GetUInt64(i)));
                         }
                     }
                     for (int i = 0; i < pointers; i++)

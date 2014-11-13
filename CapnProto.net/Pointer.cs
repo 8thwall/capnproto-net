@@ -708,7 +708,29 @@ namespace CapnProto
                 throw new InvalidOperationException();
             }
         }
-
+        public Pointer GetListStruct(int index)
+        {
+            unchecked
+            {
+                switch(startAndType & 7)
+                {
+                    case Type.FarDouble:
+                    case Type.FarSingle:
+                        return Dereference().GetListStruct(index);
+                    case Type.ListBasic:
+                        return GetPointerInBasicList(index);
+                    case Type.ListComposite:
+                        if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                        {
+                            // non-fragment hook into middle of a list; dataWordsAndPointers is copied verbatim; offset is tweaked, aux is nil
+                            int offset = 1 + (int)(startAndType >> 3) + index * ((int)(dataWordsAndPointers & 0xFFFF) + (int)(dataWordsAndPointers >> 16));
+                            return new Pointer(segment, (uint)(offset << 3), dataWordsAndPointers, 0);
+                        }
+                        throw new IndexOutOfRangeException();
+                }
+                throw new InvalidOperationException();
+            }
+        }
         public Pointer GetPointer(int index)
         {
             unchecked
@@ -721,26 +743,10 @@ namespace CapnProto
                             int count = (int)(dataWordsAndPointers >> 16);
                             if (index < count) return new Pointer(segment, (int)(startAndType >> 3) + (int)(dataWordsAndPointers & 0xFFFF) + index);
                             break;
-                        case Type.ListBasic:
-                            if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
-                            return GetPointerInBasicList(index);
                         case Type.FarSingle:
                         case Type.FarDouble:
                             return Dereference().GetPointer(index);
-                        case Type.Capability: // not even data...
-                        case Type.StructFragment: // never has pointers
-                            break;
-                        case Type.ListComposite:
-                            // non-fragment hook into middle of a list; dataWordsAndPointers is copied verbatim; offset is tweaked, aux is nil
-                            if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
-
-                            int offset = 1 + (int)(startAndType >> 3) + index * ((int)(dataWordsAndPointers & 0xFFFF) + (int)(dataWordsAndPointers >> 16));
-                            return new Pointer(segment, (uint)(offset << 3), dataWordsAndPointers, 0);
                     }
-                }
-                else if ((startAndType & 3) == 1) // any kind of list
-                {
-                    throw new IndexOutOfRangeException("index");
                 }
                 return default(Pointer);
             }
@@ -1206,10 +1212,9 @@ namespace CapnProto
         {
             switch (startAndType & 3)
             {
-                case Type.StructBasic:
+                case Type.StructBasic: // &3, so this includes composite
                     return (int)(dataWordsAndPointers & 0xFFFF);
-                    // note StructFragment never has pointers
-                case Type.FarSingle:
+                case Type.FarSingle: // &3, so this includes double
                     return Dereference().DataWords();
                 default:
                     return 0;
@@ -1231,17 +1236,15 @@ namespace CapnProto
             }
         }
 
-        internal bool IsComplexList()
+        internal bool IsPointerList()
         {
             switch(startAndType & 7)
             {
-                case Type.ListComposite:
-                    return true;
                 case Type.ListBasic:
                     return (aux & 7) == (uint)ElementSize.EightBytesPointer;
                 case Type.FarDouble:
                 case Type.FarSingle:
-                    return Dereference().IsComplexList();
+                    return Dereference().IsPointerList();
                 default:
                     return false;
             }

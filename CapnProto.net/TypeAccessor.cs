@@ -376,11 +376,11 @@ namespace CapnProto
             }
             public override T GetElement(Pointer pointer, int index)
             {
-                return toT(pointer.GetPointer(index));
+                return toT(pointer.GetListStruct(index));
             }
             public override void SetElement(Pointer pointer, int index, T value)
             {
-                if (fromT(value) != pointer.GetPointer(index))
+                if (fromT(value) != pointer.GetListStruct(index))
                 {
                     throw new NotSupportedException();
                 }
@@ -401,7 +401,7 @@ namespace CapnProto
             { }
             public override T GetElement(Pointer pointer, int index)
             {
-                return (T)(dynamic)pointer.GetPointer(index);
+                return (T)(dynamic)pointer.GetListStruct(index);
             }
             public override T Create(Pointer pointer)
             {
@@ -409,7 +409,7 @@ namespace CapnProto
             }
             public override void SetElement(Pointer pointer, int index, T value)
             {
-                if (((IPointer)value).Pointer != pointer.GetPointer(index))
+                if (((IPointer)value).Pointer != pointer.GetListStruct(index))
                 {
                     throw new NotSupportedException();
                 }
