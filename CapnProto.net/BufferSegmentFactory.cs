@@ -1,6 +1,5 @@
 ﻿
 using System;
-using System.IO;
 using System.Text;
 namespace CapnProto
 {
@@ -162,7 +161,7 @@ namespace CapnProto
             {
                 if (bytes-- > 0)
                 {
-                    int offset = this.offset + (index << 3);                    
+                    int offset = this.offset + (index << 3);
                     if (this.buffer[offset + bytes] == (byte)0)
                     {
                         return Encoding.GetBytes(value, 0, value.Length, this.buffer, offset);

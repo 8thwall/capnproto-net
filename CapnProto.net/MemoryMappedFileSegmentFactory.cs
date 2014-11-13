@@ -102,11 +102,11 @@ namespace CapnProto
         }
         protected override ISegment CreateEmptySegment()
         {
-            return MemoryMappedFileSegment.Create();
+            return PointerSegment.Create();
         }
         protected override bool InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords)
         {
-            ((MemoryMappedFileSegment)segment).Init(&pointer[wordOffset], totalWords, activeWords);
+            ((PointerSegment)segment).Initialize(new IntPtr(&pointer[wordOffset]), totalWords, activeWords);
             return true;
         }
         protected override bool TryReadWord(long wordOffset, out ulong value)
@@ -118,111 +118,6 @@ namespace CapnProto
             }
             value = 0;
             return false;
-        }
-
-        private class MemoryMappedFileSegment : Segment
-        {
-            public static MemoryMappedFileSegment Create()
-            {
-                return Cache<MemoryMappedFileSegment>.Pop() ?? new MemoryMappedFileSegment();
-            }
-            public override void Dispose()
-            {
-                Cache<MemoryMappedFileSegment>.Push(this);
-            }
-            private ulong* pointer;
-            internal void Init(ulong* pointer, int totalWords, int activeWords)
-            {
-                this.pointer = pointer;
-                this.totalWords = totalWords;
-                this.activeWords = activeWords;
-
-            }
-            private int totalWords, activeWords;
-
-            public override int Length
-            {
-                get { return activeWords; }
-            }
-            public override void Reset(bool recycling)
-            {
-                pointer = (ulong*)0;
-                base.Reset(recycling);
-            }
-            public override ulong this[int index]
-            {
-                get { return pointer[index]; }
-                set { pointer[index] = value; }
-            }
-            protected override bool TryAllocate(int words, out int index)
-            {
-                int space = totalWords - activeWords;
-                if (words <= space)
-                {
-                    index = activeWords;
-                    activeWords += words;
-                    return true;
-                }
-                index = 0;
-                return false;
-            }
-
-            public override void SetValue(int index, ulong value, ulong mask)
-            {
-                pointer[index] = (value & mask) | (pointer[index] & ~mask);
-            }
-
-            public override int WriteString(int index, string value, int bytes)
-            {
-                if (bytes-- > 0)
-                {
-                    byte* ptr = (byte*)&pointer[index];
-                    fixed (char* chars = value)
-                    {
-                        return Encoding.GetBytes(chars, value.Length, ptr, bytes);
-                    }
-                }
-                throw new InvalidOperationException();
-            }
-
-            public override string ReadString(int index, int bytes)
-            {
-                if (bytes-- > 0)
-                {
-                    byte* ptr = (byte*)&pointer[index];
-                    if (ptr[bytes] == 0)
-                    {
-                        Decoder dec = null;
-                        int chars;
-                        try
-                        {
-                            dec = PopDecoder();
-                            chars = dec.GetCharCount(ptr, bytes, true);
-                        }
-                        finally
-                        {
-                            PushDecoder(dec);
-                        }
-                        return new string((sbyte*)ptr, 0, chars, Encoding);
-                    }
-                }
-                throw new InvalidOperationException();
-            }
-
-            public override int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
-            {
-                int wordsToCopy = activeWords - wordOffset;
-                if (wordsToCopy > maxWords) wordsToCopy = maxWords;
-                Marshal.Copy(new IntPtr(pointer + wordOffset), buffer, bufferOffset, wordsToCopy << 3);
-                return wordsToCopy;
-            }
-            public override int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
-            {
-                int wordsToCopy = activeWords - wordOffset;
-                if (wordsToCopy > maxWords) wordsToCopy = maxWords;
-                Marshal.Copy(buffer, bufferOffset, new IntPtr(pointer + wordOffset), wordsToCopy << 3);
-                return wordsToCopy;
-            }
         }
     }
 }

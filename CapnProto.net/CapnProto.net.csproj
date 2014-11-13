@@ -49,11 +49,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BufferPointerSegment.cs" />
     <Compile Include="Cache.cs" />
     <Compile Include="ElementSize.cs" />
     <Compile Include="GroupAttrubute.cs" />
     <Compile Include="MemoryMappedFileSegmentFactory.cs" />
     <Compile Include="Pointers.cs" />
+    <Compile Include="PointerSegment.cs" />
     <Compile Include="SegmentFactory.cs" />
     <Compile Include="StructAttribute.cs" />
     <Compile Include="BufferSegmentFactory.cs" />

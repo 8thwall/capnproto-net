@@ -1,10 +1,15 @@
 ﻿
 using System;
+using System.Globalization;
 using System.Text;
 namespace CapnProto
 {
     public abstract class Segment : ISegment
     {
+        public override string ToString()
+        {
+            return "Segment " + Index.ToString(CultureInfo.InvariantCulture);
+        }
         protected static readonly Encoding Encoding = new UTF8Encoding(false);
 
         [ThreadStatic]
