@@ -13,6 +13,12 @@ namespace CapnProto
         {
             return Load(BufferSegmentFactory.Create(buffer, offset, length));
         }
+
+
+        public static Message Load(Stream source, int length = -1)
+        {
+            return Load(BufferedStreamSegmentFactory.Create(source, length));
+        }
         public static Message Load(string path)
         {
             var data = File.ReadAllBytes(path);

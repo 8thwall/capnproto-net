@@ -34,15 +34,14 @@ namespace CapnProto
             }
             base.Reset(recycling);
         }
-        public static MemoryMappedFileSegmentFactory Open(string path,
+        public static MemoryMappedFileSegmentFactory Open(string path, long offset = 0, long length = -1,
             MemoryMappedFileAccess access = MemoryMappedFileAccess.Read, int defaultSegmentWords = DefaultSegmentWords)
         {
-            long length = new FileInfo(path).Length;
             MemoryMappedFileSegmentFactory obj = null;
             try
             {
                 obj = Cache<MemoryMappedFileSegmentFactory>.Pop() ?? new MemoryMappedFileSegmentFactory();
-                obj.Init(path, 0, length >> 3, FileMode.Open, access, defaultSegmentWords);
+                obj.Init(path, 0, length, FileMode.Open, access, defaultSegmentWords);
                 var tmp = obj;
                 obj = null; // to avoid finally
                 return tmp;
@@ -53,9 +52,55 @@ namespace CapnProto
             }
         }
 
-        private void Init(string path, long offsetBytes, long totalWords, FileMode fileMode, MemoryMappedFileAccess access, int defaultSegmentWords)
+        public static MemoryMappedFileSegmentFactory Open(MemoryMappedFile file, long offset = 0, long length = -1,
+            MemoryMappedFileAccess access = MemoryMappedFileAccess.Read, int defaultSegmentWords = DefaultSegmentWords, bool leaveOpen = false)
+        {
+            MemoryMappedFileSegmentFactory obj = null;
+            try
+            {
+                obj = Cache<MemoryMappedFileSegmentFactory>.Pop() ?? new MemoryMappedFileSegmentFactory();
+                obj.Init(file, offset, length, access, defaultSegmentWords, leaveOpen);
+                var tmp = obj;
+                obj = null; // to avoid finally
+                return tmp;
+            }
+            finally
+            {
+                Cache<MemoryMappedFileSegmentFactory>.Push(obj);
+            }
+        }
+
+        private void Init(MemoryMappedFile file, long offsetBytes, long lengthBytes, MemoryMappedFileAccess access, int defaultSegmentWords, bool leaveOpen = false)
         {
             base.Init(defaultSegmentWords);
+
+            MemoryMappedViewAccessor view = null;
+            byte* ptr = (byte*)0;
+            try
+            {
+                if(lengthBytes < 0) lengthBytes = 0;
+                view = file.CreateViewAccessor(offsetBytes, lengthBytes, access);
+                lengthBytes = view.Capacity;
+                view.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+                this.pointer = (ulong*)&ptr[offsetBytes];
+                this.view = view;
+                if (leaveOpen) this.file = file;
+                view = null;
+                this.totalWords = lengthBytes >> 3;
+            }
+            finally
+            {
+                if (view != null)
+                {
+                    if (ptr != (byte*)0) view.SafeMemoryMappedViewHandle.ReleasePointer();
+                    view.Dispose();
+                }
+                
+            }
+        }
+
+        private void Init(string path, long offsetBytes, long lengthBytes, FileMode fileMode, MemoryMappedFileAccess access, int defaultSegmentWords)
+        {
             FileAccess fileAccess;
             switch (access)
             {
@@ -71,34 +116,22 @@ namespace CapnProto
                     fileAccess = FileAccess.ReadWrite;
                     break;
             }
-            var fs = File.Open(path, fileMode, fileAccess);
-            MemoryMappedFile file = null;
-            MemoryMappedViewAccessor view = null;
-            byte* ptr = (byte*)0;
+            FileStream fs = null;
             try
             {
-                file = MemoryMappedFile.CreateFromFile(fs, null, 0, access, null, HandleInheritability.None, false);
+                fs = File.Open(path, fileMode, fileAccess);
+                MemoryMappedFile file = MemoryMappedFile.CreateFromFile(fs, null, 0, access, null, HandleInheritability.None, false);
+                Init(file, offsetBytes, lengthBytes, access, defaultSegmentWords, false);
                 fs = null;
-
-                view = file.CreateViewAccessor(offsetBytes, totalWords << 3, access);
-                view.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
-                this.pointer = (ulong*)&ptr[offsetBytes];
-                this.view = view;
-                this.file = file;
-                view = null;
                 file = null;
-                this.totalWords = totalWords;
             }
             finally
             {
                 if (fs != null) fs.Dispose();
-                if (view != null)
-                {
-                    if (ptr != (byte*)0) view.SafeMemoryMappedViewHandle.ReleasePointer();
-                    view.Dispose();
-                }
                 if (file != null) file.Dispose();
+                if (fs != null) fs.Dispose();
             }
+            
         }
         protected override ISegment CreateEmptySegment()
         {

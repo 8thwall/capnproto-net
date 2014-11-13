@@ -28,7 +28,7 @@ namespace CapnProto
         protected virtual bool ReadNext(Message message)
         {
             ulong word;
-            if (!TryReadWord(wordOffset++, out word)) return false;
+            if (!TryReadWord(wordOffset++, out word) || word == 0) return false;
             int segments = (int)(uint)(word) + 1;
             // layout is:
             // [count-1][len0]
@@ -38,6 +38,7 @@ namespace CapnProto
             // [lenN][padding]
             // so: we can use count/2 as a sneaky way of knowing how many extra words to expect
             long segmentWordOffset = wordOffset + (segments / 2);
+
             message.ResetSegments(segments);
 
             int totalWords = 0;

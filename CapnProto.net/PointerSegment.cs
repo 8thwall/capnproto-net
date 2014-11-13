@@ -17,6 +17,7 @@ namespace CapnProto
         private ulong* pointer;
         public void Initialize(IntPtr pointer, int totalWords, int activeWords)
         {
+            if (totalWords <= 0) throw new InvalidOperationException("A segment cannot be empty");
             this.pointer = (ulong*)pointer;
             this.totalWords = totalWords;
             this.activeWords = activeWords;
