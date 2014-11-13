@@ -654,6 +654,31 @@ namespace CapnProto
                 FarDouble = 6;
             // unused = 7
         }
+        public Pointer GetListPointer(int index)
+        {
+            // specifically refers to basic lists of pointers; cannot be used in another other context
+            unchecked
+            {
+                switch(startAndType & 7)
+                {
+                    case Type.ListBasic:
+                        if ((aux & 7) == (uint)ElementSize.EightBytesPointer)
+                        {
+                            if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                            {
+                                return new Pointer(segment, (int)(startAndType >> 3) + index);
+                            }
+                            throw new IndexOutOfRangeException();
+                        }
+                        break;
+                    case Type.FarDouble:
+                    case Type.FarSingle:
+                        return Dereference().GetListPointer(index);
+                   
+                }
+                throw new InvalidOperationException();
+            }
+        }
 
         public Pointer GetPointer(int index)
         {
@@ -669,10 +694,6 @@ namespace CapnProto
                             break;
                         case Type.ListBasic:
                             if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
-                            if ((aux & 7) == (uint)ElementSize.EightBytesPointer)
-                            {
-                                return new Pointer(segment, (int)(startAndType >> 3) + index);
-                            }
                             return GetPointerInBasicList(index);
                         case Type.FarSingle:
                         case Type.FarDouble:
@@ -731,7 +752,8 @@ namespace CapnProto
                             startBit = (index & 1) << 5;
                             break;
                         case ElementSize.EightBytesPointer:
-                            return new Pointer(segment, (int)(startAndType >> 3) + index);
+                            // can be treated as a simple (non-fragment) pointer with a single pointer word
+                            return new Pointer(segment, (uint)(((int)(startAndType >> 3) + index) << 3), 1 << 16, 0);
                         case ElementSize.EightBytesNonPointer:
                             // can be treated as a simple (non-fragment) pointer with a single data word
                             return new Pointer(segment, (uint)(((int)(startAndType >> 3) + index) << 3), 1, 0);

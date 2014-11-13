@@ -19,8 +19,8 @@ namespace CapnProto
 
         public T this[int index]
         {
-            get { return StructAccessor<T>.Instance.Get(pointer, index); }
-            set { StructAccessor<T>.Instance.Set(pointer, index, value); }
+            get { return StructAccessor<T>.Instance.GetElement(pointer, index); }
+            set { StructAccessor<T>.Instance.SetElement(pointer, index, value); }
         }
         object IList.this[int index]
         {
@@ -51,7 +51,7 @@ namespace CapnProto
                 var accessor = StructAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                 {
-                    if (comparer.Equals(accessor.Get(pointer, i), value)) return true;
+                    if (comparer.Equals(accessor.GetElement(pointer, i), value)) return true;
                 }
             }
             return false;
@@ -70,7 +70,7 @@ namespace CapnProto
                 var accessor = StructAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                 {
-                    if (comparer.Equals(accessor.Get(pointer, i), value)) return i;
+                    if (comparer.Equals(accessor.GetElement(pointer, i), value)) return i;
                 }
             }
             return -1;
@@ -89,7 +89,7 @@ namespace CapnProto
                 var accessor = StructAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                 {
-                    array[arrayIndex++] = accessor.Get(pointer, i);
+                    array[arrayIndex++] = accessor.GetElement(pointer, i);
                 }
             }
         }
@@ -102,7 +102,7 @@ namespace CapnProto
                 var accessor = StructAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                 {
-                    array.SetValue(accessor.Get(pointer, i), arrayIndex++);
+                    array.SetValue(accessor.GetElement(pointer, i), arrayIndex++);
                 }
             }
         }
@@ -113,8 +113,8 @@ namespace CapnProto
         bool ICollection.IsSynchronized { get { return false; } }
         object ICollection.SyncRoot { get { return null; } }
 
-        bool ICollection<T>.IsReadOnly { get { return false; } }
-        bool IList.IsReadOnly { get { return false; } }
+        bool ICollection<T>.IsReadOnly { get { return StructAccessor<T>.Instance.IsStruct; } }
+        bool IList.IsReadOnly { get { return StructAccessor<T>.Instance.IsStruct; } }
         bool IList.IsFixedSize { get { return true; } }
 
         bool ICollection<T>.Remove(T item) { throw new NotSupportedException(); }
@@ -127,7 +127,7 @@ namespace CapnProto
             {
                 var accessor = StructAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
-                    yield return accessor.Get(pointer, i);
+                    yield return accessor.GetElement(pointer, i);
             }
         }
 
