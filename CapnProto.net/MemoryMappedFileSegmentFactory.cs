@@ -1,15 +1,17 @@
 ﻿using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace CapnProto
 {
-    public sealed class MemoryMappedFileSegmentFactory : SegmentFactory
+    public unsafe sealed class MemoryMappedFileSegmentFactory : SegmentFactory
     {
         MemoryMappedFile file;
-        MemoryMappedFileAccess access;
-        private long totalWords, offset;
+        MemoryMappedViewAccessor view;
+        ulong* pointer;
+        private long totalWords;
 
         public override void Dispose()
         {
@@ -17,6 +19,14 @@ namespace CapnProto
         }
         protected override void Reset(bool recycling)
         {
+            pointer = (ulong*)0;
+            if (view != null)
+            {
+                view.SafeMemoryMappedViewHandle.ReleasePointer();
+                try { view.Dispose(); }
+                catch { }
+                view = null;
+            }
             if (file != null)
             {
                 file.Dispose();
@@ -43,12 +53,11 @@ namespace CapnProto
             }
         }
 
-        private void Init(string path, long offset, long totalWords, FileMode fileMode, MemoryMappedFileAccess access, int defaultSegmentWords)
+        private void Init(string path, long offsetBytes, long totalWords, FileMode fileMode, MemoryMappedFileAccess access, int defaultSegmentWords)
         {
             base.Init(defaultSegmentWords);
-            this.access = access;
             FileAccess fileAccess;
-            switch(access)
+            switch (access)
             {
                 case MemoryMappedFileAccess.Read:
                 case MemoryMappedFileAccess.ReadExecute:
@@ -63,13 +72,32 @@ namespace CapnProto
                     break;
             }
             var fs = File.Open(path, fileMode, fileAccess);
-            try {
+            MemoryMappedFile file = null;
+            MemoryMappedViewAccessor view = null;
+            byte* ptr = (byte*)0;
+            try
+            {
                 file = MemoryMappedFile.CreateFromFile(fs, null, 0, access, null, HandleInheritability.None, false);
                 fs = null;
+
+                view = file.CreateViewAccessor(offsetBytes, totalWords << 3, access);
+                view.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+                this.pointer = (ulong*)&ptr[offsetBytes];
+                this.view = view;
+                this.file = file;
+                view = null;
+                file = null;
                 this.totalWords = totalWords;
-                this.offset = offset;
-            } finally {
-                if(fs != null) fs.Dispose();
+            }
+            finally
+            {
+                if (fs != null) fs.Dispose();
+                if (view != null)
+                {
+                    if (ptr != (byte*)0) view.SafeMemoryMappedViewHandle.ReleasePointer();
+                    view.Dispose();
+                }
+                if (file != null) file.Dispose();
             }
         }
         protected override ISegment CreateEmptySegment()
@@ -78,18 +106,15 @@ namespace CapnProto
         }
         protected override bool InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords)
         {
-            ((MemoryMappedFileSegment)segment).Init(file, wordOffset, totalWords, activeWords, access);
+            ((MemoryMappedFileSegment)segment).Init(&pointer[wordOffset], totalWords, activeWords);
             return true;
         }
         protected override bool TryReadWord(long wordOffset, out ulong value)
         {
             if (wordOffset < totalWords)
             {
-                using (var acc = file.CreateViewAccessor(this.offset + (wordOffset << 3), 8, access))
-                {
-                    value = acc.ReadUInt64(0);
-                    return true;
-                }
+                value = pointer[wordOffset];
+                return true;
             }
             value = 0;
             return false;
@@ -105,35 +130,34 @@ namespace CapnProto
             {
                 Cache<MemoryMappedFileSegment>.Push(this);
             }
-            internal void Init(MemoryMappedFile file, long wordOffset, int totalWords, int activeWords, MemoryMappedFileAccess access)
+            private ulong* pointer;
+            internal void Init(ulong* pointer, int totalWords, int activeWords)
             {
+                this.pointer = pointer;
                 this.totalWords = totalWords;
                 this.activeWords = activeWords;
-                this.byteOffset = wordOffset << 3;
-                accessor = file.CreateViewAccessor(byteOffset, totalWords << 3, access);
+
             }
-            private long byteOffset;
             private int totalWords, activeWords;
-            private MemoryMappedViewAccessor accessor;
+
             public override int Length
             {
                 get { return activeWords; }
             }
             public override void Reset(bool recycling)
             {
-                if (accessor != null) accessor.Dispose();
-                accessor = null;
-                base.Reset(recycling);                
+                pointer = (ulong*)0;
+                base.Reset(recycling);
             }
             public override ulong this[int index]
             {
-                get { return accessor.ReadUInt64(index << 3); }
-                set { accessor.Write(index << 3, value); }
+                get { return pointer[index]; }
+                set { pointer[index] = value; }
             }
             protected override bool TryAllocate(int words, out int index)
             {
                 int space = totalWords - activeWords;
-                if(words <= space)
+                if (words <= space)
                 {
                     index = activeWords;
                     activeWords += words;
@@ -145,60 +169,58 @@ namespace CapnProto
 
             public override void SetValue(int index, ulong value, ulong mask)
             {
-                accessor.Write(index << 3, (value & mask) | (accessor.ReadUInt64(index << 3) & ~mask));
+                pointer[index] = (value & mask) | (pointer[index] & ~mask);
             }
 
-            public unsafe override int WriteString(int index, string value, int bytes)
+            public override int WriteString(int index, string value, int bytes)
             {
                 if (bytes-- > 0)
                 {
-
-                    byte* ptr = (byte*)0;
-                    var handle = accessor.SafeMemoryMappedViewHandle;
-                    handle.AcquirePointer(ref ptr);
-                    try
+                    byte* ptr = (byte*)&pointer[index];
+                    fixed (char* chars = value)
                     {
-                        ptr += byteOffset + (index << 3); // our actual pointer needs to a: allow for the base offset, and b: talk in words
-                        fixed(char* chars = value)
-                        {
-                            return Encoding.GetBytes(chars, value.Length, ptr, bytes);
-                        }
-                    }
-                    finally
-                    {
-                        handle.ReleasePointer();
+                        return Encoding.GetBytes(chars, value.Length, ptr, bytes);
                     }
                 }
                 throw new InvalidOperationException();
             }
 
-            public unsafe override string ReadString(int index, int bytes)
+            public override string ReadString(int index, int bytes)
             {
                 if (bytes-- > 0)
                 {
-                    byte* ptr = (byte*)0;
-                    var handle = accessor.SafeMemoryMappedViewHandle;
-                    handle.AcquirePointer(ref ptr);
-                    Decoder dec = null;
-                    try
+                    byte* ptr = (byte*)&pointer[index];
+                    if (ptr[bytes] == 0)
                     {
-                        ptr += byteOffset + (index << 3); // our actual pointer needs to a: allow for the base offset, and b: talk in words
-
-                        if (ptr[bytes] == 0)
+                        Decoder dec = null;
+                        try
                         {
-                            sbyte* sPtr = (sbyte*)ptr;
                             dec = PopDecoder();
                             int chars = dec.GetCharCount(ptr, bytes, true);
-                            return new string(sPtr, 0, chars, Encoding);
+                            return new string((sbyte*)ptr, 0, chars, Encoding);
                         }
-                    }
-                    finally
-                    {
-                        handle.ReleasePointer();
-                        PushDecoder(dec);
+                        finally
+                        {
+                            PushDecoder(dec);
+                        }
                     }
                 }
                 throw new InvalidOperationException();
+            }
+
+            public override int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
+            {
+                int wordsToCopy = activeWords - wordOffset;
+                if (wordsToCopy > maxWords) wordsToCopy = maxWords;
+                Marshal.Copy(new IntPtr(pointer + wordOffset), buffer, bufferOffset, wordsToCopy << 3);
+                return wordsToCopy;
+            }
+            public override int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
+            {
+                int wordsToCopy = activeWords - wordOffset;
+                if (wordsToCopy > maxWords) wordsToCopy = maxWords;
+                Marshal.Copy(buffer, bufferOffset, new IntPtr(pointer + wordOffset), wordsToCopy << 3);
+                return wordsToCopy;
             }
         }
     }

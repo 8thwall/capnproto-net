@@ -74,33 +74,33 @@ namespace CapnProto
             throw new NotImplementedException();
         }
 
-        public virtual unsafe int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int words)
+        public virtual unsafe int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
         {
             int space = Length - wordOffset;
-            if (words > space) words = space;
+            if (maxWords > space) maxWords = space;
             fixed (byte* ptr = &buffer[bufferOffset])
             {
                 ulong* typed = (ulong*)ptr;
-                for (int i = 0; i < words; i++)
+                for (int i = 0; i < maxWords; i++)
                 {
                     typed[i] = this[wordOffset++];
                 }
             }
-            return words;
+            return maxWords;
         }
-        public virtual unsafe int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int words)
+        public virtual unsafe int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
         {
             int space = Length - wordOffset;
-            if (words > space) words = space;
+            if (maxWords > space) maxWords = space;
             fixed(byte* ptr = &buffer[bufferOffset])
             {
                 ulong* typed = (ulong*)ptr;
-                for(int i = 0 ; i < words ; i++)
+                for(int i = 0 ; i < maxWords ; i++)
                 {
                     this[wordOffset++] = typed[i];
                 }
             }
-            return words;
+            return maxWords;
         }
     }
 }
