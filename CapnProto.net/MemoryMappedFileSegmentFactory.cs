@@ -32,7 +32,7 @@ namespace CapnProto
             try
             {
                 obj = Cache<MemoryMappedFileSegmentFactory>.Pop() ?? new MemoryMappedFileSegmentFactory();
-                obj.Init(path, 0, length >> 8, FileMode.Open, access, defaultSegmentWords);
+                obj.Init(path, 0, length >> 3, FileMode.Open, access, defaultSegmentWords);
                 var tmp = obj;
                 obj = null; // to avoid finally
                 return tmp;
