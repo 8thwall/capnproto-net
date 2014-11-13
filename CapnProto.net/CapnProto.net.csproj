@@ -69,7 +69,7 @@
     <Compile Include="Pointer.cs" />
     <Compile Include="Segment.cs" />
     <Compile Include="Segments.cs" />
-    <Compile Include="StructAccessor.cs" />
+    <Compile Include="TypeAccessor.cs" />
     <Compile Include="Text.cs" />
     <Compile Include="Textizer.cs" />
     <Compile Include="FieldAttribute.cs" />

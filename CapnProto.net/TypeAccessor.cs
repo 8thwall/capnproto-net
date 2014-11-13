@@ -3,27 +3,27 @@ using System.Reflection;
 
 namespace CapnProto
 {
-    internal abstract class StructAccessor<T>
+    internal abstract class TypeAccessor<T>
     {
-        public static readonly StructAccessor<T> Instance;
+        public static readonly TypeAccessor<T> Instance;
         public abstract bool IsStruct { get; }
         public abstract bool IsPointer { get; }
-        static StructAccessor()
+        static TypeAccessor()
         {
             object tmp;
             switch (Type.GetTypeCode(typeof(T)))
             {
-                case TypeCode.Boolean: tmp = new BooleanStructAccessor(); break;
-                case TypeCode.Byte: tmp = new ByteStructAccessor(); break;
-                case TypeCode.SByte: tmp = new SByteStructAccessor(); break;
-                case TypeCode.UInt16: tmp = new UInt16StructAccessor(); break;
-                case TypeCode.Int16: tmp = new Int16StructAccessor(); break;
-                case TypeCode.UInt32: tmp = new UInt32StructAccessor(); break;
-                case TypeCode.Int32: tmp = new Int32StructAccessor(); break;
-                case TypeCode.UInt64: tmp = new UInt64StructAccessor(); break;
-                case TypeCode.Int64: tmp = new Int64StructAccessor(); break;
-                case TypeCode.Single: tmp = new SingleStructAccessor(); break;
-                case TypeCode.Double: tmp = new DoubleStructAccessor(); break;
+                case TypeCode.Boolean: tmp = new BooleanTypeAccessor(); break;
+                case TypeCode.Byte: tmp = new ByteTypeAccessor(); break;
+                case TypeCode.SByte: tmp = new SByteTypeAccessor(); break;
+                case TypeCode.UInt16: tmp = new UInt16TypeAccessor(); break;
+                case TypeCode.Int16: tmp = new Int16TypeAccessor(); break;
+                case TypeCode.UInt32: tmp = new UInt32TypeAccessor(); break;
+                case TypeCode.Int32: tmp = new Int32TypeAccessor(); break;
+                case TypeCode.UInt64: tmp = new UInt64TypeAccessor(); break;
+                case TypeCode.Int64: tmp = new Int64TypeAccessor(); break;
+                case TypeCode.Single: tmp = new SingleTypeAccessor(); break;
+                case TypeCode.Double: tmp = new DoubleTypeAccessor(); break;
                 default:
                     if(typeof(T) == typeof(Text))
                     {
@@ -35,26 +35,34 @@ namespace CapnProto
                     }
                     else if (Attribute.IsDefined(typeof(T), typeof(GroupAttribute)))
                     {
-                        tmp = new GroupStructAccessor<T>();
+                        tmp = new GroupTypeAccessor<T>();
                     }
                     else
                     {
                         var @struct = (StructAttribute)Attribute.GetCustomAttribute(typeof(T), typeof(StructAttribute));
                         if (@struct == null)
                         {
-                            tmp = new MissingMetadataStructAccessor<T>();
+                            if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(FixedSizeList<>))
+                            {
+                                tmp = Activator.CreateInstance(
+                                    typeof(ListTypeAccessor<>).MakeGenericType(typeof(T).GetGenericArguments()));
+                            }
+                            else
+                            {
+                                tmp = new MissingMetadataTypeAccessor<T>();
+                            }
                         }
                         else
                         {
                             checked
                             {
-                                tmp = PointerStructAccessor<T>.Create(@struct.PreferredSize, (short)@struct.DataWords, (short)@struct.Pointers);
+                                tmp = StructTypeAccessor<T>.Create(@struct.PreferredSize, (short)@struct.DataWords, (short)@struct.Pointers);
                             }
                         }
                     }
                     break;
             }
-            Instance = (StructAccessor<T>)tmp;
+            Instance = (TypeAccessor<T>)tmp;
         }
         public abstract T GetElement(Pointer pointer, int index);
         public abstract void SetElement(Pointer pointer, int index, T value);
@@ -66,7 +74,7 @@ namespace CapnProto
             throw new NotImplementedException();
         }
     }
-    internal abstract class BasicPointerAccessor<T> : StructAccessor<T>
+    internal abstract class BasicPointerAccessor<T> : TypeAccessor<T>
     {
         public override bool IsPointer
         {
@@ -93,7 +101,7 @@ namespace CapnProto
         }
         public override void SetElement(Pointer pointer, int index, Text value)
         {
-            pointer.SetPointer(index, value);
+            pointer.SetListPointer(index, value);
         }
     }
     internal class DataAccessor : BasicPointerAccessor<Data>
@@ -108,10 +116,10 @@ namespace CapnProto
         }
         public override void SetElement(Pointer pointer, int index, Data value)
         {
-            pointer.SetPointer(index, value);
+            pointer.SetListPointer(index, value);
         }
     }
-    abstract class BasicTypeAccessor<T> : StructAccessor<T>
+    abstract class BasicTypeAccessor<T> : TypeAccessor<T>
     {
         public override bool IsPointer
         {
@@ -126,74 +134,74 @@ namespace CapnProto
             throw new NotSupportedException("Pointer to a non-pointer type is not supported: " + typeof(T).FullName);
         }
     }
-    internal class BooleanStructAccessor : BasicTypeAccessor<bool>
+    internal class BooleanTypeAccessor : BasicTypeAccessor<bool>
     {
         public override bool GetElement(Pointer pointer, int index) { return pointer.GetListBoolean(index); }
         public override void SetElement(Pointer pointer, int index, bool value) { pointer.SetListBoolean(index, value); }
         public override FixedSizeList<bool> CreateList(Pointer pointer, int count) { return (FixedSizeList<bool>)pointer.AllocateList(ElementSize.OneBit, count); }
     }
-    internal class ByteStructAccessor : BasicTypeAccessor<byte>
+    internal class ByteTypeAccessor : BasicTypeAccessor<byte>
     {
         public override byte GetElement(Pointer pointer, int index) { return pointer.GetListByte(index); }
         public override void SetElement(Pointer pointer, int index, byte value) { pointer.SetListByte(index, value); }
         public override FixedSizeList<byte> CreateList(Pointer pointer, int count) { return (FixedSizeList<byte>)pointer.AllocateList(ElementSize.OneByte, count); }
     }
-    internal class SByteStructAccessor : BasicTypeAccessor<sbyte>
+    internal class SByteTypeAccessor : BasicTypeAccessor<sbyte>
     {
         public override sbyte GetElement(Pointer pointer, int index) { return pointer.GetListSByte(index); }
         public override void SetElement(Pointer pointer, int index, sbyte value) { pointer.SetListSByte(index, value); }
         public override FixedSizeList<sbyte> CreateList(Pointer pointer, int count) { return (FixedSizeList<sbyte>)pointer.AllocateList(ElementSize.OneByte, count); }
     }
-    internal class UInt16StructAccessor : BasicTypeAccessor<ushort>
+    internal class UInt16TypeAccessor : BasicTypeAccessor<ushort>
     {
         public override ushort GetElement(Pointer pointer, int index) { return pointer.GetListUInt16(index); }
         public override void SetElement(Pointer pointer, int index, ushort value) { pointer.SetListUInt16(index, value); }
         public override FixedSizeList<ushort> CreateList(Pointer pointer, int count) { return (FixedSizeList<ushort>)pointer.AllocateList(ElementSize.TwoBytes, count); }
     }
-    internal class Int16StructAccessor : BasicTypeAccessor<short>
+    internal class Int16TypeAccessor : BasicTypeAccessor<short>
     {
         public override short GetElement(Pointer pointer, int index) { return pointer.GetListInt16(index); }
         public override void SetElement(Pointer pointer, int index, short value) { pointer.SetListInt16(index, value); }
         public override FixedSizeList<short> CreateList(Pointer pointer, int count) { return (FixedSizeList<short>)pointer.AllocateList(ElementSize.TwoBytes, count); }
     }
-    internal class UInt32StructAccessor : BasicTypeAccessor<uint>
+    internal class UInt32TypeAccessor : BasicTypeAccessor<uint>
     {
         public override uint GetElement(Pointer pointer, int index) { return pointer.GetListUInt32(index); }
         public override void SetElement(Pointer pointer, int index, uint value) { pointer.SetListUInt32(index, value); }
         public override FixedSizeList<uint> CreateList(Pointer pointer, int count) { return (FixedSizeList<uint>)pointer.AllocateList(ElementSize.FourBytes, count); }
     }
-    internal class Int32StructAccessor : BasicTypeAccessor<int>
+    internal class Int32TypeAccessor : BasicTypeAccessor<int>
     {
         public override int GetElement(Pointer pointer, int index) { return pointer.GetListInt32(index); }
         public override void SetElement(Pointer pointer, int index, int value) { pointer.SetListInt32(index, value); }
         public override FixedSizeList<int> CreateList(Pointer pointer, int count) { return (FixedSizeList<int>)pointer.AllocateList(ElementSize.FourBytes, count); }
     }
-    internal class UInt64StructAccessor : BasicTypeAccessor<ulong>
+    internal class UInt64TypeAccessor : BasicTypeAccessor<ulong>
     {
         public override ulong GetElement(Pointer pointer, int index) { return pointer.GetListUInt64(index); }
         public override void SetElement(Pointer pointer, int index, ulong value) { pointer.SetListUInt64(index, value); }
         public override FixedSizeList<ulong> CreateList(Pointer pointer, int count) { return (FixedSizeList<ulong>)pointer.AllocateList(ElementSize.EightBytesNonPointer, count); }
     }
-    internal class Int64StructAccessor : BasicTypeAccessor<long>
+    internal class Int64TypeAccessor : BasicTypeAccessor<long>
     {
         public override long GetElement(Pointer pointer, int index) { return pointer.GetListInt64(index); }
         public override void SetElement(Pointer pointer, int index, long value) { pointer.SetListInt64(index, value); }
         public override FixedSizeList<long> CreateList(Pointer pointer, int count) { return (FixedSizeList<long>)pointer.AllocateList(ElementSize.EightBytesNonPointer, count); }
     }
 
-    internal class SingleStructAccessor : BasicTypeAccessor<float>
+    internal class SingleTypeAccessor : BasicTypeAccessor<float>
     {
         public override float GetElement(Pointer pointer, int index) { return pointer.GetListSingle(index); }
         public override void SetElement(Pointer pointer, int index, float value) { pointer.SetListSingle(index, value);  }
         public override FixedSizeList<float> CreateList(Pointer pointer, int count) { return (FixedSizeList<float>)pointer.AllocateList(ElementSize.FourBytes, count); }
     }
-    internal class DoubleStructAccessor : BasicTypeAccessor<double>
+    internal class DoubleTypeAccessor : BasicTypeAccessor<double>
     {
         public override double GetElement(Pointer pointer, int index) { return pointer.GetListDouble(index); }
         public override void SetElement(Pointer pointer, int index, double value) { pointer.SetListDouble(index, value); }
         public override FixedSizeList<double> CreateList(Pointer pointer, int count) { return (FixedSizeList<double>)pointer.AllocateList(ElementSize.EightBytesNonPointer, count); }
     }
-    internal abstract class FailStructAccessor<T> : StructAccessor<T>
+    internal abstract class FailTypeAccessor<T> : TypeAccessor<T>
     {
         public override bool IsStruct
         {
@@ -209,22 +217,54 @@ namespace CapnProto
         public override FixedSizeList<T> CreateList(Pointer pointer, int count) { throw Fail(); }
         public override T Create(Pointer pointer) { throw Fail(); }
     }
-    internal class MissingMetadataStructAccessor<T> : FailStructAccessor<T>
+    internal class MissingMetadataTypeAccessor<T> : FailTypeAccessor<T>
     {
         protected override Exception Fail()
         {
             return new NotSupportedException("Type is missing StructAttribute metadata: " + typeof(T).FullName);
         }
     }
-    internal class GroupStructAccessor<T> : FailStructAccessor<T>
+    internal class GroupTypeAccessor<T> : FailTypeAccessor<T>
     {
         protected override Exception Fail()
         {
             return new NotSupportedException("Type is a group (GroupAttribute), and cannot be accessed in this way: " + typeof(T).FullName);
         }
     }
-
-    internal abstract class PointerStructAccessor<T> : StructAccessor<T>
+    internal class ListTypeAccessor<TInner> : TypeAccessor<FixedSizeList<TInner>>
+    {
+        public override bool IsPointer
+        {
+            get { return true; }
+        }
+        public override bool IsStruct
+        {
+            get { return false; }
+        }
+        public override FixedSizeList<TInner> Create(Pointer pointer)
+        {
+            throw new InvalidOperationException("This would create an empty list");
+        }
+        public override FixedSizeList<TInner> GetElement(Pointer pointer, int index)
+        {
+            return (FixedSizeList<TInner>)pointer.GetListPointer(index);
+        }
+        public override void SetElement(Pointer pointer, int index, FixedSizeList<TInner> value)
+        {
+            pointer.SetListPointer(index, value);
+        }
+        public override FixedSizeList<FixedSizeList<TInner>> CreateList(Pointer pointer, int count)
+        {
+            return (FixedSizeList<FixedSizeList<TInner>>)pointer.AllocateList(ElementSize.EightBytesPointer, count);
+        }
+        public override FixedSizeList<FixedSizeList<TInner>> CreateList(Pointer pointer, int count, ElementSize elementSize)
+        {
+            if (elementSize != ElementSize.EightBytesPointer) throw new ArgumentException("Must be created as a list of size " + ElementSize.EightBytesPointer, "elementSize");
+            return CreateList(pointer, count);
+        }
+        
+    }
+    internal abstract class StructTypeAccessor<T> : TypeAccessor<T>
     {
         public override bool IsPointer
         {
@@ -234,7 +274,7 @@ namespace CapnProto
         {
             throw new NotSupportedException();
         }
-        public static PointerStructAccessor<T> Create(ElementSize elementSize, short dataWords, short pointers)
+        public static StructTypeAccessor<T> Create(ElementSize elementSize, short dataWords, short pointers)
         {
             try
             {
@@ -246,11 +286,11 @@ namespace CapnProto
                 {
                     Func<Pointer, T> toT = (Func<Pointer, T>)Delegate.CreateDelegate(typeof(Func<Pointer, T>), null, op_toT);
                     Func<T, Pointer> fromT = (Func<T, Pointer>)Delegate.CreateDelegate(typeof(Func<T, Pointer>), null, op_fromT);
-                    return new OperatorBasedStructAccessor(elementSize, dataWords, pointers, toT, fromT);
+                    return new OperatorBasedStructTypeAccessor(elementSize, dataWords, pointers, toT, fromT);
                 }
             }
             catch { }
-            return new DynamicPointerStructAccessor(elementSize, dataWords, pointers);
+            return new DynamicStructTypeAccessor(elementSize, dataWords, pointers);
         }
         static MethodInfo FindMethod(MethodInfo[] methods, Type from, Type to, string name)
         {
@@ -266,7 +306,7 @@ namespace CapnProto
             }
             return null;
         }
-        private PointerStructAccessor(ElementSize elementSize, short dataWords, short pointers)
+        private StructTypeAccessor(ElementSize elementSize, short dataWords, short pointers)
         {
             this.elementSize = elementSize;
             this.dataWords = dataWords;
@@ -294,7 +334,7 @@ namespace CapnProto
             return (FixedSizeList<T>)CreateListImpl(pointer, count);
         }
 
-        private class OperatorBasedStructAccessor : PointerStructAccessor<T>
+        private class OperatorBasedStructTypeAccessor : StructTypeAccessor<T>
         {
             public override bool IsStruct
             {
@@ -302,7 +342,7 @@ namespace CapnProto
             }
             private readonly Func<Pointer, T> toT;
             private readonly Func<T, Pointer> fromT;
-            public OperatorBasedStructAccessor(ElementSize elementSize, short dataWords, short pointers,
+            public OperatorBasedStructTypeAccessor(ElementSize elementSize, short dataWords, short pointers,
                 Func<Pointer, T> toT, Func<T, Pointer> fromT)
                 : base(elementSize, dataWords, pointers)
             {
@@ -327,14 +367,15 @@ namespace CapnProto
             }
         }
 
+
         // THIS BOXES; it is just a lazy fallback, but it comes up with appropriate errors, at least
-        private class DynamicPointerStructAccessor : PointerStructAccessor<T>
+        private class DynamicStructTypeAccessor : StructTypeAccessor<T>
         {
             public override bool IsStruct
             {
                 get { return true; }
             }
-            public DynamicPointerStructAccessor(ElementSize elementSize, short dataWords, short pointers)
+            public DynamicStructTypeAccessor(ElementSize elementSize, short dataWords, short pointers)
                 : base(elementSize, dataWords, pointers)
             { }
             public override T GetElement(Pointer pointer, int index)
@@ -347,7 +388,7 @@ namespace CapnProto
             }
             public override void SetElement(Pointer pointer, int index, T value)
             {
-                if ((Pointer)(object)value != pointer.GetPointer(index))
+                if (((IPointer)value).Pointer != pointer.GetPointer(index))
                 {
                     throw new NotSupportedException();
                 }

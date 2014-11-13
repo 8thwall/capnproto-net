@@ -19,8 +19,8 @@ namespace CapnProto
 
         public T this[int index]
         {
-            get { return StructAccessor<T>.Instance.GetElement(pointer, index); }
-            set { StructAccessor<T>.Instance.SetElement(pointer, index, value); }
+            get { return TypeAccessor<T>.Instance.GetElement(pointer, index); }
+            set { TypeAccessor<T>.Instance.SetElement(pointer, index, value); }
         }
         object IList.this[int index]
         {
@@ -48,7 +48,7 @@ namespace CapnProto
             if (count != 0)
             {
                 var comparer = EqualityComparer<T>.Default;
-                var accessor = StructAccessor<T>.Instance;
+                var accessor = TypeAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                 {
                     if (comparer.Equals(accessor.GetElement(pointer, i), value)) return true;
@@ -67,7 +67,7 @@ namespace CapnProto
             if (count != 0)
             {
                 var comparer = EqualityComparer<T>.Default;
-                var accessor = StructAccessor<T>.Instance;
+                var accessor = TypeAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                 {
                     if (comparer.Equals(accessor.GetElement(pointer, i), value)) return i;
@@ -86,7 +86,7 @@ namespace CapnProto
             int count = pointer.Count();
             if (count != 0)
             {
-                var accessor = StructAccessor<T>.Instance;
+                var accessor = TypeAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                 {
                     array[arrayIndex++] = accessor.GetElement(pointer, i);
@@ -99,7 +99,7 @@ namespace CapnProto
             int count = pointer.Count();
             if (count != 0)
             {
-                var accessor = StructAccessor<T>.Instance;
+                var accessor = TypeAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                 {
                     array.SetValue(accessor.GetElement(pointer, i), arrayIndex++);
@@ -113,8 +113,8 @@ namespace CapnProto
         bool ICollection.IsSynchronized { get { return false; } }
         object ICollection.SyncRoot { get { return null; } }
 
-        bool ICollection<T>.IsReadOnly { get { return StructAccessor<T>.Instance.IsStruct; } }
-        bool IList.IsReadOnly { get { return StructAccessor<T>.Instance.IsStruct; } }
+        bool ICollection<T>.IsReadOnly { get { return TypeAccessor<T>.Instance.IsStruct; } }
+        bool IList.IsReadOnly { get { return TypeAccessor<T>.Instance.IsStruct; } }
         bool IList.IsFixedSize { get { return true; } }
 
         bool ICollection<T>.Remove(T item) { throw new NotSupportedException(); }
@@ -125,7 +125,7 @@ namespace CapnProto
             int count = pointer.Count();
             if (count != 0)
             {
-                var accessor = StructAccessor<T>.Instance;
+                var accessor = TypeAccessor<T>.Instance;
                 for (int i = 0; i < count; i++)
                     yield return accessor.GetElement(pointer, i);
             }
@@ -138,7 +138,7 @@ namespace CapnProto
 
         public static FixedSizeList<T> Create(Pointer pointer, int count)
         {
-            return StructAccessor<T>.Instance.CreateList(pointer, count);
+            return TypeAccessor<T>.Instance.CreateList(pointer, count);
         }
 
         public static FixedSizeList<T> Create(Pointer pointer, IList<T> items)
@@ -146,7 +146,7 @@ namespace CapnProto
             if (items == null) return default(FixedSizeList<T>);
             if (items.Count == 0) return FixedSizeList<T>.Create(pointer, 0);
 
-            var accessor = StructAccessor<T>.Instance;
+            var accessor = TypeAccessor<T>.Instance;
             FixedSizeList<T> list = accessor.IsPointer
                 ? accessor.CreateList(pointer, items.Count, ElementSize.EightBytesPointer)
                 : accessor.CreateList(pointer, items.Count);

@@ -363,11 +363,11 @@ namespace CapnProto
 
         public T Allocate<T>() where T : struct, IPointer
         {
-            return StructAccessor<T>.Instance.Create(this.Root);
+            return TypeAccessor<T>.Instance.Create(this.Root);
         }
         public FixedSizeList<T> AllocateList<T>(int count)
         {
-            return StructAccessor<T>.Instance.CreateList(this.Root, count);
+            return TypeAccessor<T>.Instance.CreateList(this.Root, count);
         }
 
         public FixedSizeList<T> AllocateList<T>(IList<T> items)

@@ -679,6 +679,33 @@ namespace CapnProto
                 throw new InvalidOperationException();
             }
         }
+        public void SetListPointer(int index, Pointer value)
+        {
+            // specifically refers to basic lists of pointers; cannot be used in another other context
+            unchecked
+            {
+                switch (startAndType & 7)
+                {
+                    case Type.ListBasic:
+                        if ((aux & 7) == (uint)ElementSize.EightBytesPointer)
+                        {
+                            if ((index & MSB32) == 0 && index < (int)(aux >> 3))
+                            {
+                                value.WriteHeader(segment, (int)(startAndType >> 3) + index);
+                                return;
+                            }
+                            throw new IndexOutOfRangeException();
+                        }
+                        break;
+                    case Type.FarDouble:
+                    case Type.FarSingle:
+                        Dereference().SetListPointer(index, value);
+                        return;
+
+                }
+                throw new InvalidOperationException();
+            }
+        }
 
         public Pointer GetPointer(int index)
         {
@@ -785,12 +812,6 @@ namespace CapnProto
                             }
                             break;
                         case Type.ListBasic:
-                            if (index >= (int)(aux >> 3)) throw new IndexOutOfRangeException("index");
-                            if ((aux & 7) == (uint)ElementSize.EightBytesPointer)
-                            {
-                                value.WriteHeader(segment, (int)(startAndType >> 3) + index);
-                                return;
-                            }
                             if (value.Dereference() != GetPointerInBasicList(index))
                                 throw new InvalidOperationException("You cannot reassign a pointer that refers to a location inside a struct-fragment list");
                             return;
@@ -828,7 +849,7 @@ namespace CapnProto
 
         public T Allocate<T>() where T : struct, IPointer
         {
-            return StructAccessor<T>.Instance.Create(this);
+            return TypeAccessor<T>.Instance.Create(this);
         }
         public Pointer Allocate(short dataWords, short pointers)
         {
