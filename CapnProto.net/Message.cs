@@ -417,9 +417,18 @@ namespace CapnProto
                     {
                         if(next.IsList())
                         {
-                            if (pointers == 0)
+                            int count = next.Count();
+                            if (next.IsComplexList())
                             {
-                                int count = next.Count();
+                                for (int i = 0; i < count; i++)
+                                {
+                                    var child= next.GetPointer(i);
+                                    output.WriteLine("  {0:00} > {1}", i, child);
+                                    if (child.IsValid) pending.Add(child, next);
+                                }
+                            }
+                            else
+                            {
                                 for (int i = 0; i < count; i++)
                                 {
                                     output.WriteLine("  {0:00} : {1}", i, Segments.ToString(next.GetListUInt64(i)));

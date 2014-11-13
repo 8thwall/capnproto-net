@@ -1223,8 +1223,25 @@ namespace CapnProto
                 case Type.ListBasic:
                 case Type.ListComposite:
                     return true;
+                case Type.FarDouble:
                 case Type.FarSingle:
                     return Dereference().IsList();
+                default:
+                    return false;
+            }
+        }
+
+        internal bool IsComplexList()
+        {
+            switch(startAndType & 7)
+            {
+                case Type.ListComposite:
+                    return true;
+                case Type.ListBasic:
+                    return (aux & 7) == (uint)ElementSize.EightBytesPointer;
+                case Type.FarDouble:
+                case Type.FarSingle:
+                    return Dereference().IsComplexList();
                 default:
                     return false;
             }
