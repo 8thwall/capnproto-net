@@ -143,13 +143,13 @@ namespace CapnProto
 
         public static FixedSizeList<T> Create(Pointer pointer, IList<T> items)
         {
+            var accessor = TypeAccessor<T>.Instance;
+            if (accessor.IsStruct) throw new InvalidOperationException("Lists of structs cannot be created retrospectively, since the list *is* the data");
+
             if (items == null) return default(FixedSizeList<T>);
             if (items.Count == 0) return FixedSizeList<T>.Create(pointer, 0);
 
-            var accessor = TypeAccessor<T>.Instance;
-            FixedSizeList<T> list = accessor.IsPointer
-                ? accessor.CreateList(pointer, items.Count, ElementSize.EightBytesPointer)
-                : accessor.CreateList(pointer, items.Count);
+            FixedSizeList<T> list = accessor.CreateList(pointer, items.Count);
             for (int i = 0; i < items.Count; i++)
             {
                 list[i] = items[i];
