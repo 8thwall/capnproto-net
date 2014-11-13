@@ -193,16 +193,17 @@ namespace CapnProto
                     if (ptr[bytes] == 0)
                     {
                         Decoder dec = null;
+                        int chars;
                         try
                         {
                             dec = PopDecoder();
-                            int chars = dec.GetCharCount(ptr, bytes, true);
-                            return new string((sbyte*)ptr, 0, chars, Encoding);
+                            chars = dec.GetCharCount(ptr, bytes, true);
                         }
                         finally
                         {
                             PushDecoder(dec);
                         }
+                        return new string((sbyte*)ptr, 0, chars, Encoding);
                     }
                 }
                 throw new InvalidOperationException();
