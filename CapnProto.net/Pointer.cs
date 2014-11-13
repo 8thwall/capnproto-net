@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 namespace CapnProto
 {
-    public struct Pointer : IEquatable<Pointer>, IComparable<Pointer>
+    public struct Pointer : IEquatable<Pointer>, IComparable<Pointer>, IPointer
     {
         public override int GetHashCode()
         {
@@ -15,6 +15,8 @@ namespace CapnProto
                 return Combine(Combine((int)startAndType, (int)dataWordsAndPointers), Combine((int)aux, seg == null ? 0 : seg.Index));
             }
         }
+        Pointer IPointer.Pointer { get { return this; } }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static int Combine(int hash1, int hash2)
         {
@@ -1190,11 +1192,8 @@ namespace CapnProto
                 case Type.StructFragment:
                     return 0; // never has pointers
                 case Type.ListBasic:
-                    if ((aux & 7) == (uint)ElementSize.EightBytesPointer)
-                        return (int)(aux >> 3);
-                    return 0;
                 case Type.ListComposite:
-                    return (int)(aux >> 3);                        
+                    return 0;
                 case Type.FarSingle:
                 case Type.FarDouble:
                     return Dereference().Pointers();
@@ -1209,6 +1208,7 @@ namespace CapnProto
             {
                 case Type.StructBasic:
                     return (int)(dataWordsAndPointers & 0xFFFF);
+                    // note StructFragment never has pointers
                 case Type.FarSingle:
                     return Dereference().DataWords();
                 default:
@@ -1221,6 +1221,7 @@ namespace CapnProto
             switch(startAndType & 3)
             {
                 case Type.ListBasic:
+                case Type.ListComposite:
                     return true;
                 case Type.FarSingle:
                     return Dereference().IsList();
