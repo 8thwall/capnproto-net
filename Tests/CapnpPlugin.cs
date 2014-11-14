@@ -55,7 +55,7 @@ namespace Tests
             }
         }
 
-        [Test, Ignore("Failing; I think due to stdin oddness; looking")]
+        [Test]
         [TestCaseSource("GetSchemaFiles")]
         public void TestAsConsole(string path)
         {

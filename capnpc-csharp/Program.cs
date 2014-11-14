@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.IO;
+using System.Text;
 namespace CapnProto.Schema
 {
     /// <summary>
@@ -32,10 +33,12 @@ namespace CapnProto.Schema
         {
             try
             {
-                using(var stdin = Console.OpenStandardInput())
+                using (var stdin = Console.OpenStandardInput())
+                using (var stdout = Console.OpenStandardOutput())
+                using (var encodedOut = new StreamWriter(stdout, new UTF8Encoding(true)))
                 {
-                    return Process(stdin, Console.Out, Console.Error);
-                }                
+                    return Process(stdin, encodedOut, Console.Error);
+                }
             }
             catch(Exception ex)
             {
