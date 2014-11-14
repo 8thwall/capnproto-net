@@ -135,9 +135,15 @@ namespace CapnProto
                         break;
                     case Type.FarSingle:
                         int targetSegment = (int)rhs;
-                        if (targetSegment != segment.Index) this.segment = segment = segment.Message[targetSegment];
+                        var message = segment.Message;
+                        if (targetSegment != segment.Index) this.segment = segment = message[targetSegment];
                         startAndType = lhs;
                         dataWordsAndPointers = aux = 0;
+
+                        if(message.AutoDereference)
+                        {
+                            this = this.Dereference(); // gotta love being able to overwrite "this"
+                        }
                         break;
                     default:
                         startAndType = lhs;

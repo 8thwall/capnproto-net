@@ -126,9 +126,16 @@ namespace CapnProto
             }
         }
 
+        /// <summary>
+        /// Should pointers to other segments be eagerly dereferenced? This is enabled by default; the main
+        /// time you might want to disable this is for detailed inspection of the address space.
+        /// </summary>
+        public bool AutoDereference { get; set; }
+
         private void Init(ISegmentFactory segmentFactory)
         {
             SegmentCount = 0;
+            AutoDereference = true;
             this.segmentFactory = segmentFactory;
         }
 
@@ -377,70 +384,79 @@ namespace CapnProto
 
         public void Crawl(TextWriter output, bool includeDataWords, Pointer root = default(Pointer))
         {
-            SortedList<Pointer, Pointer> pending = new SortedList<Pointer, Pointer>();
-            if (!root.IsValid) root = this.Root;
-            pending.Add(root, root);
-            HashSet<Pointer> seen = new HashSet<Pointer>();
-            while(pending.Count != 0)
+            bool oldAutoDereference = AutoDereference;
+            try
             {
-                Pointer next, from;
-                using(var iter = pending.GetEnumerator())
+                AutoDereference = false;
+                SortedList<Pointer, Pointer> pending = new SortedList<Pointer, Pointer>();
+                if (!root.IsValid) root = this.Root;
+                pending.Add(root, root);
+                HashSet<Pointer> seen = new HashSet<Pointer>();
+                while (pending.Count != 0)
                 {
-                    if (!iter.MoveNext()) break;
-                    next = iter.Current.Key;
-                    from = iter.Current.Value;
-                }
-                pending.Remove(next);
-
-                if(!next.IsValid) continue;
-
-                output.WriteLine(next.ToString());
-                if (next != from)
-                    output.WriteLine("     < {0}", from);
-
-                if(!seen.Add(next))
-                {
-                    output.WriteLine("   (duplicated; recursion is likely)");
-                    continue;
-                }
-
-                if (next.IsFar)
-                {
-                    var child = next.Dereference();
-                    output.WriteLine("     > {0}", child);
-                    if (child.IsValid) pending.Add(child, next);
-                }
-                else
-                {
-                    if(next.IsList())
+                    Pointer next, from;
+                    using (var iter = pending.GetEnumerator())
                     {
-                        int count = next.Count();
-                        bool isPointerList = next.IsPointerList();
-                        for (int i = 0; i < count; i++ )
+                        if (!iter.MoveNext()) break;
+                        next = iter.Current.Key;
+                        from = iter.Current.Value;
+                    }
+                    pending.Remove(next);
+
+                    if (!next.IsValid) continue;
+
+                    output.WriteLine(next.ToString());
+                    if (next != from)
+                        output.WriteLine("     < {0}", from);
+
+                    if (!seen.Add(next))
+                    {
+                        output.WriteLine("   (duplicated; recursion is likely)");
+                        continue;
+                    }
+
+                    if (next.IsFar)
+                    {
+                        var child = next.Dereference();
+                        output.WriteLine("     > {0}", child);
+                        if (child.IsValid) pending.Add(child, next);
+                    }
+                    else
+                    {
+                        if (next.IsList())
                         {
-                            var child = isPointerList ? next.GetListPointer(i)
-                                : next.GetListStruct(i);
+                            int count = next.Count();
+                            bool isPointerList = next.IsPointerList();
+                            for (int i = 0; i < count; i++)
+                            {
+                                var child = isPointerList ? next.GetListPointer(i)
+                                    : next.GetListStruct(i);
+                                output.WriteLine("  {0:00} > {1}", i, child);
+                                if (child.IsValid) pending.Add(child, next);
+                            }
+                        }
+                        int pointers = next.Pointers();
+                        if (includeDataWords)
+                        {
+                            int words = next.DataWords();
+                            for (int i = 0; i < words; i++)
+                            {
+                                output.WriteLine("  {0:00} : {1}", i, Segments.ToString(next.GetUInt64(i)));
+                            }
+                        }
+                        for (int i = 0; i < pointers; i++)
+                        {
+                            var child = next.GetPointer(i);
                             output.WriteLine("  {0:00} > {1}", i, child);
                             if (child.IsValid) pending.Add(child, next);
                         }
                     }
-                    int pointers = next.Pointers();
-                    if(includeDataWords)
-                    {   
-                        int words = next.DataWords();
-                        for (int i = 0; i < words; i++)
-                        {
-                            output.WriteLine("  {0:00} : {1}", i, Segments.ToString(next.GetUInt64(i)));
-                        }
-                    }
-                    for (int i = 0; i < pointers; i++)
-                    {
-                        var child = next.GetPointer(i);
-                        output.WriteLine("  {0:00} > {1}", i, child);
-                        if (child.IsValid) pending.Add(child, next);
-                    }
+                    output.WriteLine();
                 }
-                output.WriteLine();
+            }
+            finally
+            {
+                AutoDereference = oldAutoDereference;
             }
         }
     }
