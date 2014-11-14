@@ -25,7 +25,7 @@ namespace CapnProto
         }
 
         bool ISegmentFactory.ReadNext(Message message) { return ReadNext(message); }
-        protected virtual bool ReadNext(Message message)
+        protected virtual unsafe bool ReadNext(Message message)
         {
             ulong word;
             if (!TryReadWord(wordOffset++, out word) || word == 0) return false;
@@ -42,6 +42,7 @@ namespace CapnProto
             message.ResetSegments(segments);
 
             int totalWords = 0;
+            int* lengths = stackalloc int[segments];
             for (int i = 0; i < segments; i++)
             {
                 if ((i % 2) == 0)
@@ -52,8 +53,12 @@ namespace CapnProto
                 {
                     throw new EndOfStreamException();
                 }
+                lengths[i] = (int)(uint)(word);
+            }
+            for(int i = 0 ; i < segments ; i++)
+            {
                 var segment = message.ReuseExistingSegment() ?? CreateEmptySegment();
-                int len = (int)(uint)(word);
+                int len = lengths[i];
                 if (!(segment != null && InitializeSegment(segment, segmentWordOffset, len, len)))
                 {
                     throw new OutOfMemoryException("Unable to initialize segment " + i);
