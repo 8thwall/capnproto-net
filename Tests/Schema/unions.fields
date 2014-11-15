@@ -1,0 +1,29 @@
+# unions.capnp
+@0xa93fc509624c720e;
+struct Person @0xd48ad0c0ec22d285 {  # 8 bytes, 4 ptrs
+  name @0 :Text;  # ptr[0]
+  email @1 :Text;  # ptr[1]
+  id @2 :Int32;  # bits[0, 32)
+  ref @3 :Text;  # ptr[2]
+  employment :group {
+    union {  # tag bits [32, 48)
+      unemployed @4 :Void;  # bits[0, 0), union tag = 0
+      employer @5 :Company;  # ptr[3], union tag = 1
+      school @6 :School;  # ptr[3], union tag = 2
+      selfEmployed @7 :Void;  # bits[0, 0), union tag = 3
+    }
+  }
+}
+struct Company @0xae841f60079dd52f {  # 8 bytes, 0 ptrs, packed as 32-bit
+  id @0 :Int32;  # bits[0, 32)
+}
+struct School @0xd7fccb49e99bfd73 {  # 8 bytes, 0 ptrs, packed as 32-bit
+  id @0 :Int32;  # bits[0, 32)
+}
+struct Shape @0xe615f763afdb494a {  # 24 bytes, 0 ptrs
+  area @0 :Float64;  # bits[0, 64)
+  union {  # tag bits [128, 144)
+    circle @1 :Float64;  # bits[64, 128), union tag = 0
+    square @2 :Float64;  # bits[64, 128), union tag = 1
+  }
+}

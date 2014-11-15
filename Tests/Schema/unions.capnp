@@ -1,4 +1,5 @@
-﻿struct Person {
+@0xa93fc509624c720E;
+struct Person {
   # ...
 
   name @0 :Text;

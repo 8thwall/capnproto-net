@@ -1,4 +1,5 @@
-﻿struct Person {
+@0xa93fc509624c7207;
+struct Person {
   # ...
   dummy0 @0 :AnyPointer;
   dummy1 @1 :Void;

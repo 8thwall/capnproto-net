@@ -1,0 +1,7 @@
+# comments.capnp
+@0xa93fc509624c7203;
+struct Date @0x862cebe7b5c912e4 {  # 8 bytes, 0 ptrs, packed as 32-bit
+  year @0 :Int16;  # bits[0, 16)
+  month @1 :UInt8;  # bits[16, 24)
+  day @2 :UInt8;  # bits[24, 32)
+}

@@ -198,7 +198,7 @@ namespace CapnProto
                 case Value.Unions.text: return WriteLiteral(value.text.ToString());
                 case Value.Unions.@enum: return WriteEnumLiteral(type, value.@enum);
             }
-            throw new NotSupportedException("Cannot write value: " + value.Union);
+            throw new NotSupportedException("Cannot write literal value: " + value.Union);
         }
 
         public abstract CodeWriter WriteEnumLiteral(Schema.Type type, ushort value);

@@ -1,0 +1,15 @@
+# constants.capnp
+@0xa93fc509624c7204;
+const pi @0x9bc634af9cc236af :Float32 = 3.14159;
+const bob @0xedc1f4b3efbdc841 :Person = (name = "Bob", email = "bob@example.com");
+struct Person @0xb00e252116acb096 {  # 0 bytes, 2 ptrs
+  name @0 :Text;  # ptr[0]
+  email @1 :Text;  # ptr[1]
+}
+const foo @0x8dab49f2c1318ece :Int32 = 123;
+const bar @0xceb893e40bab09c5 :Text = "Hello";
+const baz @0x84e98ddadfb880d5 :SomeStruct = (message = "Hello", id = 123);
+struct SomeStruct @0xd9c47f6f3221739f {  # 8 bytes, 1 ptrs
+  message @0 :Text;  # ptr[0]
+  id @1 :Int32;  # bits[0, 32)
+}

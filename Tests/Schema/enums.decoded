@@ -1,0 +1,50 @@
+( nodes = [
+    ( id = 16634287217568014622,
+      displayName = "enums.capnp:HazEnum",
+      displayNamePrefixLength = 12,
+      scopeId = 12195682960037147142,
+      nestedNodes = [],
+      struct = (
+        dataWordCount = 1,
+        pointerCount = 0,
+        preferredListEncoding = twoBytes,
+        isGroup = false,
+        discriminantCount = 0,
+        discriminantOffset = 0,
+        fields = [
+          ( name = "val",
+            codeOrder = 0,
+            discriminantValue = 65535,
+            slot = (
+              offset = 0,
+              type = (
+                enum = (
+                  typeId = 13880731439841569987 ) ),
+              defaultValue = (enum = 0),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 0) ) ] ) ),
+    ( id = 13880731439841569987,
+      displayName = "enums.capnp:Rfc3092Variable",
+      displayNamePrefixLength = 12,
+      scopeId = 12195682960037147142,
+      nestedNodes = [],
+      enum = (
+        enumerants = [
+          (name = "foo", codeOrder = 0),
+          (name = "bar", codeOrder = 1),
+          (name = "baz", codeOrder = 2),
+          (name = "qux", codeOrder = 3) ] ) ),
+    ( id = 12195682960037147142,
+      displayName = "enums.capnp",
+      displayNamePrefixLength = 6,
+      scopeId = 0,
+      nestedNodes = [
+        ( name = "Rfc3092Variable",
+          id = 13880731439841569987 ),
+        ( name = "HazEnum",
+          id = 16634287217568014622 ) ],
+      file = void ) ],
+  requestedFiles = [
+    ( id = 12195682960037147142,
+      filename = "enums.capnp",
+      imports = [] ) ] )

@@ -1,4 +1,5 @@
-﻿const pi :Float32 = 3.14159;
+@0xa93fc509624c7204;
+const pi :Float32 = 3.14159;
 const bob :Person = (name = "Bob", email = "bob@example.com");
 
 struct Person {

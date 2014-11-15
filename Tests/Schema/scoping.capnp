@@ -1,4 +1,5 @@
-﻿struct Foo {
+@0xa93fc509624c720D;
+struct Foo {
   struct Bar {
     #...
 	dummy @0 :Void;

@@ -1,0 +1,11 @@
+# enums.capnp
+@0xa93fc509624c7206;
+enum Rfc3092Variable @0xc0a243b3865a6cc3 {
+  foo @0;
+  bar @1;
+  baz @2;
+  qux @3;
+}
+struct HazEnum @0xe6d8dc1796f6611e {  # 8 bytes, 0 ptrs, packed as 16-bit
+  val @0 :Rfc3092Variable;  # bits[0, 16)
+}

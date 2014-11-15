@@ -1,0 +1,13 @@
+# defaults.capnp
+@0xa93fc509624c7205;
+struct Person @0xfd977f6a7b1babfa {  # 0 bytes, 2 ptrs
+  name @0 :Text;  # ptr[0]
+  email @1 :Text;  # ptr[1]
+}
+struct HazDefaults @0xd7685d3cb69a1dc5 {  # 8 bytes, 3 ptrs
+  foo @0 :Int32 = 123;  # bits[0, 32)
+  bar @1 :Text = "blah";  # ptr[0]
+  baz @2 :List(Bool) = [true, false, false, true];  # ptr[1]
+  qux @3 :Person = (name = "Bob", email = "bob@example.com");  # ptr[2]
+  corge @4 :Void;  # bits[0, 0)
+}

@@ -1,0 +1,158 @@
+( nodes = [
+    ( id = 17103488608928808786,
+      displayName = "basic.capnp:Person",
+      displayNamePrefixLength = 12,
+      scopeId = 15832876314001345334,
+      nestedNodes = [
+        ( name = "PhoneNumber",
+          id = 15459545962285174881 ) ],
+      struct = (
+        dataWordCount = 0,
+        pointerCount = 4,
+        preferredListEncoding = inlineComposite,
+        isGroup = false,
+        discriminantCount = 0,
+        discriminantOffset = 0,
+        fields = [
+          ( name = "name",
+            codeOrder = 0,
+            discriminantValue = 65535,
+            slot = (
+              offset = 0,
+              type = (text = void),
+              defaultValue = (text = ""),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 0) ),
+          ( name = "email",
+            codeOrder = 2,
+            discriminantValue = 65535,
+            slot = (
+              offset = 1,
+              type = (text = void),
+              defaultValue = (text = ""),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 1) ),
+          ( name = "phones",
+            codeOrder = 3,
+            discriminantValue = 65535,
+            slot = (
+              offset = 2,
+              type = (
+                list = (
+                  elementType = (
+                    struct = (
+                      typeId = 15459545962285174881 ) ) ) ),
+              defaultValue = (list = <opaque pointer>),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 2) ),
+          ( name = "birthdate",
+            codeOrder = 1,
+            discriminantValue = 65535,
+            slot = (
+              offset = 3,
+              type = (
+                struct = (
+                  typeId = 17233523631960263827 ) ),
+              defaultValue = (
+                struct = <opaque pointer> ),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 3) ) ] ) ),
+    ( id = 16231856196477544767,
+      displayName = "basic.capnp:Person.PhoneNumber.Type",
+      displayNamePrefixLength = 31,
+      scopeId = 15459545962285174881,
+      nestedNodes = [],
+      enum = (
+        enumerants = [
+          (name = "mobile", codeOrder = 0),
+          (name = "home", codeOrder = 1),
+          (name = "work", codeOrder = 2) ] ) ),
+    ( id = 17233523631960263827,
+      displayName = "basic.capnp:Date",
+      displayNamePrefixLength = 12,
+      scopeId = 15832876314001345334,
+      nestedNodes = [],
+      struct = (
+        dataWordCount = 1,
+        pointerCount = 0,
+        preferredListEncoding = fourBytes,
+        isGroup = false,
+        discriminantCount = 0,
+        discriminantOffset = 0,
+        fields = [
+          ( name = "year",
+            codeOrder = 0,
+            discriminantValue = 65535,
+            slot = (
+              offset = 0,
+              type = (int16 = void),
+              defaultValue = (int16 = 0),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 0) ),
+          ( name = "month",
+            codeOrder = 1,
+            discriminantValue = 65535,
+            slot = (
+              offset = 2,
+              type = (uint8 = void),
+              defaultValue = (uint8 = 0),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 1) ),
+          ( name = "day",
+            codeOrder = 2,
+            discriminantValue = 65535,
+            slot = (
+              offset = 3,
+              type = (uint8 = void),
+              defaultValue = (uint8 = 0),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 2) ) ] ) ),
+    ( id = 15459545962285174881,
+      displayName = "basic.capnp:Person.PhoneNumber",
+      displayNamePrefixLength = 19,
+      scopeId = 17103488608928808786,
+      nestedNodes = [
+        ( name = "Type",
+          id = 16231856196477544767 ) ],
+      struct = (
+        dataWordCount = 1,
+        pointerCount = 1,
+        preferredListEncoding = inlineComposite,
+        isGroup = false,
+        discriminantCount = 0,
+        discriminantOffset = 0,
+        fields = [
+          ( name = "number",
+            codeOrder = 0,
+            discriminantValue = 65535,
+            slot = (
+              offset = 0,
+              type = (text = void),
+              defaultValue = (text = ""),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 0) ),
+          ( name = "type",
+            codeOrder = 1,
+            discriminantValue = 65535,
+            slot = (
+              offset = 0,
+              type = (
+                enum = (
+                  typeId = 16231856196477544767 ) ),
+              defaultValue = (enum = 0),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 1) ) ] ) ),
+    ( id = 15832876314001345334,
+      displayName = "basic.capnp",
+      displayNamePrefixLength = 6,
+      scopeId = 0,
+      nestedNodes = [
+        ( name = "Person",
+          id = 17103488608928808786 ),
+        ( name = "Date",
+          id = 17233523631960263827 ) ],
+      file = void ) ],
+  requestedFiles = [
+    ( id = 15832876314001345334,
+      filename = "basic.capnp",
+      imports = [] ) ] )

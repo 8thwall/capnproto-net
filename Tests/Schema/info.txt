@@ -2,4 +2,4 @@
 *.capnp is a source schema in the capnp schema dsl format
 *.fields is the schema compiled with: capnp compile -ocapnp {source.capnp} > {target.fields}
 *.bin is the compiled schema via: capnp compile -o/bin/cat {source.capnp} > {target.bin}
-*.decoded is the decompiled bin via: capnp decode {source.capnp} CodeGeneratorRequest < {source.bin} > {source.decoded}
+*.decoded is the decompiled bin via: capnp decode schema.capnp CodeGeneratorRequest < {source.bin} > {source.decoded}

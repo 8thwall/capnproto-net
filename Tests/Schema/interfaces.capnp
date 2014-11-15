@@ -1,4 +1,5 @@
-﻿interface Node {
+@0xa93fc509624c720C;
+interface Node {
   isDirectory @0 () -> (result :Bool);
 }
 
@@ -10,7 +11,7 @@ interface Directory extends(Node) {
   }
 
   create @1 (name :Text) -> (file :File);
-  mkdir @2 (name :Text) -> (directory :Directory)
+  mkdir @2 (name :Text) -> (directory :Directory);
   open @3 (name :Text) -> (node :Node);
   delete @4 (name :Text);
   link @5 (name :Text, node :Node);

@@ -1,0 +1,22 @@
+# basic.capnp
+@0xdbb9ad1f14bf0b36;
+struct Person @0xed5bcc458b243f52 {  # 0 bytes, 4 ptrs
+  name @0 :Text;  # ptr[0]
+  birthdate @3 :Date;  # ptr[3]
+  email @1 :Text;  # ptr[1]
+  phones @2 :List(PhoneNumber);  # ptr[2]
+  struct PhoneNumber @0xd68b5724fed51061 {  # 8 bytes, 1 ptrs
+    number @0 :Text;  # ptr[0]
+    type @1 :Type;  # bits[0, 16)
+    enum Type @0xe1432335ec44693f {
+      mobile @0;
+      home @1;
+      work @2;
+    }
+  }
+}
+struct Date @0xef29c66fa74a8c93 {  # 8 bytes, 0 ptrs, packed as 32-bit
+  year @0 :Int16;  # bits[0, 16)
+  month @1 :UInt8;  # bits[16, 24)
+  day @2 :UInt8;  # bits[24, 32)
+}

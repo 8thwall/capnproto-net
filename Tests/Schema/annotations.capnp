@@ -1,4 +1,6 @@
-﻿# Declare an annotation 'foo' which applies to struct and enum types.
+@0xa93fc509624c7200;
+
+# Declare an annotation 'foo' which applies to struct and enum types.
 annotation foo(struct, enum) :Text;
 
 # Apply 'foo' to to MyType.
@@ -14,7 +16,8 @@ $baz(1);  # Annotate the file.
 struct MyStruct $baz(2) {
   myField @0 :Text = "default" $baz(3);
   myUnion :union $baz(4) {
-    dummy @0 :Void;
+    dummy0 @1 :Void;
+	dummy1 @2 :Void;
   }
 }
 

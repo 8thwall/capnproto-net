@@ -1,5 +1,6 @@
-﻿# This is a comment.
-
+# This is a comment.
+@0xa93fc509624c7203
+;
 struct Date {
   # A standard Gregorian calendar date.
 

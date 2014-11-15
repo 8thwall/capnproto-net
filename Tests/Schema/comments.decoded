@@ -1,0 +1,52 @@
+( nodes = [
+    ( id = 9668361880477438692,
+      displayName = "comments.capnp:Date",
+      displayNamePrefixLength = 15,
+      scopeId = 12195682960037147139,
+      nestedNodes = [],
+      struct = (
+        dataWordCount = 1,
+        pointerCount = 0,
+        preferredListEncoding = fourBytes,
+        isGroup = false,
+        discriminantCount = 0,
+        discriminantOffset = 0,
+        fields = [
+          ( name = "year",
+            codeOrder = 0,
+            discriminantValue = 65535,
+            slot = (
+              offset = 0,
+              type = (int16 = void),
+              defaultValue = (int16 = 0),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 0) ),
+          ( name = "month",
+            codeOrder = 1,
+            discriminantValue = 65535,
+            slot = (
+              offset = 2,
+              type = (uint8 = void),
+              defaultValue = (uint8 = 0),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 1) ),
+          ( name = "day",
+            codeOrder = 2,
+            discriminantValue = 65535,
+            slot = (
+              offset = 3,
+              type = (uint8 = void),
+              defaultValue = (uint8 = 0),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 2) ) ] ) ),
+    ( id = 12195682960037147139,
+      displayName = "comments.capnp",
+      displayNamePrefixLength = 9,
+      scopeId = 0,
+      nestedNodes = [
+        (name = "Date", id = 9668361880477438692) ],
+      file = void ) ],
+  requestedFiles = [
+    ( id = 12195682960037147139,
+      filename = "comments.capnp",
+      imports = [] ) ] )

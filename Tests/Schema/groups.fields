@@ -1,0 +1,30 @@
+# groups.capnp
+@0xa93fc509624c7207;
+struct Person @0xab5af3ccae77ad30 {  # 8 bytes, 4 ptrs
+  dummy0 @0 :AnyPointer;  # ptr[0]
+  dummy1 @1 :Void;  # bits[0, 0)
+  dummy2 @2 :Void;  # bits[0, 0)
+  dummy3 @3 :Void;  # bits[0, 0)
+  dummy4 @4 :Void;  # bits[0, 0)
+  dummy5 @5 :Void;  # bits[0, 0)
+  dummy6 @6 :Void;  # bits[0, 0)
+  dummy7 @7 :Void;  # bits[0, 0)
+  address :group {
+    houseNumber @8 :UInt32;  # bits[0, 32)
+    street @9 :Text;  # ptr[1]
+    city @10 :Text;  # ptr[2]
+    country @11 :Text;  # ptr[3]
+  }
+}
+struct Shape @0x84c2ef9d0117aace {  # 32 bytes, 0 ptrs
+  area @0 :Float64;  # bits[0, 64)
+  union {  # tag bits [128, 144)
+    circle :group {  # union tag = 0
+      radius @1 :Float64;  # bits[64, 128)
+    }
+    rectangle :group {  # union tag = 1
+      width @2 :Float64;  # bits[64, 128)
+      height @3 :Float64;  # bits[192, 256)
+    }
+  }
+}

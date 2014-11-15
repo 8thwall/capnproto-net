@@ -1,0 +1,35 @@
+( nodes = [
+    ( id = 14463859189540839683,
+      displayName = "bar.capnp:Baz",
+      displayNamePrefixLength = 10,
+      scopeId = 12195682960037147137,
+      nestedNodes = [],
+      struct = (
+        dataWordCount = 0,
+        pointerCount = 0,
+        preferredListEncoding = empty,
+        isGroup = false,
+        discriminantCount = 0,
+        discriminantOffset = 0,
+        fields = [
+          ( name = "dummy",
+            codeOrder = 0,
+            discriminantValue = 65535,
+            slot = (
+              offset = 0,
+              type = (void = void),
+              defaultValue = (void = void),
+              hadExplicitDefault = false ),
+            ordinal = (explicit = 0) ) ] ) ),
+    ( id = 12195682960037147137,
+      displayName = "bar.capnp",
+      displayNamePrefixLength = 4,
+      scopeId = 0,
+      nestedNodes = [
+        ( name = "Baz",
+          id = 14463859189540839683 ) ],
+      file = void ) ],
+  requestedFiles = [
+    ( id = 12195682960037147137,
+      filename = "bar.capnp",
+      imports = [] ) ] )

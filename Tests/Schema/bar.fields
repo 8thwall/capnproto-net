@@ -1,0 +1,5 @@
+# bar.capnp
+@0xa93fc509624c7201;
+struct Baz @0xc8b9f34cd1d9e103 {  # 0 bytes, 0 ptrs, packed as void
+  dummy @0 :Void;  # bits[0, 0)
+}

@@ -1,0 +1,17 @@
+# scoping.capnp
+@0xa93fc509624c720d;
+struct Foo @0x9cc812aefafde04e {  # 0 bytes, 1 ptrs, packed as pointer
+  bar @0 :Bar;  # ptr[0]
+  struct Bar @0xbd53e292fa86d068 {  # 0 bytes, 0 ptrs, packed as void
+    dummy @0 :Void;  # bits[0, 0)
+  }
+}
+struct Baz @0xc0ae6fb1c892fe96 {  # 0 bytes, 1 ptrs, packed as pointer
+  bar @0 :Foo.Bar;  # ptr[0]
+}
+struct Qux @0xc08e6546adeb0b8d {  # 0 bytes, 1 ptrs, packed as pointer
+  bar @0 :Foo.Bar;  # ptr[0]
+}
+struct Corge @0x92d21931d181da10 {  # 0 bytes, 1 ptrs, packed as pointer
+  bar @0 :Foo.Bar;  # ptr[0]
+}

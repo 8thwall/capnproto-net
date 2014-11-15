@@ -1,0 +1,38 @@
+# annotations.capnp
+@0xa93fc509624c7200;
+$baz(1);
+$corge(string = "hello", number = 123);
+$grault(value = 123);
+$grault(value = 456);
+annotation foo @0xada292df33cdcef1 (enum, struct) :Text;
+struct MyType @0x963ec89c1d644021 $foo("bar") {  # 0 bytes, 0 ptrs, packed as void
+  dummy @0 :Void;  # bits[0, 0)
+}
+annotation baz @0xcdcb7ec51285eb65 (*) :Int32;
+struct MyStruct @0x90469b4d000c0cd9 $baz(2) {  # 8 bytes, 1 ptrs
+  myField @0 :Text = "default" $baz(3);  # ptr[0]
+  myUnion :group $baz(4) {
+    union {  # tag bits [0, 16)
+      dummy0 @1 :Void;  # bits[0, 0), union tag = 0
+      dummy1 @2 :Void;  # bits[0, 0), union tag = 1
+    }
+  }
+}
+enum MyEnum @0xa8365b478282a63a $baz(5) {
+  myEnumerant @0 $baz(6);
+}
+interface MyInterface @0x8f817364354a5587 $baz(7) {
+  myMethod @0 (myParam :Text $baz(9)) -> () $baz(8);
+}
+annotation myAnnotation @0x936e1ead057dffc4 (struct) :Int32 $baz(10);
+const myConst @0x8edc944162135543 :Int32 = 123 $baz(11);
+annotation qux @0xea4467f67d8d76fe (struct, field) :Void;
+struct MyStruct2 @0xdc76d7e30b694705 $qux(void) {  # 8 bytes, 1 ptrs
+  string @0 :Text $qux(void);  # ptr[0]
+  number @1 :Int32 $qux(void);  # bits[0, 32)
+}
+annotation corge @0xca4e134e2a98ab02 (file) :MyStruct2;
+struct Grault @0xcb06e1380f84e0b9 {  # 8 bytes, 0 ptrs, packed as 32-bit
+  value @0 :Int32 = 123;  # bits[0, 32)
+}
+annotation grault @0xc1f2e777871acc56 (file) :Grault;

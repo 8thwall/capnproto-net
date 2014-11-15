@@ -1,0 +1,23 @@
+# interfaces.capnp
+@0xa93fc509624c720c;
+interface Node @0x9e7e974fcb06f913 {
+  isDirectory @0 () -> (result :Bool);
+}
+interface Directory @0xb57178065d8af66d {
+  list @0 () -> (list :List(Entry));
+  create @1 (name :Text) -> (file :File);
+  mkdir @2 (name :Text) -> (directory :Directory);
+  open @3 (name :Text) -> (node :Node);
+  delete @4 (name :Text) -> ();
+  link @5 (name :Text, node :Node) -> ();
+  struct Entry @0x80d4dcaebf0b27e0 {  # 0 bytes, 2 ptrs
+    name @0 :Text;  # ptr[0]
+    node @1 :Node;  # ptr[1]
+  }
+}
+interface File @0xd0adcfff4742e707 {
+  size @0 () -> (size :UInt64);
+  read @1 (startAt :UInt64, amount :UInt64 = 18446744073709551615) -> (data :Data);
+  write @2 (startAt :UInt64, data :Data) -> ();
+  truncate @3 (size :UInt64) -> ();
+}

@@ -1,0 +1,5 @@
+# imports3.capnp
+@0xa93fc509624c720b;
+struct Foo @0xccedf89718ccb5c0 {  # 0 bytes, 1 ptrs, packed as pointer
+  baz @0 :import "/bar.capnp".Baz;  # ptr[0]
+}
