@@ -206,28 +206,15 @@ namespace CapnProto
         public override FixedSizeList<double> CreateList(Pointer pointer, int count) { return (FixedSizeList<double>)pointer.AllocateList(ElementSize.EightBytesNonPointer, count); }
     }
 
-    internal class PointerAccessor : BasicPointerAccessor<Pointer>
+    internal class PointerAccessor : FailTypeAccessor<Pointer>
     {
-        public override FixedSizeList<Pointer> CreateList(Pointer pointer, int count)
+        protected override Exception Fail()
         {
-            return (FixedSizeList<Pointer>)pointer.AllocateList(ElementSize.EightBytesPointer, count);
+            return new InvalidOperationException("Untyped pointers cannot be used in this way");
         }
-        public override FixedSizeList<Pointer> CreateList(Pointer pointer, int count, ElementSize elementSize)
+        public override bool IsPointer
         {
-            if (elementSize != ElementSize.EightBytesPointer) throw new ArgumentException("Must be created as a list of size " + ElementSize.EightBytesPointer, "elementSize");
-            return CreateList(pointer, count);
-        }
-        public override bool IsStruct
-        {
-            get { return false; }
-        }
-        public override Pointer GetElement(Pointer pointer, int index)
-        {
-            return pointer.GetListPointer(index);
-        }
-        public override void SetElement(Pointer pointer, int index, Pointer value)
-        {
-            pointer.SetListPointer(index, value);
+            get { return true; }
         }
     }
     internal abstract class FailTypeAccessor<T> : TypeAccessor<T>
