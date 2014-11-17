@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace CapnProto
@@ -11,60 +13,109 @@ namespace CapnProto
         static TypeAccessor()
         {
             object tmp;
-            switch (Type.GetTypeCode(typeof(T)))
+            var type = typeof(T);
+            if(type == typeof(bool))
             {
-                case TypeCode.Boolean: tmp = new BooleanAccessor(); break;
-                case TypeCode.Byte: tmp = new ByteAccessor(); break;
-                case TypeCode.SByte: tmp = new SByteAccessor(); break;
-                case TypeCode.UInt16: tmp = new UInt16Accessor(); break;
-                case TypeCode.Int16: tmp = new Int16Accessor(); break;
-                case TypeCode.UInt32: tmp = new UInt32Accessor(); break;
-                case TypeCode.Int32: tmp = new Int32Accessor(); break;
-                case TypeCode.UInt64: tmp = new UInt64Accessor(); break;
-                case TypeCode.Int64: tmp = new Int64Accessor(); break;
-                case TypeCode.Single: tmp = new SingleAccessor(); break;
-                case TypeCode.Double: tmp = new DoubleAccessor(); break;
-                default:
-                    if(typeof(T) == typeof(Text))
+                tmp = new BooleanAccessor();
+            }
+            if (type == typeof(byte))
+            {
+                tmp = new ByteAccessor();
+            }
+            if (type == typeof(sbyte))
+            {
+                tmp = new SByteAccessor();
+            }
+            if (type == typeof(ushort))
+            {
+                tmp = new UInt16Accessor();
+            }
+            if (type == typeof(short))
+            {
+                tmp = new Int16Accessor();
+            }
+            if (type == typeof(uint))
+            {
+                tmp = new UInt32Accessor();
+            }
+            if (type == typeof(int))
+            {
+                tmp = new Int32Accessor();
+            }
+            if (type == typeof(ulong))
+            {
+                tmp = new UInt64Accessor();
+            }
+            if (type == typeof(long))
+            {
+                tmp = new Int64Accessor();
+            }
+            if (type == typeof(float))
+            {
+                tmp = new SingleAccessor();
+            }
+            if (type == typeof(double))
+            {
+                tmp = new DoubleAccessor();
+            }
+            else if (type == typeof(Text))
+            {
+                tmp = new TextAccessor();
+            }
+            else if (type == typeof(Data))
+            {
+                tmp = new DataAccessor();
+            }
+            else if (type == typeof(Pointer))
+            {
+                tmp = new PointerAccessor();
+            }
+            else {
+#if PCL
+                TypeInfo typeInfo = type.GetTypeInfo();
+                bool isGroup = typeInfo.IsDefined(typeof(GroupAttribute));
+#else
+                bool isGroup = Attribute.IsDefined(type, typeof(GroupAttribute));
+#endif
+                if (isGroup)
+                {
+                    tmp = new GroupAccessor<T>();
+                }
+                else
+                {
+#if PCL
+                    var @struct = typeInfo.GetCustomAttribute<StructAttribute>();
+#else
+                    var @struct = (StructAttribute)Attribute.GetCustomAttribute(type, typeof(StructAttribute));
+#endif
+                    if (@struct == null)
                     {
-                        tmp = new TextAccessor();
-                    }
-                    else if (typeof(T) == typeof(Data))
-                    {
-                        tmp = new DataAccessor();
-                    }
-                    else if (typeof(T) == typeof(Pointer))
-                    {
-                        tmp = new PointerAccessor();
-                    }
-                    else if (Attribute.IsDefined(typeof(T), typeof(GroupAttribute)))
-                    {
-                        tmp = new GroupAccessor<T>();
+#if PCL
+                        if(typeInfo.IsGenericType && type.GetGenericTypeDefinition() == typeof(FixedSizeList<>))
+                        {
+                            tmp = Activator.CreateInstance(
+                                typeof(FixedSizeListAccessor<>).MakeGenericType(type.GenericTypeArguments));
+                        }
+#else
+                        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(FixedSizeList<>))
+                        {
+                            tmp = Activator.CreateInstance(
+                                typeof(FixedSizeListAccessor<>).MakeGenericType(type.GetGenericArguments()));
+                        }
+#endif
+                        else
+                        {
+                            tmp = new MissingMetadataAccessor<T>();
+                        }
                     }
                     else
                     {
-                        var @struct = (StructAttribute)Attribute.GetCustomAttribute(typeof(T), typeof(StructAttribute));
-                        if (@struct == null)
+                        checked
                         {
-                            if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(FixedSizeList<>))
-                            {
-                                tmp = Activator.CreateInstance(
-                                    typeof(FixedSizeListAccessor<>).MakeGenericType(typeof(T).GetGenericArguments()));
-                            }
-                            else
-                            {
-                                tmp = new MissingMetadataAccessor<T>();
-                            }
-                        }
-                        else
-                        {
-                            checked
-                            {
-                                tmp = StructAccessor<T>.Create(@struct.PreferredSize, (short)@struct.DataWords, (short)@struct.Pointers);
-                            }
+                            tmp = StructAccessor<T>.Create(@struct.PreferredSize, (short)@struct.DataWords, (short)@struct.Pointers);
                         }
                     }
-                    break;
+                }
             }
             Instance = (TypeAccessor<T>)tmp;
         }
@@ -286,25 +337,36 @@ namespace CapnProto
         {
             try
             {
+#if PCL
+                var methods = typeof(T).GetRuntimeMethods();
+#else
                 var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Static);
+#endif
                 var op_toT = FindMethod(methods, typeof(Pointer), typeof(T), "op_implicit") ?? FindMethod(methods, typeof(Pointer), typeof(T), "op_explicit");
                 var op_fromT = FindMethod(methods, typeof(T), typeof(Pointer), "op_implicit") ?? FindMethod(methods, typeof(T), typeof(Pointer), "op_explicit");
 
                 if (op_toT != null && op_fromT != null)
                 {
+#if PCL
+                    ParameterExpression p;
+                    Func<Pointer, T> toT = Expression.Lambda<Func<Pointer, T>>(
+                        Expression.Convert(p = Expression.Parameter(typeof(T)), typeof(T), op_toT), p).Compile();
+                    Func<T, Pointer> fromT = Expression.Lambda<Func<T, Pointer>>(
+                        Expression.Convert(p = Expression.Parameter(typeof(T)), typeof(Pointer), op_fromT), p).Compile();
+#else
                     Func<Pointer, T> toT = (Func<Pointer, T>)Delegate.CreateDelegate(typeof(Func<Pointer, T>), null, op_toT);
                     Func<T, Pointer> fromT = (Func<T, Pointer>)Delegate.CreateDelegate(typeof(Func<T, Pointer>), null, op_fromT);
+#endif
                     return new OperatorBasedStructTypeAccessor(elementSize, dataWords, pointers, toT, fromT);
                 }
             }
             catch { }
             return new DynamicStructTypeAccessor(elementSize, dataWords, pointers);
         }
-        static MethodInfo FindMethod(MethodInfo[] methods, Type from, Type to, string name)
+        static MethodInfo FindMethod(IEnumerable<MethodInfo> methods, Type from, Type to, string name)
         {
-            for (int i = 0; i < methods.Length; i++)
+            foreach(var method in methods)
             {
-                var method = methods[i];
                 if (method.IsPublic && method.IsStatic &&
                     string.Equals(name, method.Name, StringComparison.CurrentCultureIgnoreCase) && method.ReturnType == to)
                 {

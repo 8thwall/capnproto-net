@@ -19,11 +19,13 @@ namespace CapnProto
         {
             return Load(BufferedStreamSegmentFactory.Create(source, length, leaveOpen));
         }
+#if !PCL
         public static Message Load(string path)
         {
             var data = File.ReadAllBytes(path);
             return Load(BufferSegmentFactory.Create(data, 0, data.Length));
         }
+#endif
         public static Message Load(ISegmentFactory segmentFactory)
         {
             var msg = Cache<Message>.Pop() ?? new Message();
@@ -388,7 +390,7 @@ namespace CapnProto
             try
             {
                 AutoDereference = false;
-                SortedList<Pointer, Pointer> pending = new SortedList<Pointer, Pointer>();
+                var pending = new SortedDictionary<Pointer, Pointer>();
                 if (!root.IsValid) root = this.Root;
                 pending.Add(root, root);
                 HashSet<Pointer> seen = new HashSet<Pointer>();

@@ -20,7 +20,9 @@ namespace CapnProto
         {
             if (reusing)
             {
+#if !PCL
                 if (encoder != null) encoder.Reset();
+#endif
                 if (decoder != null) decoder.Reset();
             }
         }
@@ -170,6 +172,7 @@ namespace CapnProto
             
         }
 
+#if !PCL
         internal static Text Create(Pointer pointer, System.Data.IDataRecord reader, int fieldIndex)
         {
             // TODO: replace with GetChars work
@@ -196,6 +199,7 @@ namespace CapnProto
             //    throw new NotImplementedException();
             //}
         }
+#endif
     }
 
 }

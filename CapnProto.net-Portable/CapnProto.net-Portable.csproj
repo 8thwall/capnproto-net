@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{54434077-C86D-435A-9C14-B061870B5462}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CapnProto</RootNamespace>
+    <AssemblyName>CapnProto-net</AssemblyName>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <TargetFrameworkProfile>Profile111</TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;PCL</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;PCL</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- A reference to the entire .NET Framework is automatically included -->
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\CapnProto.net\BufferedStreamSegmentFactory.cs">
+      <Link>BufferedStreamSegmentFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\BufferPointerSegment.cs">
+      <Link>BufferPointerSegment.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\BufferSegment.cs">
+      <Link>BufferSegment.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\BufferSegmentFactory.cs">
+      <Link>BufferSegmentFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Cache.cs">
+      <Link>Cache.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Data.cs">
+      <Link>Data.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\ElementSize.cs">
+      <Link>ElementSize.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\FieldAttribute.cs">
+      <Link>FieldAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\FixedSizeList.cs">
+      <Link>FixedSizeList.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\GroupAttrubute.cs">
+      <Link>GroupAttrubute.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\IdAttribute.cs">
+      <Link>IdAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\ISegment.cs">
+      <Link>ISegment.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\ISegmentFactory.cs">
+      <Link>ISegmentFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Message.cs">
+      <Link>Message.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Pointer.cs">
+      <Link>Pointer.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Pointers.cs">
+      <Link>Pointers.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\PointerSegment.cs">
+      <Link>PointerSegment.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Properties\AssemblyInfo.cs">
+      <Link>AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Segment.cs">
+      <Link>Segment.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\SegmentFactory.cs">
+      <Link>SegmentFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Segments.cs">
+      <Link>Segments.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\StructAttribute.cs">
+      <Link>StructAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Text.cs">
+      <Link>Text.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\Textizer.cs">
+      <Link>Textizer.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\TypeAccessor.cs">
+      <Link>TypeAccessor.cs</Link>
+    </Compile>
+    <Compile Include="..\CapnProto.net\UnionAttribute.cs">
+      <Link>UnionAttribute.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

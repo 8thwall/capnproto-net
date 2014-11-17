@@ -102,6 +102,7 @@ namespace CapnProto
             }
         }
 
+#if !PCL
         public override int WriteString(int index, string value, int bytes)
         {
             if ((index & MSB32) == 0 && bytes-- > 0 && (index + (bytes >> 3)) < activeWords)
@@ -138,7 +139,7 @@ namespace CapnProto
             }
             throw new InvalidOperationException();
         }
-
+#endif
         public override int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
         {
             int wordsToCopy = activeWords - wordOffset;

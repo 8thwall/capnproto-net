@@ -7,7 +7,9 @@ using System.Text;
 namespace CapnProto
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
+#if !PCL
     [ImmutableObject(true)]
+#endif
     public sealed class GroupAttribute : Attribute
     {
     }
