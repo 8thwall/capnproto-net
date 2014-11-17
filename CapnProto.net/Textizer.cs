@@ -14,13 +14,17 @@ namespace CapnProto
         {
             Cache<Textizer>.Push(this);
         }
-        private static readonly Encoding encoding = new UTF8Encoding(false);
+#if FULLCLR || PCL
+        internal static readonly Encoding Encoding = new UTF8Encoding(false);
+#else
+        internal static readonly Encoding Encoding = Encoding.UTF8;
+#endif
 
         void IRecyclable.Reset(bool reusing)
         {
             if (reusing)
             {
-#if !PCL
+#if FULLCLR
                 if (encoder != null) encoder.Reset();
 #endif
                 if (decoder != null) decoder.Reset();
@@ -30,16 +34,16 @@ namespace CapnProto
         private readonly char[] chars;
         private readonly byte[] bytes;
         private Encoder encoder;
-        private Encoder Encoder { get{return encoder ?? (encoder = encoding.GetEncoder());}}
+        private Encoder Encoder { get{return encoder ?? (encoder = Encoding.GetEncoder());}}
         private Decoder decoder;
-        private Decoder Decoder { get { return decoder ?? (decoder = encoding.GetDecoder()); } }
+        private Decoder Decoder { get { return decoder ?? (decoder = Encoding.GetDecoder()); } }
         public Textizer()
         {
             chars = new char[CHAR_LENGTH];
             bytes = new byte[BYTE_LENGTH];
         }
         const int CHAR_LENGTH = 512, MAX_BYTES_TO_DECODE = CHAR_LENGTH, MAX_CHARS_TO_ENCODE = CHAR_LENGTH;
-        static readonly int BYTE_LENGTH = encoding.GetMaxByteCount(CHAR_LENGTH) + 8; // leave space for the leftovers
+        static readonly int BYTE_LENGTH = Encoding.GetMaxByteCount(CHAR_LENGTH) + 8; // leave space for the leftovers
 
 
         public static int AppendTo(Pointer pointer, TextWriter destination)

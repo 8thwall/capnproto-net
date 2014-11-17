@@ -19,7 +19,7 @@ namespace CapnProto
         {
             return Load(BufferedStreamSegmentFactory.Create(source, length, leaveOpen));
         }
-#if !PCL
+#if FULLCLR
         public static Message Load(string path)
         {
             var data = File.ReadAllBytes(path);

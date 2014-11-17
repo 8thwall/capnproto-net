@@ -1,10 +1,12 @@
-﻿using System;
+﻿#if UNSAFE
+
+using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Text;
 
-#if UNSAFE
+
 namespace CapnProto
 {
     public unsafe sealed class MemoryMappedFileSegmentFactory : SegmentFactory

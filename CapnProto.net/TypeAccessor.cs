@@ -70,12 +70,13 @@ namespace CapnProto
             {
                 tmp = new PointerAccessor();
             }
-            else {
-#if PCL
+            else
+            {
+#if FULLCLR
+                bool isGroup = Attribute.IsDefined(type, typeof(GroupAttribute));
+#else
                 TypeInfo typeInfo = type.GetTypeInfo();
                 bool isGroup = typeInfo.IsDefined(typeof(GroupAttribute));
-#else
-                bool isGroup = Attribute.IsDefined(type, typeof(GroupAttribute));
 #endif
                 if (isGroup)
                 {
@@ -83,24 +84,24 @@ namespace CapnProto
                 }
                 else
                 {
-#if PCL
-                    var @struct = typeInfo.GetCustomAttribute<StructAttribute>();
-#else
+#if FULLCLR
                     var @struct = (StructAttribute)Attribute.GetCustomAttribute(type, typeof(StructAttribute));
+#else
+                    var @struct = typeInfo.GetCustomAttribute<StructAttribute>();
 #endif
                     if (@struct == null)
                     {
-#if PCL
-                        if(typeInfo.IsGenericType && type.GetGenericTypeDefinition() == typeof(FixedSizeList<>))
-                        {
-                            tmp = Activator.CreateInstance(
-                                typeof(FixedSizeListAccessor<>).MakeGenericType(type.GenericTypeArguments));
-                        }
-#else
+#if FULLCLR
                         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(FixedSizeList<>))
                         {
                             tmp = Activator.CreateInstance(
                                 typeof(FixedSizeListAccessor<>).MakeGenericType(type.GetGenericArguments()));
+                        } 
+#else
+                        if (typeInfo.IsGenericType && type.GetGenericTypeDefinition() == typeof(FixedSizeList<>))
+                        {
+                            tmp = Activator.CreateInstance(
+                                typeof(FixedSizeListAccessor<>).MakeGenericType(type.GenericTypeArguments));
                         }
 #endif
                         else
@@ -337,25 +338,25 @@ namespace CapnProto
         {
             try
             {
-#if PCL
-                var methods = typeof(T).GetRuntimeMethods();
-#else
+#if FULLCLR
                 var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Static);
+#else
+                var methods = typeof(T).GetRuntimeMethods();
 #endif
                 var op_toT = FindMethod(methods, typeof(Pointer), typeof(T), "op_implicit") ?? FindMethod(methods, typeof(Pointer), typeof(T), "op_explicit");
                 var op_fromT = FindMethod(methods, typeof(T), typeof(Pointer), "op_implicit") ?? FindMethod(methods, typeof(T), typeof(Pointer), "op_explicit");
 
                 if (op_toT != null && op_fromT != null)
                 {
-#if PCL
+#if FULLCLR
+                    Func<Pointer, T> toT = (Func<Pointer, T>)Delegate.CreateDelegate(typeof(Func<Pointer, T>), null, op_toT);
+                    Func<T, Pointer> fromT = (Func<T, Pointer>)Delegate.CreateDelegate(typeof(Func<T, Pointer>), null, op_fromT);
+#else
                     ParameterExpression p;
                     Func<Pointer, T> toT = Expression.Lambda<Func<Pointer, T>>(
                         Expression.Convert(p = Expression.Parameter(typeof(T)), typeof(T), op_toT), p).Compile();
                     Func<T, Pointer> fromT = Expression.Lambda<Func<T, Pointer>>(
                         Expression.Convert(p = Expression.Parameter(typeof(T)), typeof(Pointer), op_fromT), p).Compile();
-#else
-                    Func<Pointer, T> toT = (Func<Pointer, T>)Delegate.CreateDelegate(typeof(Func<Pointer, T>), null, op_toT);
-                    Func<T, Pointer> fromT = (Func<T, Pointer>)Delegate.CreateDelegate(typeof(Func<T, Pointer>), null, op_fromT);
 #endif
                     return new OperatorBasedStructTypeAccessor(elementSize, dataWords, pointers, toT, fromT);
                 }
@@ -448,6 +449,7 @@ namespace CapnProto
             public DynamicStructTypeAccessor(ElementSize elementSize, short dataWords, short pointers)
                 : base(elementSize, dataWords, pointers)
             { }
+#if FULLCLR
             public override T GetElement(Pointer pointer, int index)
             {
                 return (T)(dynamic)pointer.GetListStruct(index);
@@ -456,6 +458,16 @@ namespace CapnProto
             {
                 return (T)(dynamic)CreateImpl(pointer);
             }
+#else
+            public override T GetElement(Pointer pointer, int index)
+            {
+                return (T)(object)pointer.GetListStruct(index);
+            }
+            public override T Create(Pointer pointer)
+            {
+                return (T)(object)CreateImpl(pointer);
+            }
+#endif
             public override void SetElement(Pointer pointer, int index, T value)
             {
                 if (((IPointer)value).Pointer != pointer.GetListStruct(index))

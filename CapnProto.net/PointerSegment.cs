@@ -103,7 +103,7 @@ namespace CapnProto
             }
         }
 
-#if !PCL
+#if FULLCLR
         public override int WriteString(int index, string value, int bytes)
         {
             if ((index & MSB32) == 0 && bytes-- > 0 && (index + (bytes >> 3)) < activeWords)

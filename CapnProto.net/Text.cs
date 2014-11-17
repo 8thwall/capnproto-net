@@ -106,7 +106,7 @@ namespace CapnProto
                 // automatic nil pointer
                 return (Text)pointer.AllocateList(ElementSize.OneByte, 1);
             }
-            int byteLen = Encoding.UTF8.GetByteCount(value);
+            int byteLen = Textizer.Encoding.GetByteCount(value);
             var ptr = pointer.AllocateList(ElementSize.OneByte, byteLen + 1);
             ptr.WriteString(value);
             return new Text(ptr, value);
@@ -123,7 +123,7 @@ namespace CapnProto
                 return (Text)pointer.AllocateList(ElementSize.OneByte, 1);
             }
 
-            int byteLen = Encoding.UTF8.GetByteCount(value, offset, count);
+            int byteLen = Textizer.Encoding.GetByteCount(value, offset, count);
             var ptr = pointer.AllocateList(ElementSize.OneByte, byteLen + 1);
             Textizer.Write(ptr, value, offset, count);
             return (Text)ptr;
