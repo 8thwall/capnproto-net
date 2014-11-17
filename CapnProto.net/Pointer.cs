@@ -506,6 +506,10 @@ namespace CapnProto
                 switch (startAndType & 7)
                 {
                     case Type.FarSingle:
+                        if(startAndType == 2 && segment.Index == 0 && segment[0] == 0)
+                        {   // far-pointer to root; only respect this if the result is not a zero
+                            break;
+                        }
                         // the start refers to the header of the data
                         var ptr = new Pointer(segment, (int)startAndType >> 3);
                         if ((ptr.startAndType & 2) != 0) throw new InvalidOperationException("Single-hop far-pointer should have resolved to a struct or list");
