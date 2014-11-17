@@ -172,7 +172,7 @@ namespace CapnProto
             
         }
 
-#if !PCL
+#if FULLCLR
         internal static Text Create(Pointer pointer, System.Data.IDataRecord reader, int fieldIndex)
         {
             // TODO: replace with GetChars work

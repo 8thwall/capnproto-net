@@ -1,4 +1,6 @@
-﻿#define UNMANAGED
+﻿#if UNSAFE
+#define UNMANAGED
+#endif
 
 using System;
 using System.Collections.Generic;

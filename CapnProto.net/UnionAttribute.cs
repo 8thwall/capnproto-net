@@ -1,11 +1,10 @@
 ﻿using System;
-using System.ComponentModel;
 
 namespace CapnProto
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-#if !PCL
-    [ImmutableObject(true)]
+#if FULLCLR
+    [System.ComponentModel.ImmutableObject(true)]
 #endif
     public sealed class UnionAttribute : Attribute
     {

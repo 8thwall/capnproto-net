@@ -327,13 +327,18 @@ namespace CapnProto
             }
         }
 
-        private unsafe int WritePreamble(byte[] buffer)
+        private
+#if UNSAFE
+            unsafe
+#endif
+            int WritePreamble(byte[] buffer)
         {
             int count = SegmentCount;
             if (count == 0) return 0;
             if ((count << 2) > buffer.Length)
                 throw new InvalidOperationException("Not enough space in the buffer to write segment headers");
             int outputIndex = 0;
+#if UNSAFE
             fixed (byte* ptr = buffer)
             {
                 int* headers = (int*)ptr;
@@ -343,9 +348,20 @@ namespace CapnProto
                 if ((count % 2) == 0) // need to add padding
                     headers[outputIndex++] = 0;
             }
+#else
+            BufferSegment.WriteNibble(buffer, 0, (uint)(count - 1));
+            int offset = 4;
+            for (int i = 0; i < count; i++)
+            {
+                BufferSegment.WriteNibble(buffer, offset, (uint)this[i].Length);
+                offset += 4;
+            }
+            if ((count % 2) == 0) // need to add padding
+                BufferSegment.WriteNibble(buffer, offset, 0);
+#endif
             return outputIndex << 2;
         }
-        private unsafe int WriteSegment(byte[] buffer, ISegment segment, int wordOffset)
+        private int WriteSegment(byte[] buffer, ISegment segment, int wordOffset)
         {
             int wordsInBuffer = buffer.Length >> 3;
             return segment.ReadWords(wordOffset, buffer, 0, wordsInBuffer);

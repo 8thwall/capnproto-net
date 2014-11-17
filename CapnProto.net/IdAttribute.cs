@@ -1,12 +1,11 @@
 ﻿using System;
-using System.ComponentModel;
 
 namespace CapnProto
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Field
         | AttributeTargets.Enum | AttributeTargets.Module, AllowMultiple = false, Inherited = false)]
-#if !PCL
-    [ImmutableObject(true)]
+#if FULLCLR
+    [System.ComponentModel.ImmutableObject(true)]
 #endif
     public sealed class IdAttribute : Attribute
     {

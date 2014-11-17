@@ -1,7 +1,6 @@
 ﻿using CapnProto.Schema;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -763,7 +762,7 @@ namespace CapnProto
             }
             if (slot.hadExplicitDefault)
             {
-                WriteLine().Write("[").Write(typeof(DefaultValueAttribute)).Write("(").Write(type, slot.defaultValue).Write(")]");
+                WriteLine().Write("[").Write(typeof(System.ComponentModel.DefaultValueAttribute)).Write("(").Write(type, slot.defaultValue).Write(")]");
             }
 
             BeginProperty(type, field.name.ToString(), false);

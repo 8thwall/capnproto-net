@@ -46,6 +46,7 @@ namespace CapnProto
             int space = checked(availableWords - (int)wordOffset);
             return Math.Min(space, suggestedWords);
         }
+#if UNSAFE
         protected override unsafe bool TryReadWord(long wordOffset, out ulong value)
         {
             if(wordOffset < availableWords)
@@ -59,6 +60,19 @@ namespace CapnProto
             value = 0;
             return false;
         }
+#else
+        protected override bool TryReadWord(long wordOffset, out ulong value)
+        {
+            if(wordOffset < availableWords)
+            {
+                value = BufferSegment.ReadWord(buffer, underlyingBaseOffset + (int)(wordOffset << 3));
+                return true;
+            }
+            value = 0;
+            return false;
+        }
+        
+#endif
         protected override bool InitializeSegment(ISegment segment, long wordOffset, int totalWords, int activeWords)
         {
             ((BufferSegment)segment).Init(buffer, checked(underlyingBaseOffset + (int)(wordOffset << 3)), totalWords, activeWords);

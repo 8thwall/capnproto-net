@@ -1,11 +1,10 @@
 ﻿using System;
-using System.ComponentModel;
 
 namespace CapnProto
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
-#if !PCL
-    [ImmutableObject(true)]
+#if FULLCLR
+    [System.ComponentModel.ImmutableObject(true)]
 #endif
     public sealed class StructAttribute: Attribute
     {

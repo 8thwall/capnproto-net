@@ -25,7 +25,11 @@ namespace CapnProto
         }
 
         bool ISegmentFactory.ReadNext(Message message) { return ReadNext(message); }
-        protected virtual unsafe bool ReadNext(Message message)
+        protected virtual
+#if UNSAFE
+            unsafe
+#endif
+            bool ReadNext(Message message)
         {
             ulong word;
             if (!TryReadWord(wordOffset++, out word) || word == 0) return false;
@@ -42,7 +46,11 @@ namespace CapnProto
             message.ResetSegments(segments);
 
             int totalWords = 0;
+#if UNSAFE
             int* lengths = stackalloc int[segments];
+#else
+            int[] lengths = new int[segments];
+#endif
             for (int i = 0; i < segments; i++)
             {
                 if ((i % 2) == 0)

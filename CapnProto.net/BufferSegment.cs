@@ -22,6 +22,7 @@ namespace CapnProto
             this.activeWords = activeWords;
             if (activeWords < capacityWords) Array.Clear(buffer, offset, capacityWords - activeWords);
         }
+#if UNSAFE
         public override unsafe ulong this[int index]
         {
             get
@@ -48,6 +49,53 @@ namespace CapnProto
                 typed[index] = (value & mask) | (typed[index] & ~mask);
             }
         }
+#else
+        internal static ulong ReadWord(byte[] buffer, int offset)
+        {
+            unchecked
+            {
+                int lhs = buffer[offset++] | (buffer[offset++] << 8) | (buffer[offset++] << 16) | (buffer[offset++] << 24);
+                int rhs = buffer[offset++] | (buffer[offset++] << 8) | (buffer[offset++] << 16) | (buffer[offset] << 24);
+                return ((ulong)(uint)lhs) | (((ulong)(uint)rhs) << 32);
+            }
+        }
+        internal static void WriteWord(byte[] buffer, int offset, ulong value)
+        {
+            unchecked
+            {
+                buffer[offset++] = (byte)value;
+                buffer[offset++] = (byte)(value >> 8);
+                buffer[offset++] = (byte)(value >> 16);
+                buffer[offset++] = (byte)(value >> 24);
+                buffer[offset++] = (byte)(value >> 32);
+                buffer[offset++] = (byte)(value >> 40);
+                buffer[offset++] = (byte)(value >> 48);
+                buffer[offset] = (byte)(value >> 56);
+            }
+        }
+        internal static void WriteNibble(byte[] buffer, int offset, uint value)
+        {
+            unchecked
+            {
+                buffer[offset++] = (byte)value;
+                buffer[offset++] = (byte)(value >> 8);
+                buffer[offset++] = (byte)(value >> 16);
+                buffer[offset++] = (byte)(value >> 24);
+            }
+        }
+        public override ulong this[int index]
+        {
+            get
+            {
+                return ReadWord(buffer, offset + (index << 3));
+            }
+            set
+            {
+
+                WriteWord(buffer, offset + (index << 3), value);
+            }
+        }
+#endif
 
         public override void Reset(bool recycling)
         {
@@ -90,7 +138,7 @@ namespace CapnProto
             Buffer.BlockCopy(buffer, bufferOffset, this.buffer, offset + (wordOffset << 3), wordsToCopy << 3);
             return wordsToCopy;
         }
-        public override unsafe int WriteString(int index, string value, int bytes)
+        public override int WriteString(int index, string value, int bytes)
         {
             if (bytes-- > 0)
             {
@@ -102,6 +150,7 @@ namespace CapnProto
             }
             throw new InvalidOperationException();
         }
+
         public override string ReadString(int index, int bytes)
         {
             if (bytes-- > 0)
