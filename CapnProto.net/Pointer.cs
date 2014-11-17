@@ -142,7 +142,14 @@ namespace CapnProto
 
                         if(message.AutoDereference)
                         {
-                            this = this.Dereference(); // gotta love being able to overwrite "this"
+                            if (headerIndex == 0 && header == 2 && this.segment.Index == 0)
+                            {
+                                // root; leave alone
+                            }
+                            else
+                            {
+                                this = this.Dereference(); // gotta love being able to overwrite "this"
+                            }
                         }
                         break;
                     default:
