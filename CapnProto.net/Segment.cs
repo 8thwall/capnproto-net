@@ -79,6 +79,7 @@ namespace CapnProto
             throw new NotImplementedException();
         }
 
+#if UNSAFE
         public virtual unsafe int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
         {
             int space = Length - wordOffset;
@@ -107,5 +108,31 @@ namespace CapnProto
             }
             return maxWords;
         }
+#else
+        public virtual int ReadWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
+        {
+            int space = Length - wordOffset;
+            if (maxWords > space) maxWords = space;
+            
+            for (int i = 0; i < maxWords; i++)
+            {
+                BufferSegment.WriteWord(buffer, bufferOffset, this[wordOffset++]);
+                bufferOffset += 8;
+            }
+            return maxWords;
+        }
+        public virtual int WriteWords(int wordOffset, byte[] buffer, int bufferOffset, int maxWords)
+        {
+            int space = Length - wordOffset;
+            if (maxWords > space) maxWords = space;
+            
+            for (int i = 0; i < maxWords; i++)
+            {
+                this[wordOffset++] = BufferSegment.ReadWord(buffer, bufferOffset);
+                bufferOffset += 8;
+            }
+            return maxWords;
+        }
+#endif
     }
 }

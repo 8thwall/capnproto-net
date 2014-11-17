@@ -337,6 +337,7 @@ namespace CapnProto
         {
             return GetDataWord(index);
         }
+#if UNSAFE
         public unsafe float GetSingle(int index)
         {
             uint val = GetUInt32(index);
@@ -356,6 +357,26 @@ namespace CapnProto
         {
             SetUInt64(index, *(ulong*)(&value));
         }
+#else
+        public float GetSingle(int index)
+        {
+            throw new NotSupportedException();
+        }
+        public void SetSingle(int index, float value)
+        {
+            throw new NotSupportedException();
+        }
+        public double GetDouble(int index)
+        {
+            ulong val = GetDataWord(index);
+            return BitConverter.Int64BitsToDouble(unchecked((long)val));
+        }
+
+        public void SetDouble(int index, double value)
+        {
+            SetUInt64(index, unchecked((ulong)BitConverter.DoubleToInt64Bits(value)));
+        }
+#endif
 
         public bool GetListBoolean(int index)
         {
@@ -431,6 +452,7 @@ namespace CapnProto
         {
             return GetDataWordInBasicList(index);
         }
+#if UNSAFE
         public unsafe float GetListSingle(int index)
         {
             uint val = unchecked((uint)GetDataWordInBasicList(index));
@@ -450,6 +472,26 @@ namespace CapnProto
         {
             SetDataWordInBasicList(index, *(ulong*)(&value), ~(ulong)0);
         }
+#else
+        public float GetListSingle(int index)
+        {
+            throw new NotImplementedException();
+        }
+        public void SetListSingle(int index, float value)
+        {
+            throw new NotImplementedException();
+        }
+        public double GetListDouble(int index)
+        {
+            ulong val = GetDataWordInBasicList(index);
+            return BitConverter.Int64BitsToDouble(unchecked((long)val));
+        }
+
+        public void SetListDouble(int index, double value)
+        {
+            SetDataWordInBasicList(index, unchecked((ulong)BitConverter.DoubleToInt64Bits(value)), ~(ulong)0);
+        }
+#endif
         public Pointer Dereference()
         {
             unchecked

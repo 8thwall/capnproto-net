@@ -98,6 +98,7 @@ namespace Tests
             }
         }
 
+#if UNSAFE
         [Test]
         [TestCaseSource("GetSchemaFiles")]
         public void CanGenerateFromSchemasUsingMemoryMappedFiles(string source)
@@ -120,6 +121,7 @@ namespace Tests
                 }
             }
         }
+#endif
 
         private string PickNamespace(string source)
         {

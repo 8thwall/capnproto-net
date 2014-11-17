@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-
+#if UNSAFE
 namespace CapnProto
 {
     public class BufferPointerSegment : PointerSegment
@@ -38,3 +38,4 @@ namespace CapnProto
         }
     }
 }
+#endif

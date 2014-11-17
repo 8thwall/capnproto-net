@@ -4,6 +4,7 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Text;
 
+#if UNSAFE
 namespace CapnProto
 {
     public unsafe sealed class MemoryMappedFileSegmentFactory : SegmentFactory
@@ -155,3 +156,4 @@ namespace CapnProto
         }
     }
 }
+#endif

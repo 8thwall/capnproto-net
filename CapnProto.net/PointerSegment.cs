@@ -2,9 +2,10 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
+#if UNSAFE
 namespace CapnProto
 {
-    
+
     public unsafe class PointerSegment : Segment
     {
         private class PointerOwningSegment : PointerSegment
@@ -162,3 +163,4 @@ namespace CapnProto
         }
     }
 }
+#endif
