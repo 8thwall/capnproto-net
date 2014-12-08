@@ -1308,5 +1308,51 @@ namespace CapnProto
                     return false;
             }
         }
+
+        internal void CopyTo(byte[] buffer, int destinationIndex, int sourceIndex, int count)
+        {
+            var ptr = this;
+            if (ptr.IsFar)
+            {
+                ptr = ptr.Dereference();
+            }
+            ptr.AssertNilOrSingleByte();
+
+            int len = ptr.SingleByteLength;
+            if (count < 0) count = len - sourceIndex;
+            else if (sourceIndex + count > len)
+            {
+                throw new ArgumentOutOfRangeException("count");
+            }
+            if (buffer == null) throw new ArgumentNullException("buffer");
+            if (count < 0) throw new ArgumentOutOfRangeException("count");
+            if (destinationIndex < 0 || destinationIndex >= buffer.Length) throw new ArgumentOutOfRangeException("destinationIndex");
+            if (sourceIndex < 0) throw new ArgumentOutOfRangeException("sourceIndex");
+            if (destinationIndex + count > buffer.Length) throw new ArgumentOutOfRangeException("count");
+
+
+            unchecked
+            {
+                int wordIndex = (int)(startAndType >> 3), words = count >> 3;
+                var segment = ptr.segment;
+                if (words != 0)
+                {
+                    segment.ReadWords(wordIndex, buffer, destinationIndex, words);
+                    destinationIndex += words << 3;
+                }
+
+                int bytes = count & 7;
+                if (bytes != 0)
+                {
+                    var word = segment[wordIndex + words];
+                    for (int i = 0; i < bytes; i++)
+                    {
+                        buffer[destinationIndex++] = (byte)word;
+                        word >>= 8;
+                    }
+                }
+            }
+
+        }
     }
 }

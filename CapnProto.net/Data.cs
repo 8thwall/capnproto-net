@@ -16,13 +16,16 @@ namespace CapnProto
         public static Data Create(Pointer parent, int length) { return (Data)parent.AllocateList(ElementSize.OneByte, length); }
 
         public int Count() { return pointer.SingleByteLength; }
-        public void CopyTo(byte[] buffer, int destinationIndex = 0, int sourceIndex = 0, int count = -1) { throw new NotImplementedException(); }
+        public void CopyTo(byte[] buffer, int destinationIndex = 0, int sourceIndex = 0, int count = -1)
+        {
+            pointer.CopyTo(buffer, destinationIndex, sourceIndex, count);
+        }
 
         public int GetByteCount() { return pointer.SingleByteLength; }
         public byte this[int index]
         {
-            get { return unchecked((byte)pointer.GetDataWord(index)); }
-            set { pointer.SetDataWord(index, unchecked((ulong)value), (ulong)0xFF); }
+            get { return pointer.GetListByte(index); }
+            set { pointer.SetListByte(index, value); }
         }
 
         public override bool Equals(object obj)
