@@ -1,3 +1,7 @@
+This project is archived, and has been intentionally transferred to SE and made private for that purpose.
+
+---
+
 `CapnProto-net` is a .NET implementation of the [Cap'n Proto](http://kentonv.github.io/capnproto/) data format. It is a binary format suitable for transport, exchange, storage and live in-memory usage.
 
 Rather than being a *serialization* format as such, it instead describes a mapping a memory space to objects directly. This means that *there is no serialization step*: you simply work with the objects, and the in-memory representation is already serialized - it just needs to be copied to the destination. Likewise, instead of *deserializing*, you simply load a message, and access the root node.
